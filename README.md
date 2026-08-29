@@ -17,12 +17,12 @@ Mismo stack de `geoquest-web` (paridad deliberada, no reinventar convenciones): 
 
 **Diferencias deliberadas** (detalle y razones en el plan):
 
-| Pieza | `geoquest-web` | Este repo |
-|---|---|---|
-| Navegación | Bottom nav / rail | Sidebar fijo, desktop-first |
-| PWA (`vite-plugin-pwa`) | Sí | No |
-| Mapbox, Framer Motion | Sí | No (se instalan si B-02 los llega a necesitar) |
-| MSW | Solo en tests (Vitest) | También en el navegador (`npm run dev` y el deploy de Vercel) — el backend de `Business` no existe todavía, así que el portal necesita poder demostrarse sin él |
+| Pieza                   | `geoquest-web`         | Este repo                                                                                                                                                       |
+| ----------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navegación              | Bottom nav / rail      | Sidebar fijo, desktop-first                                                                                                                                     |
+| PWA (`vite-plugin-pwa`) | Sí                     | No                                                                                                                                                              |
+| Mapbox, Framer Motion   | Sí                     | No (se instalan si B-02 los llega a necesitar)                                                                                                                  |
+| MSW                     | Solo en tests (Vitest) | También en el navegador (`npm run dev` y el deploy de Vercel) — el backend de `Business` no existe todavía, así que el portal necesita poder demostrarse sin él |
 
 ## Mock-first
 
