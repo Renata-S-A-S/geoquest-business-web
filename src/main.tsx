@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom'
 import { AppProviders } from './app/providers'
 import { router } from './app/routes'
 import { USE_MOCKS } from '@/shared/lib/env'
+import '@/shared/lib/i18n'
 import './index.css'
 
 /**

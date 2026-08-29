@@ -6,11 +6,13 @@ const alias = {
 }
 
 /**
- * WU1: coverage habilitado, SIN thresholds todavía — no hay código real que
- * medir. El gate bloqueante se agrega en WU6, con el baseline realmente
- * medido sobre el scaffold terminado (mismo criterio que usó geoquest-web:
- * baseline medido, nunca un número inventado ni copiado). Ver
- * plan-geoquest-business-web.md, Paso 4.
+ * WU6: gate bloqueante agregado, con el baseline REALMENTE medido al cierre
+ * del scaffold (`npm run test:coverage`, clean `npm ci`, 29 ago 2026):
+ * statements 80.76%, branches 89.47%, functions 75%, lines 81.45%.
+ * enforced = floor(measured/5)*5 — mismo criterio de geoquest-web, pero sin
+ * copiar su número: acá no hay un "target" heredado, este ES el primer
+ * baseline del repo. Nunca bajar estos números para forzar un build rojo a
+ * verde — si cae, se sube cobertura real, no el umbral.
  */
 export default defineConfig({
   test: {
@@ -27,6 +29,12 @@ export default defineConfig({
         'src/vite-env.d.ts',
         'src/**/*.test.{ts,tsx}',
       ],
+      thresholds: {
+        statements: 80,
+        branches: 85,
+        functions: 75,
+        lines: 80,
+      },
     },
     projects: [
       {
