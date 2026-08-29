@@ -1,8 +1,20 @@
-/* Tailwind + tokens de marca se agregan en WU2 (design system). */
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
 html {
   scroll-behavior: smooth;
 }
+
 body {
   margin: 0;
-  font-family: sans-serif;
+  background-color: theme('colors.cream');
+  color: theme('colors.ink');
+  font-family: theme('fontFamily.sans');
+}
+
+h1,
+h2,
+h3 {
+  font-family: theme('fontFamily.display');
+  margin: 0;
 }
