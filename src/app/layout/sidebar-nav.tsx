@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { NAV_ITEMS } from './nav-items'
 import { cn } from '@/shared/lib/cn'
 
@@ -10,6 +11,8 @@ import { cn } from '@/shared/lib/cn'
  * deliberadas" en el plan.
  */
 export function SidebarNav() {
+  const { t } = useTranslation()
+
   return (
     <nav className="flex h-full w-[220px] shrink-0 flex-col gap-1 rounded-md bg-ink p-4">
       <div className="mb-4 flex items-center gap-2 px-2">
@@ -18,7 +21,7 @@ export function SidebarNav() {
         </div>
         <span className="font-display text-sm font-bold text-cream">Negocios</span>
       </div>
-      {NAV_ITEMS.map(({ id, to, icon: Icon }) => (
+      {NAV_ITEMS.map(({ id, to, labelKey, icon: Icon }) => (
         <NavLink
           key={id}
           to={to}
@@ -30,7 +33,7 @@ export function SidebarNav() {
           }
         >
           <Icon size={18} weight="fill" />
-          {id}
+          {t(labelKey)}
         </NavLink>
       ))}
     </nav>
