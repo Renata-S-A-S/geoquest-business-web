@@ -1,0 +1,8 @@
+/* Tailwind + tokens de marca se agregan en WU2 (design system). */
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
