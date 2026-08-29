@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { installSessionInterceptors } from '@/shared/lib/session-interceptor'
+import { API_BASE_URL } from '@/shared/lib/env'
 
 /**
  * Cliente Axios único. Bearer token + reintento-tras-401 vienen de
@@ -8,7 +9,7 @@ import { installSessionInterceptors } from '@/shared/lib/session-interceptor'
  * respuestas las sirve MSW (ver WU5); `apiClient` no sabe ni le importa.
  */
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5219',
+  baseURL: API_BASE_URL,
 })
 
 installSessionInterceptors(apiClient)
