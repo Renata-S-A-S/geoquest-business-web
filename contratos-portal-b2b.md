@@ -1,7 +1,7 @@
 # Contratos propuestos — Portal B2B → Backend `Business`
 
 **De:** Jose David (frontend, `geoquest-business-web`) · **Para:** Derek (backend, `geoquest`, slice `004-business-rewards`)
-**Estado:** Propuesta del frontend, no confirmada contra código fuente — el módulo `Business` todavía no existe. Este documento es el mock-first del plan (ADR-048, borrador): el frontend propone, el backend valida y tiene la última palabra en caso de conflicto.
+**Estado:** Propuesta del frontend, no confirmada contra código fuente — el módulo `Business` todavía no existe. Este documento es el mock-first del plan (ADR-048-BF, borrador): el frontend propone, el backend valida y tiene la última palabra en caso de conflicto.
 
 Fuente: el ERD de Confluence (`🗺️ Modelo de Datos`) da las **entidades**; los flujos B-01 a B-05 (`🏢 Flujos del Negocio`) dan los **flujos**. Ninguno de los dos da **endpoints** — eso es lo que este documento propone.
 
