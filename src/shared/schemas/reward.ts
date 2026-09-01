@@ -32,6 +32,7 @@ export const rewardSchema = z
     estimatedValueCop: z.number().nonnegative(),
     validFrom: z.string().datetime().nullable(),
     validUntil: z.string().datetime().nullable(),
+    ownTerms: z.string().nullable(), // B-03 paso 6: T&C propios opcionales del negocio — no citado literal en Confluence, agregado 1 sep 2026 (gap detectado durante el desglose de tareas de la épica #13)
     // 'Exhausted' citado literalmente (RN-REW-05). 'Paused' citado (RN-BIZ-04,
     // cascada de negocio suspendido). 'Draft'/'Active' propuestos desde B-03
     // ("publica la recompensa" implica un estado previo no publicado).
@@ -56,5 +57,6 @@ export const createRewardInputSchema = z.object({
   stock: z.number().int().positive().nullable(),
   validFrom: z.string().datetime().nullable(),
   validUntil: z.string().datetime().nullable(),
+  ownTerms: z.string().nullable(),
 })
 export type CreateRewardInput = z.infer<typeof createRewardInputSchema>

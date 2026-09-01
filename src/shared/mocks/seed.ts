@@ -77,6 +77,7 @@ export const SEED_REWARDS: Reward[] = [
     estimatedValueCop: 15000,
     validFrom: null,
     validUntil: null,
+    ownTerms: null,
     status: 'Active',
   },
 ]
