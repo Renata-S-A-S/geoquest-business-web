@@ -5,5 +5,12 @@
     "rewards": "Recompensas",
     "redemptions": "Validar canje",
     "analytics": "Analytics"
+  },
+  "notifications": {
+    "updateAvailable": "Hay una versión nueva disponible",
+    "update": "Actualizar"
+  },
+  "aria": {
+    "dismiss": "Cerrar"
   }
 }

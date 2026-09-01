@@ -4,17 +4,20 @@ import { NAV_ITEMS } from './nav-items'
 import { cn } from '@/shared/lib/cn'
 
 /**
- * Sidebar fijo, desktop-first — sin variante bottom-nav para mobile (a
- * diferencia de geoquest-web). El staff de un negocio opera desde mostrador
- * o escritorio; el único flujo con vocación móvil real es B-04 (escanear el
- * QR), que se reevalúa aparte cuando se implemente. Ver "Diferencias
- * deliberadas" en el plan.
+ * Sidebar con labels — visible desde 1024px (breakpoint `lg`), reemplazada
+ * por `BottomNav` por debajo de ese corte (mobile-first, decisión del
+ * founder que reemplaza el desktop-first original — ver ADR pendiente que
+ * supersede la parte de navegación de ADR-047-BF).
+ *
+ * A diferencia del rail angosto de geoquest-web, acá se mantiene con
+ * labels también en desktop: es un panel de gestión con más secciones y
+ * más densidad de datos que el mapa de exploración, no una app de consumo.
  */
 export function SidebarNav() {
   const { t } = useTranslation()
 
   return (
-    <nav className="flex h-full w-[220px] shrink-0 flex-col gap-1 rounded-md bg-ink p-4">
+    <nav className="hidden h-full w-[220px] shrink-0 flex-col gap-1 rounded-md bg-ink p-4 lg:flex">
       <div className="mb-4 flex items-center gap-2 px-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-teal">
           <b className="font-display text-sm text-cream">G</b>

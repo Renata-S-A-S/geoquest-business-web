@@ -5,5 +5,12 @@
     "rewards": "Rewards",
     "redemptions": "Validate redemption",
     "analytics": "Analytics"
+  },
+  "notifications": {
+    "updateAvailable": "A new version is available",
+    "update": "Update"
+  },
+  "aria": {
+    "dismiss": "Dismiss"
   }
 }

@@ -4,29 +4,27 @@ Panel de gestión web para dueños de negocios partner de GeoQuest (`Business` /
 
 - Plan de trabajo de este scaffold: `plan-geoquest-business-web.md`
 - Contratos propuestos al backend: `contratos-portal-b2b.md`
-- Arquitectura y decisiones: Confluence, espacio CDP — [🏗️ Arquitectura Técnica](https://renatageoquest.atlassian.net/wiki/spaces/CDP/pages/1343490), [📝 Decisiones & ADRs](https://renatageoquest.atlassian.net/wiki/spaces/CDP/pages/1474562) (ADR-046/047/048, reservados en página hija hasta que se acepten)
+- Arquitectura y decisiones: Confluence, espacio CDP — [🏗️ Arquitectura Técnica](https://renatageoquest.atlassian.net/wiki/spaces/CDP/pages/1343490), [📝 Decisiones & ADRs](https://renatageoquest.atlassian.net/wiki/spaces/CDP/pages/1474562) (ADR-046-BF/047-BF/048-BF/049-BF, reservados en página hija — namespace propio, no colisiona con la numeración plana del backend)
 - Slice: `004b-business-portal-scaffold`
 
 ## Por qué existe un tercer repo
 
-El diagrama de Arquitectura Técnica ya contemplaba un `Portal B2B (Negocios)` como cliente separado de la misma API. Es un tercer frontend, no una feature de `geoquest-web` — audiencia, navegación (desktop-first, sin bottom nav) y ciclo de vida propios. Ver ADR-046 (borrador).
+El diagrama de Arquitectura Técnica ya contemplaba un `Portal B2B (Negocios)` como cliente separado de la misma API. Es un tercer frontend, no una feature de `geoquest-web` — audiencia y ciclo de vida propios. Ver ADR-046-BF (borrador).
 
 ## Stack
 
-Mismo stack de `geoquest-web` (paridad deliberada, no reinventar convenciones): React 18 + TypeScript, Vite 6, Zustand, TanStack Query v5, React Router v6, Tailwind CSS v4, React Hook Form + Zod, Axios, Phosphor Icons, react-i18next (ES+EN), Vitest + Testing Library + MSW, hosting en Vercel.
+Mismo stack de `geoquest-web` (paridad deliberada, no reinventar convenciones): React 18 + TypeScript, Vite 6, Zustand, TanStack Query v5, React Router v6, Tailwind CSS v4, React Hook Form + Zod, Axios, Phosphor Icons, react-i18next (ES+EN), Vitest + Testing Library + MSW, `vite-plugin-pwa`, navegación mobile-first (bottom nav / sidebar), hosting en Vercel. Ver ADR-049-BF: el portal pasó de "panel desktop-first" a mobile-first — el catálogo original de "diferencias deliberadas" quedó reducido a lo de abajo.
 
 **Diferencias deliberadas** (detalle y razones en el plan):
 
-| Pieza                   | `geoquest-web`         | Este repo                                                                                                                                                       |
-| ----------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Navegación              | Bottom nav / rail      | Sidebar fijo, desktop-first                                                                                                                                     |
-| PWA (`vite-plugin-pwa`) | Sí                     | No                                                                                                                                                              |
-| Mapbox, Framer Motion   | Sí                     | No (se instalan si B-02 los llega a necesitar)                                                                                                                  |
-| MSW                     | Solo en tests (Vitest) | También en el navegador (`npm run dev` y el deploy de Vercel) — el backend de `Business` no existe todavía, así que el portal necesita poder demostrarse sin él |
+| Pieza                 | `geoquest-web`         | Este repo                                                                                                                                                       |
+| --------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mapbox, Framer Motion | Sí                     | No (se instalan si B-02 los llega a necesitar)                                                                                                                  |
+| MSW                   | Solo en tests (Vitest) | También en el navegador (`npm run dev` y el deploy de Vercel) — el backend de `Business` no existe todavía, así que el portal necesita poder demostrarse sin él |
 
 ## Mock-first
 
-El backend de `Business` arranca en paralelo (slice `004-business-rewards`, Derek). Este repo avanza contra contratos definidos por el frontend (`contratos-portal-b2b.md`) y mockeados con MSW + `localStorage`, sin esperar al backend real (ADR-048 borrador). `VITE_USE_MOCKS=true` es el default hasta que el backend exista — ver `.env.example`.
+El backend de `Business` arranca en paralelo (slice `004-business-rewards`, Derek). Este repo avanza contra contratos definidos por el frontend (`contratos-portal-b2b.md`) y mockeados con MSW + `localStorage`, sin esperar al backend real (ADR-048-BF borrador). `VITE_USE_MOCKS=true` es el default hasta que el backend exista — ver `.env.example`.
 
 ## Comandos
 
