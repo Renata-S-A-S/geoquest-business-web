@@ -1,7 +1,7 @@
 # Contratos propuestos — Portal B2B → Backend `Business`
 
 **De:** Jose David (frontend, `geoquest-business-web`) · **Para:** Derek (backend, `geoquest`, slice `004-business-rewards`)
-**Estado:** Propuesta del frontend, no confirmada contra código fuente — el módulo `Business` todavía no existe. Este documento es el mock-first del plan (ADR-048-BF, borrador): el frontend propone, el backend valida y tiene la última palabra en caso de conflicto.
+**Estado:** Revisado por Derek el 31 ago 2026 ([comentario en PR #8](https://github.com/Renata-S-A-S/geoquest-business-web/pull/8)) — correcciones aplicadas más abajo. El módulo `Business` ya existe y está implementado (Work Units A-G del slice `004-business-rewards`, mergeados 29-31 ago 2026); este documento deja de ser una propuesta pura y pasa a documentar qué del contrato original se confirmó, qué cambió, y qué sigue sin resolver.
 
 Fuente: el ERD de Confluence (`🗺️ Modelo de Datos`) da las **entidades**; los flujos B-01 a B-05 (`🏢 Flujos del Negocio`) dan los **flujos**. Ninguno de los dos da **endpoints** — eso es lo que este documento propone.
 
@@ -12,7 +12,7 @@ Los schemas Zod ejecutables (fuente de verdad del shape, más completos que las 
 ## 1. Convención general
 
 - Errores en formato `problem+json` (RFC7807), igual que el resto del backend: `{ title, detail?, status }`.
-- Todos los endpoints requieren sesión de `BusinessStaff` autenticado (ver §4, pregunta abierta) salvo que se indique lo contrario.
+- Todos los endpoints requieren sesión de `BusinessStaff` autenticado (mismo `Identity` que `Explorer`, claim de rol distinto — ver §4.1) salvo que se indique lo contrario.
 - IDs: UUID. Fechas: ISO 8601 UTC (`datetime`), coherente con ADR-023.
 - Las relaciones cruzadas entre módulos son **soft references** (Guid sin FK de BD) — el contrato no debe asumir joins ni datos embebidos que el backend no vaya a poder resolver barato (ver nota del ERD).
 
@@ -64,20 +64,29 @@ Los schemas Zod ejecutables (fuente de verdad del shape, más completos que las 
 
 ### 2.4 UserReward — validar canje (B-04)
 
-| Verbo  | Path                                  | Body                                    | Response                                                                               | Fuente         |
-| ------ | ------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- | -------------- |
-| `GET`  | `/user-rewards/by-qr-token/{qrToken}` | —                                       | `UserReward` (con datos del explorador embebidos: nombre, foto — ver pregunta abierta) | B-04 pasos 2–3 |
-| `POST` | `/user-rewards/{id}/redeem`           | `RedeemUserRewardInput` (`{ qrToken }`) | `UserReward` (status `Redeemed`)                                                       | B-04 paso 4    |
+| Verbo  | Path                                  | Body                                    | Response                                                                                                                            | Fuente         |
+| ------ | ------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `GET`  | `/user-rewards/by-qr-token/{qrToken}` | —                                       | `UserReward` (con datos del explorador embebidos: nombre, foto — shape exacto sin definir, detalle de implementación no bloqueante) | B-04 pasos 2–3 |
+| `POST` | `/user-rewards/{id}/redeem`           | `RedeemUserRewardInput` (`{ qrToken }`) | `UserReward` (status `Redeemed`)                                                                                                    | B-04 paso 4    |
 
 RN-REW-04: el QR es válido 30 min desde su generación, un solo uso, token firmado server-side — **el portal nunca genera el token, solo lo valida**. RN-REW-06: solo `BusinessStaff` del negocio dueño de la `Reward` puede validar — el backend debe rechazar si `businessId` no coincide, no confiar en que el frontend no lo intente.
 
 `origin: Purchased | Granted` (ADR-045, RN-REW-10) determina si el canje descuenta `geoPointsCost` — **el portal debe mostrar esta distinción en B-04**, no solo el monto, para que el staff entienda por qué una `UserReward` "otorgada" no resta saldo.
 
-### 2.5 Commission — pregunta abierta, ver §4
+### 2.5 Commission — se expone en el portal, confirmado por Derek
 
 | Verbo | Path                       | Body | Response       | Fuente                  |
 | ----- | -------------------------- | ---- | -------------- | ----------------------- |
 | `GET` | `/business/me/commissions` | —    | `Commission[]` | RN-BIZ-06, nota del ERD |
+
+⚠️ **`src/shared/schemas/commission.ts` y `subscription.ts` (ya en `main`) quedaron con el modelo viejo** — comisión variable por plan (`commissionRate: number`, tramos 5–10%) y `Subscription.businessId`, ambos obsoletos desde ADR-046 (28 ago 2026). El modelo real, confirmado en [🏢 RN-BIZ — Negocios](https://renatageoquest.atlassian.net/wiki/spaces/CDP/pages/1277955):
+
+- **Comisión fija del 10%** sobre `Reward.estimatedValueCop`, sin tramos ni planes (RN-BIZ-06 reescrita). Se genera solo al pasar a `Redeemed`.
+- **`Subscription` ya no debería tener `businessId`** — no hay planes de negocio, RN-BIZ-05 fue **eliminada** por ADR-046. Habría que revisar si `Subscription` como entidad sigue teniendo sentido del lado negocio en absoluto, o si queda acotada a exploradores (Premium, ver ADR-047 sin sufijo).
+- Toggle de cobro real (`PlatformCommissionSetting.IsEnabled`) ya implementado en el backend, solo un Admin lo cambia, nunca retroactivo.
+- `Reward.estimatedValueCop` pasa a derivarse de un menú con precios visible al explorador (RN-BIZ-08), no un campo libre — agrega `Reward.menuItemId` (nullable) al modelo, todavía no reflejado en `reward.ts` del frontend. Construcción real diferida a la prueba piloto, no al slice 004.
+
+**Pendiente, sin abrir todavía:** un PR que alinee `commission.ts`/`subscription.ts`/`reward.ts` con este modelo — no incluido en este documento a propósito, para no mezclar la corrección de contrato con la implementación del fix.
 
 ### 2.6 Analytics (B-05)
 
@@ -92,8 +101,8 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 - **RN-BIZ-01/02**: verificación por documento legal + cruce Google Maps, SLA 48h.
 - **RN-BIZ-03**: ningún negocio publica `Reward` sin haber firmado el Acuerdo Comercial (checkbox + timestamp).
 - **RN-BIZ-04**: cascada de desactivación — negocio `Suspended` ⇒ sus `Place` pasan a `Paused`, sus `Reward` activas pasan a `Paused`. Las `UserReward` ya `Earned` sobreviven y pueden canjearse si el negocio vuelve a `Active`.
-- **RN-BIZ-05**: límites de plan (Places/Rewards activos máx.) — Free: 3/1. Configurables sin deploy según Confluence; ver pregunta abierta en §4 sobre cómo el portal los lee.
-- **RN-BIZ-06**: comisión 5–10% por canje, definida en el Acuerdo Comercial — `status = Waived` durante el MVP (ADR-016).
+- ~~**RN-BIZ-05**: límites de plan (Places/Rewards activos máx.)~~ — **eliminada por ADR-046** (28 ago 2026). No hay planes de negocio, no hay límites derivados de plan. Si hiciera falta un tope, sería operativo (antiabuso), nunca por suscripción.
+- **RN-BIZ-06** (reescrita — ADR-046): comisión **fija del 10%** sobre `estimatedValueCop`, sin tramos por plan — `status = Waived` durante el piloto (ADR-016), con toggle admin-only ya implementado para activar el cobro real.
 - **RN-GAM-03/10**: `xpReward`/`geoPointsReward` de un `BusinessVenue` los fija la plataforma, nunca el input del negocio — rechazar cualquier intento del frontend de setearlos directamente.
 - **RN-REW-04**: QR de 30 min, un solo uso, firmado server-side.
 - **RN-REW-05**: `stockRedeemed === stock` ⇒ `Exhausted` automático, sin nuevas `UserReward`.
@@ -103,16 +112,19 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 
 ---
 
-## 4. Preguntas abiertas — Derek decide
+## 4. Preguntas abiertas
 
-Estas son las decisiones que bloquean cerrar el contrato de verdad. El frontend asumió lo mínimo necesario para no bloquearse (ver `SessionPort` en el código, §5), pero no puede resolverlas por su cuenta.
+### Resueltas (revisión de Derek, 31 ago 2026)
 
-1. **Autenticación de `BusinessStaff`.** ¿Mismo Identity que `Explorer` con un claim de rol distinto, o un mecanismo de login propio? ¿Aplica Google OAuth o solo email/password? El frontend aisló esto detrás de un `SessionPort` (interfaz + mock) precisamente para no tener que asumir la respuesta — cuando esté definida, se implementa una sola clase nueva, nada más del código se entera. Ver `src/shared/lib/session-port.ts`.
-2. **¿Se expone `Commission` al portal durante el MVP?** RN-BIZ-06 define 5–10%, pero ADR-016 difiere la monetización y el ERD dice `status = Waived` en el MVP. ¿Vale la pena la pantalla si siempre va a mostrar $0 efectivo, o se posterga hasta v1 post-MVP?
-3. **Subida de archivos** (documento legal NIT/RUT/RFC, video de 30s de verificación, fotos de `Place`, fotos de `Reward` si aplica): ¿SAS token de Azure Blob directo desde el cliente, o un endpoint del backend que reciba el binario? Afecta directamente cómo se implementa el formulario de B-01 y B-02.
-4. **Límites de plan configurables "sin deploy"** (RN-BIZ-05): ¿el portal los lee de un endpoint (`GET /config/plan-limits`), o quedan hardcodeados en el frontend hasta que exista ese endpoint?
-5. **Shape de `coordinates` en `Place`**: el ERD dice `json coordinates` sin más detalle. El frontend propuso `{ lat: number, lng: number }` — confirmar que coincide con lo que el backend serializa (¿GeoJSON `Point`? ¿`{ latitude, longitude }`?).
-6. **`Commission.billingPeriod`**: shape sin confirmar — ¿`"2026-09"` (mes)? ¿semana ISO? ¿rango de fechas?
+1. ✅ **Autenticación de `BusinessStaff`** — mismo `Identity` que `Explorer`, con claim de rol distinto, misma cuenta (`ApplicationUser : IdentityUser<Guid>`, `BusinessStaff.ExplorerId` enlaza a la cuenta, `RoleManager` ya cableado). **No hace falta un mecanismo de auth separado** — el `SessionPort` del frontend (`src/shared/lib/session-port.ts`) ya es la abstracción correcta; cuando se implemente la sesión real, es una sola clase nueva, nada más del código se entera.
+2. ✅ **`Commission` sí se expone al portal** durante el MVP, aunque muestre `status = Waived` (comisión registrada pero no cobrada) durante el piloto — ver §2.5 y §3 para el modelo real (10% fijo, no por plan).
+3. ✅ ~~**Límites de plan configurables**~~ — **pregunta anulada**, no solo respondida: RN-BIZ-05 fue eliminada (ADR-046), no existen planes de negocio ni límites derivados de plan. No hace falta ningún endpoint de config para esto.
+
+### Genuinamente sin resolver — no es un error del documento, falta documentarse en Confluence antes de implementar (nota de Derek)
+
+4. **Subida de archivos** (documento legal NIT/RUT/RFC, video de 30s de verificación, fotos de `Place`, fotos de `Reward`, y ahora también el menú con precios de RN-BIZ-08): ¿SAS token de Azure Blob directo desde el cliente, o un endpoint del backend que reciba el binario? Afecta directamente cómo se implementa el formulario de B-01, B-02 y el nuevo menú.
+5. **Shape de `coordinates` en `Place`**: el ERD dice `json coordinates` sin más detalle. El frontend propuso `{ lat: number, lng: number }` — sin definición registrada de si es eso, GeoJSON `Point`, o `{ latitude, longitude }`.
+6. **`Commission.billingPeriod`**: sin convención registrada — ¿facturación mes vencido, semana ISO, o rango de fechas? (RN-BIZ-06 confirma que la facturación es "mensual consolidada" vía sweep, pero no el shape exacto del campo).
 
 ---
 
