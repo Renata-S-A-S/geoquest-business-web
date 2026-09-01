@@ -4,7 +4,7 @@ import type { Config } from 'tailwindcss'
  * Paleta y tipografía heredadas 1:1 de geoquest-web / el sistema de diseño
  * de marca (Confluence: Identidad de Marca & Sistema de Diseño). La FIRMA
  * VISUAL lúdica (borde rasgado, sello de barrio, textura topográfica) NO se
- * hereda — ver ADR-047 (borrador). Un panel B2B necesita densidad de datos,
+ * hereda — ver ADR-047-BF (borrador). Un panel B2B necesita densidad de datos,
  * no una libreta de aventura.
  *
  * Modo oscuro: NO implementado en este scaffold. geoquest-web tampoco lo
@@ -20,7 +20,7 @@ export default {
       colors: {
         // Paleta de marca (6 colores del design system)
         teal: '#0EA5A0', // Explorer teal — marca, botón primario, nav activa
-        coral: '#FF7A59', // Sunset coral — acentos puntuales (NO celebración en el portal, ver ADR-047)
+        coral: '#FF7A59', // Sunset coral — acentos puntuales (NO celebración en el portal, ver ADR-047-BF)
         green: '#3ECF8E', // Spring green — estados de éxito
         ink: '#10262B', // Jungle ink — texto principal, fondos oscuros (sidebar)
         cream: '#FFF9F2', // Cloud cream — fondo claro por defecto
