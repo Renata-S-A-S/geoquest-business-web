@@ -15,6 +15,10 @@ import { z } from 'zod'
  */
 export const businessStatusSchema = z.enum(['Pending', 'Active', 'Suspended'])
 
+/** NIT | RUT | RFC | RUC según país (RN-BIZ-01) — único subcampo de Business con valores citados literalmente. */
+export const legalDocumentTypeSchema = z.enum(['NIT', 'RUT', 'RFC', 'RUC'])
+export type LegalDocumentType = z.infer<typeof legalDocumentTypeSchema>
+
 export const businessSchema = z.object({
   id: z.string().uuid(),
   legalName: z.string(),
@@ -22,7 +26,7 @@ export const businessSchema = z.object({
   email: z.string().email(),
   category: z.string(),
   status: businessStatusSchema,
-  legalDocumentType: z.string(), // NIT | RUT | RFC | RUC según país (RN-BIZ-01)
+  legalDocumentType: z.string(), // ver legalDocumentTypeSchema — acá queda z.string() para no romper lecturas si el backend agrega un valor nuevo
   legalDocumentNumber: z.string(),
   googleMapsPlaceId: z.string().nullable(),
   isGoogleMapsVerified: z.boolean(),
@@ -36,6 +40,24 @@ export const businessSchema = z.object({
   createdAt: z.string().datetime(),
 })
 export type Business = z.infer<typeof businessSchema>
+
+/**
+ * Input del formulario B-01 (registro de negocio) — issue #21. `POST
+ * /business/register`, contratos-portal-b2b.md §2.1. A diferencia de
+ * `businessSchema` (schema de lectura, sin constraints de validación), acá
+ * sí se exige contenido real (`.min(1)`) porque este schema maneja
+ * directamente los mensajes de error del formulario — mismo criterio que
+ * `createPlaceInputSchema` en `place.ts`.
+ */
+export const registerBusinessInputSchema = z.object({
+  legalName: z.string().min(1),
+  displayName: z.string().min(1),
+  email: z.string().min(1).email(),
+  category: z.string().min(1), // vía Select (#18) — ver business-category-options.ts, lista sin confirmar
+  legalDocumentType: legalDocumentTypeSchema,
+  legalDocumentNumber: z.string().min(1),
+})
+export type RegisterBusinessInput = z.infer<typeof registerBusinessInputSchema>
 
 /**
  * `BusinessStaff` — el usuario real que opera el portal. `role` sin

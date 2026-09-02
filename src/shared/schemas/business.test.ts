@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { businessSchema } from './business'
+import { businessSchema, registerBusinessInputSchema } from './business'
 
 const baseBusiness = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -37,5 +37,50 @@ describe('businessSchema', () => {
 
   it('rejects an invalid email', () => {
     expect(() => businessSchema.parse({ ...baseBusiness, email: 'not-an-email' })).toThrow()
+  })
+})
+
+const baseRegisterInput = {
+  legalName: 'Café de la 70 SAS',
+  displayName: 'Café de la 70',
+  email: 'contacto@cafe70.co',
+  category: 'gastronomia',
+  legalDocumentType: 'NIT',
+  legalDocumentNumber: '900123456-7',
+}
+
+describe('registerBusinessInputSchema', () => {
+  it('parses a valid register input', () => {
+    expect(registerBusinessInputSchema.parse(baseRegisterInput)).toEqual(baseRegisterInput)
+  })
+
+  it.each(['legalName', 'displayName', 'email', 'category', 'legalDocumentNumber'] as const)(
+    'rejects an empty %s',
+    (field) => {
+      expect(() =>
+        registerBusinessInputSchema.parse({ ...baseRegisterInput, [field]: '' })
+      ).toThrow()
+    }
+  )
+
+  it('rejects an invalid email format', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({ ...baseRegisterInput, email: 'not-an-email' })
+    ).toThrow()
+  })
+
+  it.each(['NIT', 'RUT', 'RFC', 'RUC'] as const)(
+    'accepts legalDocumentType %s (RN-BIZ-01)',
+    (legalDocumentType) => {
+      expect(() =>
+        registerBusinessInputSchema.parse({ ...baseRegisterInput, legalDocumentType })
+      ).not.toThrow()
+    }
+  )
+
+  it('rejects a legalDocumentType outside NIT/RUT/RFC/RUC', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({ ...baseRegisterInput, legalDocumentType: 'CUIT' })
+    ).toThrow()
   })
 })
