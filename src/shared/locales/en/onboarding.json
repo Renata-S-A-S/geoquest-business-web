@@ -1,0 +1,25 @@
+{
+  "register": {
+    "title": "Register your business",
+    "fields": {
+      "legalName": { "label": "Legal name", "placeholder": "E.g. Café de la 70 SAS" },
+      "displayName": { "label": "Public name", "placeholder": "E.g. Café de la 70" },
+      "email": { "label": "Email", "placeholder": "contact@yourbusiness.co" },
+      "category": { "label": "Category", "placeholder": "Pick a category" },
+      "legalDocumentType": {
+        "label": "Legal document type",
+        "placeholder": "Pick the document type"
+      },
+      "legalDocumentNumber": { "label": "Document number", "placeholder": "E.g. 900123456-7" }
+    },
+    "validation": {
+      "required": "This field is required",
+      "email": "Enter a valid email address"
+    },
+    "submit": "Register business",
+    "submitting": "Registering…",
+    "errors": {
+      "generic": "We couldn't register the business. Please try again."
+    }
+  }
+}

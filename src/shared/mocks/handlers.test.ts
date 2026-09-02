@@ -63,4 +63,37 @@ describe('mock handlers — round-trip de persistencia', () => {
     const { data } = await apiClient.get('/rewards')
     expect(data).toHaveLength(1)
   })
+
+  it('POST /business/register crea el negocio y GET /business/me lo refleja después', async () => {
+    const input = {
+      legalName: 'Panadería El Trigal SAS',
+      displayName: 'El Trigal',
+      email: 'contacto@eltrigal.co',
+      category: 'gastronomia',
+      legalDocumentType: 'NIT',
+      legalDocumentNumber: '901234567-8',
+    }
+
+    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
+    expect(created.status).toBe(201)
+    expect(created.data).toMatchObject({ ...input, status: 'Pending' })
+
+    const { data: after } = await apiClient.get('/business/me')
+    expect(after).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
+  })
+
+  it('POST /business/register con datos inválidos responde 400 en formato problem+json', async () => {
+    await expect(
+      apiClient.post(
+        '/business/register',
+        { legalName: 'Sin el resto de los campos' },
+        { skipSessionAuth: true }
+      )
+    ).rejects.toMatchObject({
+      response: {
+        status: 400,
+        data: { title: 'ValidationFailed' },
+      },
+    })
+  })
 })

@@ -3,16 +3,20 @@ import { sessionPort as defaultSessionPort } from '@/shared/lib/session-port.ins
 import type { SessionPort } from '@/shared/lib/session-port'
 import { queryClient } from '@/shared/lib/query-client'
 
-type RetriableConfig = InternalAxiosRequestConfig & {
-  _retry?: boolean
-  /**
-   * Opt-out explícito por request, en vez de una lista de paths hardcodeada
-   * (como `/auth/login` en geoquest-web) — todavía no sabemos el path real
-   * de login de BusinessStaff (pregunta abierta, ver contratos-portal-b2b.md).
-   * El futuro endpoint de login lo marca cuando exista.
-   */
-  skipSessionAuth?: boolean
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /**
+     * Opt-out explícito por request, en vez de una lista de paths hardcodeada
+     * (como `/auth/login` en geoquest-web) — cada endpoint sin sesión lo
+     * marca cuando existe. Primer uso real: `POST /business/register` (#21,
+     * `register-business.ts`) — el futuro login de BusinessStaff (#28) lo
+     * necesitará igual.
+     */
+    skipSessionAuth?: boolean
+  }
 }
+
+type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
 let refreshPromise: Promise<string> | null = null
 

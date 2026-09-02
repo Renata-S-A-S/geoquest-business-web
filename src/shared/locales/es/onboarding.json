@@ -1,0 +1,25 @@
+{
+  "register": {
+    "title": "Registra tu negocio",
+    "fields": {
+      "legalName": { "label": "Nombre legal", "placeholder": "Ej. Café de la 70 SAS" },
+      "displayName": { "label": "Nombre público", "placeholder": "Ej. Café de la 70" },
+      "email": { "label": "Correo electrónico", "placeholder": "contacto@tunegocio.co" },
+      "category": { "label": "Categoría", "placeholder": "Elegí una categoría" },
+      "legalDocumentType": {
+        "label": "Tipo de documento legal",
+        "placeholder": "Elegí el tipo de documento"
+      },
+      "legalDocumentNumber": { "label": "Número de documento", "placeholder": "Ej. 900123456-7" }
+    },
+    "validation": {
+      "required": "Este campo es obligatorio",
+      "email": "Ingresá un correo electrónico válido"
+    },
+    "submit": "Registrar negocio",
+    "submitting": "Registrando…",
+    "errors": {
+      "generic": "No pudimos registrar el negocio. Intentá de nuevo."
+    }
+  }
+}

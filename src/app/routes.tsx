@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/app-shell'
 import { ProtectedRoute } from './protected-route'
 import { LoginPage } from '@/features/auth/login-page'
+import { RegisterPage } from '@/features/onboarding/register-page'
+import { PendingStatusPage } from '@/features/onboarding/pending-page'
 import { OnboardingPage } from '@/features/onboarding/onboarding-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { RewardsPage } from '@/features/rewards/rewards-page'
@@ -18,9 +20,31 @@ import { FeatureErrorBoundary } from '@/shared/components/feature-error-boundary
  *
  * Cada página va envuelta en su propio `FeatureErrorBoundary`: un error en
  * Recompensas no debería tumbar el resto del portal.
+ *
+ * `/registro` y `/registro/pendiente` (B-01, #21) son hermanas de `/login`
+ * por el mismo motivo: un negocio registrándose no tiene sesión todavía, así
+ * que no pueden vivir dentro de `ProtectedRoute`. No son lo mismo que
+ * `/negocio` (`OnboardingPage`, más abajo) — esa es la vista autenticada de
+ * "mi negocio" post-login, no el alta inicial.
  */
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  {
+    path: '/registro',
+    element: (
+      <FeatureErrorBoundary featureName="Registro">
+        <RegisterPage />
+      </FeatureErrorBoundary>
+    ),
+  },
+  {
+    path: '/registro/pendiente',
+    element: (
+      <FeatureErrorBoundary featureName="Registro">
+        <PendingStatusPage />
+      </FeatureErrorBoundary>
+    ),
+  },
   {
     element: <ProtectedRoute />,
     children: [
