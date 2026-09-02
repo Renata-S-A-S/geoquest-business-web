@@ -1,9 +1,10 @@
 import type { SessionPort } from '@/shared/lib/session-port'
-import { mockSessionPort } from '@/shared/lib/session-port.mock'
+import { realSessionPort } from '@/shared/lib/session-port.real'
 
 /**
- * Implementación activa. HOY es el mock — cambia esta línea (y solo esta
- * línea) cuando exista el mecanismo real de auth de BusinessStaff. Ni
+ * Implementación activa. Real desde #20 — antes era el mock
+ * (`session-port.mock.ts`, conservado sin cambios para tests/storybook).
+ * Cambia esta línea (y solo esta línea) si hiciera falta volver al mock. Ni
  * `session-interceptor.ts` ni `protected-route.tsx` conocen la diferencia.
  */
-export const sessionPort: SessionPort = mockSessionPort
+export const sessionPort: SessionPort = realSessionPort
