@@ -34,5 +34,30 @@
     "errors": {
       "generic": "No pudimos registrar el negocio. Intentá de nuevo."
     }
+  },
+  "pending": {
+    "title": "Estado de tu negocio",
+    "loading": "Cargando el estado de tu negocio…",
+    "status": {
+      "Pending": "En verificación",
+      "Active": "Activo",
+      "Suspended": "Suspendido"
+    },
+    "sla": "Estamos verificando los datos de tu negocio. La revisión toma hasta 48 horas hábiles desde el registro.",
+    "refresh": "Actualizar estado",
+    "refreshing": "Actualizando…",
+    "resolved": {
+      "Active": {
+        "title": "Tu negocio está verificado",
+        "body": "La verificación terminó y tu negocio ya está activo en GeoQuest."
+      },
+      "Suspended": {
+        "title": "Tu negocio está suspendido",
+        "body": "Tu negocio no está operando en GeoQuest en este momento."
+      }
+    },
+    "errors": {
+      "generic": "No pudimos consultar el estado de tu negocio. Intentá de nuevo."
+    }
   }
 }
