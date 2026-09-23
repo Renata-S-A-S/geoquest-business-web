@@ -174,4 +174,44 @@ describe('mock handlers — round-trip de persistencia', () => {
       },
     })
   })
+
+  it('POST /business/register con categoría "gastronomia" persiste isGoogleMapsVerified true y un place id', async () => {
+    const input = {
+      legalName: 'Panadería El Trigal SAS',
+      displayName: 'El Trigal',
+      email: 'contacto@eltrigal.co',
+      category: 'gastronomia',
+      legalDocumentType: 'NIT',
+      legalDocumentNumber: '901234567-8',
+      commercialAgreementAccepted: true,
+      termsAccepted: true,
+    }
+
+    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
+
+    expect(created.data).toMatchObject({
+      isGoogleMapsVerified: true,
+      googleMapsPlaceId: 'ChIJ_mock_gastronomia',
+    })
+  })
+
+  it('POST /business/register con categoría "servicios" persiste isGoogleMapsVerified false y googleMapsPlaceId null', async () => {
+    const input = {
+      legalName: 'Plomería Rápida SAS',
+      displayName: 'Plomería Rápida',
+      email: 'contacto@plomeriarapida.co',
+      category: 'servicios',
+      legalDocumentType: 'NIT',
+      legalDocumentNumber: '901234568-9',
+      commercialAgreementAccepted: true,
+      termsAccepted: true,
+    }
+
+    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
+
+    expect(created.data).toMatchObject({
+      isGoogleMapsVerified: false,
+      googleMapsPlaceId: null,
+    })
+  })
 })

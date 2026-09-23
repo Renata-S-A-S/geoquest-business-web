@@ -19,12 +19,16 @@ const BUSINESS_STATUS_VARIANT: Record<Business['status'], StatusBadgeVariant> = 
  * y renderiza estado de servidor: un único `useQuery`, sin abstracción
  * nueva (ver design decision 4). RN-BIZ-01 fija el SLA de 48 horas hábiles
  * mientras `status === 'Pending'`; RN-BIZ-02 (rama rápida/reforzada según
- * el cruce con Google Maps) llega en #25 (PR 2) — esta pantalla queda
- * completa y funcional sin esa rama.
+ * el cruce con Google Maps, #25) decide qué copy mostrar dentro de esa
+ * ventana.
  *
  * `staleTime: 30_000` amortigua refetches automáticos (foco de pestaña) sin
  * afectar el refresh manual, que ignora `staleTime`. Ver design decision 3
  * sobre por qué esto vive acá y no en `query-client.ts`.
+ *
+ * Rama rápida/reforzada (#25, RN-BIZ-02): puramente informativa. BL-014
+ * bloquea las acciones de subida de #26 — esta sección nunca debe ofrecer
+ * un control interactivo propio, solo texto.
  */
 export function PendingStatusPage() {
   const { t } = useTranslation('onboarding')
@@ -33,6 +37,9 @@ export function PendingStatusPage() {
     queryFn: getBusinessMe,
     staleTime: 30_000,
   })
+  // Rama fast/reinforced (#25) — solo se usa mientras `Pending`, pero se
+  // computa una vez acá para no repetir el ternario en título y cuerpo.
+  const verificationBranch = data?.isGoogleMapsVerified ? 'fast' : 'reinforced'
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-cream p-4">
@@ -57,7 +64,15 @@ export function PendingStatusPage() {
             />
 
             {data.status === 'Pending' ? (
-              <p className="mb-4">{t('pending.sla')}</p>
+              <>
+                <p className="mb-4">{t('pending.sla')}</p>
+                <section>
+                  <h2 className="mb-1 font-display text-base font-bold text-ink">
+                    {t(`pending.branch.${verificationBranch}.title`)}
+                  </h2>
+                  <p className="mb-4">{t(`pending.branch.${verificationBranch}.body`)}</p>
+                </section>
+              </>
             ) : (
               <>
                 <h2 className="mb-1 font-display text-base font-bold text-ink">

@@ -115,4 +115,46 @@ describe('PendingStatusPage', () => {
       )
     ).not.toBeInTheDocument()
   })
+
+  it('shows fast-track branch text only when the business is Google Maps verified (#25)', async () => {
+    const VERIFIED_PENDING_BUSINESS: Business = {
+      ...SEED_BUSINESS,
+      status: 'Pending',
+      isGoogleMapsVerified: true,
+      googleMapsPlaceId: 'ChIJ_mock_gastronomia',
+    }
+    server.use(
+      http.get(`${API_BASE_URL}/business/me`, () => HttpResponse.json(VERIFIED_PENDING_BUSINESS))
+    )
+
+    renderPendingPage()
+
+    expect(await screen.findByText('Verificación rápida')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Encontramos tu negocio en Google Maps, así que la verificación sigue por la vía rápida. No necesitás hacer nada más.'
+      )
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Verificación reforzada')).not.toBeInTheDocument()
+  })
+
+  it('shows reinforced branch text only when the business is not Google Maps verified, with no actionable control (#25)', async () => {
+    server.use(http.get(`${API_BASE_URL}/business/me`, () => HttpResponse.json(PENDING_BUSINESS)))
+
+    renderPendingPage()
+
+    expect(await screen.findByText('Verificación reforzada')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'No encontramos tu negocio en Google Maps, así que la verificación requiere pasos adicionales. La revisión sigue dentro del mismo plazo de 48 horas hábiles.'
+      )
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Verificación rápida')).not.toBeInTheDocument()
+
+    // Rama solo-informativa (BL-014 bloquea las acciones de subida, #26):
+    // el único control interactivo permitido es el botón de refresh.
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Actualizar estado' })).toBeInTheDocument()
+    expect(screen.queryAllByRole('link')).toHaveLength(0)
+  })
 })

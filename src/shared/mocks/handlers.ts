@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { readDb, writeDb } from '@/shared/mocks/db'
+import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { createPlaceInputSchema, type Place } from '@/shared/schemas/place'
 import { registerBusinessInputSchema, type Business } from '@/shared/schemas/business'
 
@@ -53,8 +54,9 @@ export const handlers = [
       ...businessInput,
       id: crypto.randomUUID(),
       status: 'Pending',
-      googleMapsPlaceId: null,
-      isGoogleMapsVerified: false,
+      // Heurística mock-only (#25) — ver google-maps-verification.mock.ts
+      // para la regla completa y por qué es desechable.
+      ...resolveGoogleMapsVerification(businessInput.category),
       isInformalBusiness: false,
       trustScore: 0,
       trustStatus: 'UnderReview',

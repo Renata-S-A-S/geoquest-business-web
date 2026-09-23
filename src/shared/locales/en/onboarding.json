@@ -44,6 +44,16 @@
       "Suspended": "Suspended"
     },
     "sla": "We're verifying your business details. The review takes up to 48 business hours from registration.",
+    "branch": {
+      "fast": {
+        "title": "Fast-track verification",
+        "body": "We found your business on Google Maps, so verification follows the fast track. Nothing else is needed from you."
+      },
+      "reinforced": {
+        "title": "Reinforced verification",
+        "body": "We couldn't find your business on Google Maps, so verification requires additional steps. The review still runs within the same 48-business-hour window."
+      }
+    },
     "refresh": "Refresh status",
     "refreshing": "Refreshing…",
     "resolved": {
