@@ -24,7 +24,9 @@ Mismo stack de `geoquest-web` (paridad deliberada, no reinventar convenciones): 
 
 ## Mock-first
 
-El backend de `Business` arranca en paralelo (slice `004-business-rewards`, Derek). Este repo avanza contra contratos definidos por el frontend (`contratos-portal-b2b.md`) y mockeados con MSW + `localStorage`, sin esperar al backend real (ADR-048-BF borrador). `VITE_USE_MOCKS=true` es el default hasta que el backend exista — ver `.env.example`.
+El backend de `Business` arranca en paralelo (slice `004-business-rewards`, Derek). Para la mayoría de los flujos, este repo avanza contra contratos definidos por el frontend (`contratos-portal-b2b.md`) y mockeados con MSW + `localStorage`, sin esperar al backend real — esa gobernanza de contratos es ADR-048-BF, **aceptado el 1 sep 2026** (no es un borrador). `VITE_USE_MOCKS=true` es el default hasta que el backend exista — ver `.env.example`.
+
+**Excepción documentada: la subida de archivos.** Esos flujos **sí** esperan al backend real. BL-014 (Derek, 2 sep 2026) rechazó cerrar #14/#22/#26/#31 contra el `Uploader` mock como si fuera la implementación final: siguen bloqueados hasta que exista el backend de subida ([`Renata-S-A-S/geoquest#164`](https://github.com/Renata-S-A-S/geoquest/issues/164)). El mecanismo en sí ya está decidido por **ADR-048** (sin sufijo — otra decisión, distinta de ADR-048-BF): ver §4 de `contratos-portal-b2b.md`.
 
 ## Comandos
 

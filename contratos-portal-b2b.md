@@ -114,15 +114,20 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 
 ## 4. Preguntas abiertas
 
-### Resueltas (revisión de Derek, 31 ago 2026)
+### Resueltas (revisión de Derek, 31 ago 2026 · ADR-048, 2 sep 2026)
 
 1. ✅ **Autenticación de `BusinessStaff`** — mismo `Identity` que `Explorer`, con claim de rol distinto, misma cuenta (`ApplicationUser : IdentityUser<Guid>`, `BusinessStaff.ExplorerId` enlaza a la cuenta, `RoleManager` ya cableado). **No hace falta un mecanismo de auth separado** — el `SessionPort` del frontend (`src/shared/lib/session-port.ts`) ya es la abstracción correcta; cuando se implemente la sesión real, es una sola clase nueva, nada más del código se entera.
 2. ✅ **`Commission` sí se expone al portal** durante el MVP, aunque muestre `status = Waived` (comisión registrada pero no cobrada) durante el piloto — ver §2.5 y §3 para el modelo real (10% fijo, no por plan).
 3. ✅ ~~**Límites de plan configurables**~~ — **pregunta anulada**, no solo respondida: RN-BIZ-05 fue eliminada (ADR-046), no existen planes de negocio ni límites derivados de plan. No hace falta ningún endpoint de config para esto.
+4. ✅ **Subida de archivos** (documento legal NIT/RUT/RFC, video de 30s de verificación, logo, fotos de `Place`, imagen de `Reward`) — resuelta el 2 sep 2026 por [**ADR-048**](https://renatageoquest.atlassian.net/wiki/spaces/CDP/pages/13238273). La dicotomía original era falsa: **Azure Blob nunca fue el stack**. El almacenamiento es **Cloudflare R2** (S3-compatible, vía `AmazonS3Client`; MinIO en local y en Testcontainers), y el patrón es **mediado por el backend** — un endpoint que recibe `multipart/form-data`, **no** un PUT directo desde el cliente con SAS/presigned URL.
+   - **Buckets**: `geoquest-business-documents` (privado, se sirve con presigned URL con expiración — documento legal y video de verificación) y `geoquest-business-assets` (público — logo, fotos de `Place`, imagen de `Reward`).
+   - **Límites**: documento legal PDF/JPG/PNG 5 MB · logo JPG/PNG/WebP 2 MB · foto de `Place` e imagen de `Reward` JPG/PNG/WebP 5 MB · video de verificación MP4/WebM 50 MB, con **MOV excluido explícitamente** y los 30s **no validados server-side**. Ya reflejados client-side en `src/shared/lib/upload-limits.ts`.
+   - **Implementación**: se sigue en [`Renata-S-A-S/geoquest#164`](https://github.com/Renata-S-A-S/geoquest/issues/164). Hasta que aterrice, **BL-014** (Derek, 2 sep 2026) bloquea #22/#26/#31 — no se cierran contra el `Uploader` mock como si fuera la implementación final.
+   - **Alcance**: ADR-048 no enumera el menú con precios de RN-BIZ-08, que la pregunta original incluía — su construcción real está diferida a la prueba piloto (ver §2.5), así que no bloquea el slice 004.
+   - ⚠️ **Colisión de numeración**: hay **dos** ADR distintos con el número 048. Este es **ADR-048** sin sufijo (subida de archivos). **ADR-048-BF** es otra decisión —contratos definidos por el frontend, validados por el backend— y no dice nada sobre archivos.
 
 ### Genuinamente sin resolver — no es un error del documento, falta documentarse en Confluence antes de implementar (nota de Derek)
 
-4. **Subida de archivos** (documento legal NIT/RUT/RFC, video de 30s de verificación, fotos de `Place`, fotos de `Reward`, y ahora también el menú con precios de RN-BIZ-08): ¿SAS token de Azure Blob directo desde el cliente, o un endpoint del backend que reciba el binario? Afecta directamente cómo se implementa el formulario de B-01, B-02 y el nuevo menú.
 5. **Shape de `coordinates` en `Place`**: el ERD dice `json coordinates` sin más detalle. El frontend propuso `{ lat: number, lng: number }` — sin definición registrada de si es eso, GeoJSON `Point`, o `{ latitude, longitude }`.
 6. **`Commission.billingPeriod`**: sin convención registrada — ¿facturación mes vencido, semana ISO, o rango de fechas? (RN-BIZ-06 confirma que la facturación es "mensual consolidada" vía sweep, pero no el shape exacto del campo).
 
