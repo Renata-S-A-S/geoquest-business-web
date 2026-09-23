@@ -405,4 +405,13 @@ describe('RegisterForm', () => {
       expect(body).toBeInTheDocument()
     })
   })
+
+  // Camino de vuelta a `/login` (#74): sin esto, un negocio que ya tiene
+  // cuenta no tendría forma de llegar al login desde esta pantalla.
+  it('links back to the login page', () => {
+    renderRegisterPage()
+
+    const link = screen.getByRole('link', { name: 'Iniciar sesión' })
+    expect(link).toHaveAttribute('href', '/login')
+  })
 })

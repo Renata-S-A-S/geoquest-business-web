@@ -175,4 +175,13 @@ describe('LoginPage', () => {
     expect(screen.getByText('Home marker')).toBeInTheDocument()
     expect(screen.queryByLabelText('Correo electrónico')).not.toBeInTheDocument()
   })
+
+  // Sin este enlace `/registro` sería inalcanzable navegando (#74): un
+  // negocio nuevo no tendría forma de darse de alta desde la interfaz.
+  it('links to the registration page', () => {
+    renderLoginPage()
+
+    const link = screen.getByRole('link', { name: 'Registrar mi negocio' })
+    expect(link).toHaveAttribute('href', '/registro')
+  })
 })
