@@ -15,5 +15,13 @@
   },
   "legal": {
     "nonBindingWarning": "Provisional text. This is not a binding document."
+  },
+  "account": {
+    "title": "Account",
+    "open": "Open account menu",
+    "signOut": "Sign out",
+    "confirmTitle": "Sign out?",
+    "confirmDescription": "You are about to leave the portal. You will need to sign in again to come back.",
+    "cancel": "Cancel"
   }
 }

@@ -38,4 +38,13 @@ describe('SidebarNav', () => {
     const activeLink = screen.getByText('Lugares').closest('a')
     expect(activeLink).toHaveClass('text-teal')
   })
+
+  it('renders the account menu trigger in its footer', () => {
+    render(
+      <MemoryRouter>
+        <SidebarNav />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('button', { name: 'Abrir menú de cuenta' })).toBeInTheDocument()
+  })
 })

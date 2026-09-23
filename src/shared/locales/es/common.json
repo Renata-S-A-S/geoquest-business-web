@@ -15,5 +15,13 @@
   },
   "legal": {
     "nonBindingWarning": "Texto provisional. No constituye un documento vinculante."
+  },
+  "account": {
+    "title": "Cuenta",
+    "open": "Abrir menú de cuenta",
+    "signOut": "Cerrar sesión",
+    "confirmTitle": "¿Cerrar sesión?",
+    "confirmDescription": "Vas a salir del portal. Tendrás que iniciar sesión de nuevo para volver a entrar.",
+    "cancel": "Cancelar"
   }
 }
