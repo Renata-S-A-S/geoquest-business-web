@@ -2,8 +2,10 @@ import { http, HttpResponse } from 'msw'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
+import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
 import { createPlaceInputSchema, type Place } from '@/shared/schemas/place'
 import { registerBusinessInputSchema, type Business } from '@/shared/schemas/business'
+import { loginInputSchema, type AuthTokens } from '@/shared/schemas/auth'
 
 /**
  * Handlers compartidos entre el navegador (`browser.ts`, `npm run dev` y el
@@ -115,5 +117,36 @@ export const handlers = [
   http.get(`${API_BASE_URL}/rewards`, () => {
     const { rewards } = readDb()
     return HttpResponse.json(rewards)
+  }),
+
+  http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {
+    const body = await request.json()
+    const parsed = loginInputSchema.safeParse(body)
+    if (!parsed.success) {
+      return HttpResponse.json(
+        { title: 'ValidationFailed', detail: parsed.error.issues[0]?.message, status: 400 },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidMockCredential(parsed.data.email, parsed.data.password)) {
+      return HttpResponse.json(
+        { title: 'InvalidCredentials', detail: 'Correo o contraseña incorrectos.', status: 401 },
+        { status: 401 }
+      )
+    }
+
+    // Valores de tokens/expiración arbitrarios (mock-only) — la vida útil
+    // real de Identity no está confirmada (ver disclaimer en
+    // business-staff-credentials.mock.ts), así que no se finge un valor
+    // "realista": son strings/fechas de relleno, no una regla de negocio.
+    const now = Date.now()
+    const tokens: AuthTokens = {
+      accessToken: `mock-access-${crypto.randomUUID()}`,
+      accessTokenExpiresAtUtc: new Date(now + 15 * 60 * 1000).toISOString(),
+      refreshToken: `mock-refresh-${crypto.randomUUID()}`,
+      refreshTokenExpiresAtUtc: new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+    return HttpResponse.json(tokens, { status: 200 })
   }),
 ]

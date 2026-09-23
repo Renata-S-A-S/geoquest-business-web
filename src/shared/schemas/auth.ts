@@ -20,3 +20,16 @@ export const authTokensSchema = z.object({
   refreshTokenExpiresAtUtc: z.string().datetime(),
 })
 export type AuthTokens = z.infer<typeof authTokensSchema>
+
+/**
+ * Input del formulario de login — issue #28. Las credenciales en sí son de
+ * Identity (ver JSDoc de `authTokensSchema` arriba, contratos-portal-b2b.md
+ * §4.1): este schema NO valida la contraseña contra ninguna regla propia,
+ * solo exige contenido no vacío — quien decide si el par es correcto es el
+ * backend (o el mock de `POST /auth/login`, ver handlers.ts).
+ */
+export const loginInputSchema = z.object({
+  email: z.string().min(1).email(),
+  password: z.string().min(1),
+})
+export type LoginInput = z.infer<typeof loginInputSchema>

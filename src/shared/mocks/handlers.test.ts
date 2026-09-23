@@ -1,6 +1,9 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
 import { resetDb } from '@/shared/mocks/db'
+import { SEED_BUSINESS_STAFF } from '@/shared/mocks/seed'
+import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
+import { authTokensSchema } from '@/shared/schemas/auth'
 import type { Place } from '@/shared/schemas/place'
 
 /**
@@ -212,6 +215,37 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(created.data).toMatchObject({
       isGoogleMapsVerified: false,
       googleMapsPlaceId: null,
+    })
+  })
+
+  it('POST /auth/login con el par mock aceptado devuelve 200 y un body que valida contra authTokensSchema', async () => {
+    const { data, status } = await apiClient.post(
+      '/auth/login',
+      { email: SEED_BUSINESS_STAFF.email, password: MOCK_BUSINESS_STAFF_PASSWORD },
+      { skipSessionAuth: true }
+    )
+
+    expect(status).toBe(200)
+    expect(() => authTokensSchema.parse(data)).not.toThrow()
+  })
+
+  it('POST /auth/login con contraseña incorrecta responde 401 problem+json con detail', async () => {
+    await expect(
+      apiClient.post(
+        '/auth/login',
+        { email: SEED_BUSINESS_STAFF.email, password: 'wrong-password' },
+        { skipSessionAuth: true }
+      )
+    ).rejects.toMatchObject({
+      response: { status: 401, data: { detail: expect.any(String) } },
+    })
+  })
+
+  it('POST /auth/login con body malformado responde 400', async () => {
+    await expect(
+      apiClient.post('/auth/login', { email: 'not-an-email' }, { skipSessionAuth: true })
+    ).rejects.toMatchObject({
+      response: { status: 400 },
     })
   })
 })
