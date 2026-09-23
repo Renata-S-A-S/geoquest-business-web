@@ -2,17 +2,36 @@
   "register": {
     "title": "Registra tu negocio",
     "fields": {
-      "legalName": { "label": "Nombre legal", "placeholder": "Ej. Café de la 70 SAS" },
-      "displayName": { "label": "Nombre público", "placeholder": "Ej. Café de la 70" },
-      "email": { "label": "Correo electrónico", "placeholder": "contacto@tunegocio.co" },
-      "category": { "label": "Categoría", "placeholder": "Elegí una categoría" },
+      "legalName": {
+        "label": "Nombre legal",
+        "placeholder": "Ej. Café de la 70 SAS"
+      },
+      "displayName": {
+        "label": "Nombre público",
+        "placeholder": "Ej. Café de la 70"
+      },
+      "email": {
+        "label": "Correo electrónico",
+        "placeholder": "contacto@tunegocio.co"
+      },
+      "category": {
+        "label": "Categoría",
+        "placeholder": "Elegí una categoría"
+      },
       "legalDocumentType": {
         "label": "Tipo de documento legal",
         "placeholder": "Elegí el tipo de documento"
       },
-      "legalDocumentNumber": { "label": "Número de documento", "placeholder": "Ej. 900123456-7" },
-      "commercialAgreement": { "label": "Acepto el acuerdo comercial" },
-      "terms": { "label": "Acepto los Términos y Condiciones" }
+      "legalDocumentNumber": {
+        "label": "Número de documento",
+        "placeholder": "Ej. 900123456-7"
+      },
+      "commercialAgreement": {
+        "label": "Acepto el acuerdo comercial"
+      },
+      "terms": {
+        "label": "Acepto los Términos y Condiciones"
+      }
     },
     "agreement": {
       "summary": "Leer el acuerdo comercial [BORRADOR — PENDIENTE]",
@@ -33,7 +52,9 @@
     "submitting": "Registrando…",
     "errors": {
       "generic": "No pudimos registrar el negocio. Intentá de nuevo."
-    }
+    },
+    "haveAccount": "¿Tu negocio ya está registrado?",
+    "goToLogin": "Iniciar sesión"
   },
   "pending": {
     "title": "Estado de tu negocio",
