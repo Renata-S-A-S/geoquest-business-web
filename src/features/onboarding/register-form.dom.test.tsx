@@ -12,7 +12,13 @@ import { RegisterPage } from './register-page'
 import { PendingStatusPage } from './pending-page'
 
 function renderRegisterPage() {
-  const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  // `queries: { retry: false }` — issue #27: tras navegar, `PendingStatusPage`
+  // dispara su propio `useQuery` (`GET /business/me`); sin esto, un test que
+  // fuerce una respuesta de error reintentaría contra el default de v5
+  // (retry: 3) y colgaría el `findBy*` correspondiente.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/registro']}>
@@ -138,9 +144,7 @@ describe('RegisterForm', () => {
 
     submit()
 
-    expect(
-      await screen.findByText('negocio — pendiente de verificación (ver #27)')
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Estado de tu negocio' })).toBeInTheDocument()
   })
 
   it('si el backend responde 400 problem+json, muestra el detail en un toast y no navega', async () => {
@@ -209,7 +213,7 @@ describe('RegisterForm', () => {
 
       submit()
 
-      await screen.findByText('negocio — pendiente de verificación (ver #27)')
+      await screen.findByRole('heading', { name: 'Estado de tu negocio' })
       expect(capturedBody).toMatchObject({ commercialAgreementAccepted: true })
     })
 
