@@ -56,6 +56,10 @@ export const registerBusinessInputSchema = z.object({
   category: z.string().min(1), // vía Select (#18) — ver business-category-options.ts, lista sin confirmar
   legalDocumentType: legalDocumentTypeSchema,
   legalDocumentNumber: z.string().min(1),
+  // RN-BIZ-03: aceptación obligatoria del acuerdo comercial — input-only,
+  // el backend/mock nunca persiste este campo tal cual (ver handlers.ts,
+  // que lo destructura antes de guardar `commercialAgreementSignedAt`).
+  commercialAgreementAccepted: z.boolean().refine((value) => value === true),
 })
 export type RegisterBusinessInput = z.infer<typeof registerBusinessInputSchema>
 

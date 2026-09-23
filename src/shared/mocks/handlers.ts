@@ -31,13 +31,22 @@ export const handlers = [
     }
 
     const db = readDb()
+    // `commercialAgreementAccepted` es input-only (RN-BIZ-03, gate de
+    // envío): se destructura afuera de `businessInput` antes de spread,
+    // porque TypeScript NO hace excess-property-check sobre un spread —
+    // dejarlo en `parsed.data` lo filtraría al `Business` persistido.
+    const { commercialAgreementAccepted: _commercialAgreementAccepted, ...businessInput } =
+      parsed.data
     // Sin valor confirmado para trustScore/trustStatus/etc. de un negocio
     // recién registrado (ningún ERD/RN lo define) — defaults mock-only,
     // el backend real decide esto. `db.business` es un solo objeto (sin
     // multi-tenant en el mock todavía), así que este POST lo reemplaza
     // entero — simplificación del mock, no una decisión de producto.
+    // `now` sella `commercialAgreementSignedAt` y `createdAt` con el mismo
+    // instante para que ambos coincidan sin desfase intra-request.
+    const now = new Date().toISOString()
     const newBusiness: Business = {
-      ...parsed.data,
+      ...businessInput,
       id: crypto.randomUUID(),
       status: 'Pending',
       googleMapsPlaceId: null,
@@ -48,8 +57,12 @@ export const handlers = [
       totalRedemptions: 0,
       totalReports: 0,
       isPlatformOwned: false,
-      commercialAgreementSignedAt: null,
-      createdAt: new Date().toISOString(),
+      // Sellado incondicional: el `.refine()` del schema ya garantiza que
+      // `parsed.success` implica `commercialAgreementAccepted === true`, así
+      // que un `? :` sería una rama muerta e imposible de cubrir contra el
+      // gate de 85% de branches.
+      commercialAgreementSignedAt: now,
+      createdAt: now,
     }
     db.business = newBusiness
     writeDb(db)

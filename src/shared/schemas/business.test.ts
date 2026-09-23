@@ -47,6 +47,7 @@ const baseRegisterInput = {
   category: 'gastronomia',
   legalDocumentType: 'NIT',
   legalDocumentNumber: '900123456-7',
+  commercialAgreementAccepted: true,
 }
 
 describe('registerBusinessInputSchema', () => {
@@ -82,5 +83,25 @@ describe('registerBusinessInputSchema', () => {
     expect(() =>
       registerBusinessInputSchema.parse({ ...baseRegisterInput, legalDocumentType: 'CUIT' })
     ).toThrow()
+  })
+
+  it('rejects commercialAgreementAccepted: false (RN-BIZ-03)', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({
+        ...baseRegisterInput,
+        commercialAgreementAccepted: false,
+      })
+    ).toThrow()
+  })
+
+  it('rejects a missing commercialAgreementAccepted', () => {
+    const { commercialAgreementAccepted: _accepted, ...withoutAcceptance } = baseRegisterInput
+    expect(() => registerBusinessInputSchema.parse(withoutAcceptance)).toThrow()
+  })
+
+  it('accepts commercialAgreementAccepted: true', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({ ...baseRegisterInput, commercialAgreementAccepted: true })
+    ).not.toThrow()
   })
 })

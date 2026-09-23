@@ -2,10 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { useToastStore } from '@/shared/stores/toast-store'
+import { SEED_BUSINESS } from '@/shared/mocks/seed'
+import i18next from '@/test/i18n'
 import { RegisterPage } from './register-page'
 import { PendingStatusPage } from './pending-page'
 
@@ -47,6 +49,16 @@ function selectLegalDocumentType(label: string) {
   fireEvent.click(screen.getByRole('option', { name: label }))
 }
 
+/**
+ * Checks the commercial agreement checkbox — issue #23 (RN-BIZ-03). Every
+ * pre-existing happy-path test needs this now, since the acceptance field
+ * is required: without it, submission is blocked and `findByRole('alert')`
+ * (singular) would match more than one node.
+ */
+function acceptAgreement() {
+  fireEvent.click(screen.getByLabelText('Acepto el acuerdo comercial'))
+}
+
 function submit() {
   fireEvent.click(screen.getByRole('button', { name: 'Registrar negocio' }))
 }
@@ -60,13 +72,13 @@ afterEach(() => {
 })
 
 describe('RegisterForm', () => {
-  it('al enviar vacío, muestra el error de requerido en los 6 campos y no navega', async () => {
+  it('al enviar vacío, muestra el error de requerido en los 6 campos de texto más el de aceptación, y no navega', async () => {
     renderRegisterPage()
 
     submit()
 
     const alerts = await screen.findAllByRole('alert')
-    expect(alerts).toHaveLength(6)
+    expect(alerts).toHaveLength(7)
     for (const alert of alerts) {
       expect(alert).toHaveTextContent('Este campo es obligatorio')
     }
@@ -81,6 +93,7 @@ describe('RegisterForm', () => {
     })
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
+    acceptAgreement()
 
     submit()
 
@@ -92,6 +105,7 @@ describe('RegisterForm', () => {
     renderRegisterPage()
     fillTextFields()
     selectLegalDocumentType('NIT')
+    acceptAgreement()
 
     submit()
 
@@ -107,6 +121,7 @@ describe('RegisterForm', () => {
     fillTextFields()
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
+    acceptAgreement()
 
     submit()
 
@@ -128,6 +143,7 @@ describe('RegisterForm', () => {
     fillTextFields()
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
+    acceptAgreement()
 
     submit()
 
@@ -135,5 +151,157 @@ describe('RegisterForm', () => {
     expect(useToastStore.getState().toasts).toContainEqual(
       expect.objectContaining({ variant: 'error', message: 'El documento ya está registrado' })
     )
+  })
+
+  describe('commercial agreement acceptance (issue #23)', () => {
+    it('blocks submission while unchecked, shows the agreement error, and never calls the mutation', async () => {
+      let registerCalled = false
+      server.use(
+        http.post(`${API_BASE_URL}/business/register`, () => {
+          registerCalled = true
+          return HttpResponse.json({}, { status: 201 })
+        })
+      )
+      renderRegisterPage()
+      fillTextFields()
+      selectCategory('Gastronomía')
+      selectLegalDocumentType('NIT')
+
+      submit()
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Este campo es obligatorio')
+      expect(registerCalled).toBe(false)
+    })
+
+    it('sends commercialAgreementAccepted: true when the checkbox is checked and the form is submitted', async () => {
+      let capturedBody: Record<string, unknown> | undefined
+      server.use(
+        http.post(`${API_BASE_URL}/business/register`, async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>
+          // Extra unrecognized keys (like the input-only acceptance flag)
+          // are silently stripped by `businessSchema.parse` — spreading
+          // `capturedBody` here keeps this a schema-valid response.
+          return HttpResponse.json({ ...SEED_BUSINESS, ...capturedBody }, { status: 201 })
+        })
+      )
+      renderRegisterPage()
+      fillTextFields()
+      selectCategory('Gastronomía')
+      selectLegalDocumentType('NIT')
+      acceptAgreement()
+
+      submit()
+
+      await screen.findByText('negocio — pendiente de verificación (ver #27)')
+      expect(capturedBody).toMatchObject({ commercialAgreementAccepted: true })
+    })
+
+    it('shows an inline <time> with the check-time ISO after checking, and clears it after unchecking', () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-09-23T10:00:00.000Z'))
+
+      try {
+        const { container } = renderRegisterPage()
+        const checkbox = screen.getByLabelText('Acepto el acuerdo comercial')
+
+        expect(container.querySelector('time')).not.toBeInTheDocument()
+
+        fireEvent.click(checkbox)
+        const time = container.querySelector('time')
+        expect(time).toHaveAttribute('dateTime', '2026-09-23T10:00:00.000Z')
+
+        fireEvent.click(checkbox)
+        expect(container.querySelector('time')).not.toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('keeps the placeholder agreement body hidden until the <summary> disclosure is expanded', () => {
+      renderRegisterPage()
+      const body = screen.getByText(/Este borrador describe/)
+
+      expect(body).not.toBeVisible()
+
+      // Real browsers translate a click, or Enter/Space on a focused
+      // <summary>, into the same native disclosure-toggle activation —
+      // jsdom doesn't simulate the keyboard-to-click translation, so click
+      // stands in for it here (see also "toggles via keyboard" below).
+      fireEvent.click(screen.getByText(/Leer el acuerdo comercial/))
+
+      expect(body).toBeVisible()
+    })
+
+    it('shows all three non-binding placeholder signals in Spanish', () => {
+      renderRegisterPage()
+
+      expect(screen.getByText(/Leer el acuerdo comercial \[BORRADOR — PENDIENTE\]/)).toBeVisible()
+      expect(
+        screen.getByText('Texto provisional. No constituye un acuerdo comercial vinculante.')
+      ).toBeInTheDocument()
+
+      const body = screen.getByText((_, element) =>
+        Boolean(
+          element?.tagName === 'P' &&
+          element.textContent?.startsWith(
+            'Texto provisional. No constituye un acuerdo comercial vinculante.'
+          ) &&
+          element.textContent?.includes('Este borrador describe')
+        )
+      )
+      expect(body).toBeInTheDocument()
+    })
+
+    it('shows all three non-binding placeholder signals in English', async () => {
+      await i18next.changeLanguage('en')
+      renderRegisterPage()
+
+      expect(screen.getByText(/Read the commercial agreement \[DRAFT — PENDING\]/)).toBeVisible()
+      expect(
+        screen.getByText('Provisional text. This is not a binding commercial agreement.')
+      ).toBeInTheDocument()
+
+      const body = screen.getByText((_, element) =>
+        Boolean(
+          element?.tagName === 'P' &&
+          element.textContent?.startsWith('Provisional text. This is not a binding') &&
+          element.textContent?.includes('This draft describes')
+        )
+      )
+      expect(body).toBeInTheDocument()
+    })
+
+    it('finds the checkbox via its programmatic label', () => {
+      renderRegisterPage()
+      expect(screen.getByLabelText('Acepto el acuerdo comercial')).toHaveAttribute(
+        'type',
+        'checkbox'
+      )
+    })
+
+    it('toggles the checkbox via keyboard-equivalent activation (native Space activation)', () => {
+      renderRegisterPage()
+      const checkbox = screen.getByLabelText('Acepto el acuerdo comercial') as HTMLInputElement
+      checkbox.focus()
+
+      expect(checkbox.checked).toBe(false)
+      // Real browsers translate a Space keypress on a focused native
+      // checkbox into a click event (HTML activation behavior) — jsdom
+      // doesn't perform that translation, so click stands in for it here.
+      fireEvent.click(checkbox)
+      expect(checkbox.checked).toBe(true)
+    })
+
+    it('toggles the disclosure via keyboard-equivalent activation (native Enter activation)', () => {
+      renderRegisterPage()
+      const summary = screen.getByText(/Leer el acuerdo comercial/)
+      const body = screen.getByText(/Este borrador describe/)
+      summary.focus()
+
+      expect(body).not.toBeVisible()
+      fireEvent.click(summary)
+      expect(body).toBeVisible()
+    })
   })
 })

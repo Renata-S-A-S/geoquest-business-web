@@ -12,12 +12,17 @@ const validInput: RegisterBusinessInput = {
   category: 'gastronomia',
   legalDocumentType: 'NIT',
   legalDocumentNumber: '900123456-7',
+  commercialAgreementAccepted: true,
 }
 
 describe('registerBusiness', () => {
   it('devuelve el Business creado con status Pending (usa el handler mock real)', async () => {
+    // `commercialAgreementAccepted` is input-only — `businessSchema.parse`
+    // strips it, so it's excluded here rather than asserted as a property
+    // of the persisted `Business`.
+    const { commercialAgreementAccepted: _accepted, ...expectedPersisted } = validInput
     const business = await registerBusiness(validInput)
-    expect(business).toMatchObject({ ...validInput, status: 'Pending' })
+    expect(business).toMatchObject({ ...expectedPersisted, status: 'Pending' })
   })
 
   it('rechaza con el error de axios cuando el backend responde 400 problem+json', async () => {
