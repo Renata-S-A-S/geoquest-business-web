@@ -12,5 +12,8 @@
   },
   "aria": {
     "dismiss": "Dismiss"
+  },
+  "legal": {
+    "nonBindingWarning": "Provisional text. This is not a binding document."
   }
 }

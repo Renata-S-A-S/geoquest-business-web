@@ -12,5 +12,8 @@
   },
   "aria": {
     "dismiss": "Cerrar"
+  },
+  "legal": {
+    "nonBindingWarning": "Texto provisional. No constituye un documento vinculante."
   }
 }
