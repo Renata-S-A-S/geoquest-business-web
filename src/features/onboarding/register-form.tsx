@@ -4,12 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CaretDown } from '@phosphor-icons/react'
 import type { TFunction } from 'i18next'
 import { registerBusinessInputSchema, type RegisterBusinessInput } from '@/shared/schemas/business'
 import { registerBusiness } from '@/features/onboarding/api/register-business'
 import { BUSINESS_CATEGORY_OPTIONS } from '@/features/onboarding/business-category-options'
 import { LEGAL_DOCUMENT_TYPE_OPTIONS } from '@/features/onboarding/legal-document-type-options'
+import { LegalDisclosure } from '@/features/onboarding/legal-disclosure'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { useToast } from '@/shared/hooks/use-toast'
 import { FormField } from '@/shared/components/ui/form-field'
@@ -34,6 +34,7 @@ const defaultValues: RegisterBusinessInput = {
   legalDocumentType: UNSELECTED as RegisterBusinessInput['legalDocumentType'],
   legalDocumentNumber: '',
   commercialAgreementAccepted: false,
+  termsAccepted: false,
 }
 
 /**
@@ -51,10 +52,12 @@ function fieldErrorMessage(
 ): string | undefined {
   if (!error) return undefined
   if (error.type === 'invalid_string') return t('register.validation.email')
-  // `commercialAgreementAccepted`'s field-level `.refine()` (RN-BIZ-03)
-  // reports `type: 'custom'` — no dedicated message: falls through to the
-  // generic "required" copy below (size-budget cut, see design decision 1;
-  // the spec only requires *a* localized error, not a distinct one).
+  // `commercialAgreementAccepted` (RN-BIZ-03) y `termsAccepted` (#24)
+  // tienen `.refine()` a nivel de campo y reportan `type: 'custom'` — sin
+  // mensaje dedicado: caen al genérico "requerido" de abajo (recorte por
+  // presupuesto, ver design decision 4; el spec solo exige *un* error
+  // localizado, no uno distinto por campo, y mantiene a los dos campos de
+  // aceptación consistentes entre sí).
   return t('register.validation.required')
 }
 
@@ -79,6 +82,7 @@ export function RegisterForm() {
   })
 
   const agreement = register('commercialAgreementAccepted')
+  const terms = register('termsAccepted')
 
   const mutation = useMutation({
     mutationFn: registerBusiness,
@@ -203,23 +207,11 @@ export function RegisterForm() {
         "[BORRADOR — PENDIENTE]"/"[DRAFT — PENDING]" summary suffix, (b) the
         warning notice below, (c) the body opening with the same statement.
       */}
-      <details className="group rounded-xs border border-border bg-paper p-3">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-sans text-xs font-semibold text-ink [&::-webkit-details-marker]:hidden">
-          {t('register.agreement.summary')}
-          <CaretDown
-            aria-hidden="true"
-            size={14}
-            weight="bold"
-            className="shrink-0 text-muted transition-transform group-open:rotate-180"
-          />
-        </summary>
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="rounded-xs bg-surface-alert px-3 py-2 font-sans text-xs text-alert">
-            {t('register.agreement.warning')}
-          </p>
-          <p className="font-sans text-xs text-ink">{t('register.agreement.body')}</p>
-        </div>
-      </details>
+      <LegalDisclosure
+        summary={t('register.agreement.summary')}
+        warning={t('register.agreement.warning')}
+        body={t('register.agreement.body')}
+      />
 
       <FormField
         htmlFor="commercialAgreementAccepted"
@@ -253,6 +245,32 @@ export function RegisterForm() {
           </time>
         </p>
       )}
+
+      {/*
+        #24 — mismo contrato de marcado no-vinculante que el
+        bloque anterior, en su propia sección legal (Términos y
+        Condiciones). Va al final, inmediatamente antes del submit, porque
+        es el gate de envío más reciente (Decision 3).
+      */}
+      <LegalDisclosure
+        summary={t('register.terms.summary')}
+        warning={t('register.terms.warning')}
+        body={t('register.terms.body')}
+      />
+
+      <FormField
+        htmlFor="termsAccepted"
+        label={t('register.fields.terms.label')}
+        errorId="termsAccepted-error"
+        error={fieldErrorMessage(errors.termsAccepted, t)}
+      >
+        <Checkbox
+          id="termsAccepted"
+          aria-invalid={!!errors.termsAccepted}
+          aria-describedby={errors.termsAccepted ? 'termsAccepted-error' : undefined}
+          {...terms}
+        />
+      </FormField>
 
       <Button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? t('register.submitting') : t('register.submit')}

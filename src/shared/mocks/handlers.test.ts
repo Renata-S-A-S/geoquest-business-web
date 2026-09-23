@@ -65,7 +65,11 @@ describe('mock handlers — round-trip de persistencia', () => {
   })
 
   it('POST /business/register crea el negocio y GET /business/me lo refleja después', async () => {
-    const { commercialAgreementAccepted: _accepted, ...expectedPersisted } = {
+    const {
+      commercialAgreementAccepted: _accepted,
+      termsAccepted: _terms,
+      ...expectedPersisted
+    } = {
       legalName: 'Panadería El Trigal SAS',
       displayName: 'El Trigal',
       email: 'contacto@eltrigal.co',
@@ -73,13 +77,15 @@ describe('mock handlers — round-trip de persistencia', () => {
       legalDocumentType: 'NIT',
       legalDocumentNumber: '901234567-8',
       commercialAgreementAccepted: true,
+      termsAccepted: true,
     }
-    const input = { ...expectedPersisted, commercialAgreementAccepted: true }
+    const input = { ...expectedPersisted, commercialAgreementAccepted: true, termsAccepted: true }
 
     const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
     expect(created.status).toBe(201)
     expect(created.data).toMatchObject({ ...expectedPersisted, status: 'Pending' })
     expect(created.data).not.toHaveProperty('commercialAgreementAccepted')
+    expect(created.data).not.toHaveProperty('termsAccepted')
 
     const { data: after } = await apiClient.get('/business/me')
     expect(after).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
@@ -94,6 +100,29 @@ describe('mock handlers — round-trip de persistencia', () => {
       legalDocumentType: 'NIT',
       legalDocumentNumber: '901234567-8',
       commercialAgreementAccepted: false,
+      termsAccepted: true,
+    }
+
+    await expect(
+      apiClient.post('/business/register', input, { skipSessionAuth: true })
+    ).rejects.toMatchObject({
+      response: {
+        status: 400,
+        data: { title: 'ValidationFailed' },
+      },
+    })
+  })
+
+  it('POST /business/register sin aceptar los Términos y Condiciones responde 400', async () => {
+    const input = {
+      legalName: 'Panadería El Trigal SAS',
+      displayName: 'El Trigal',
+      email: 'contacto@eltrigal.co',
+      category: 'gastronomia',
+      legalDocumentType: 'NIT',
+      legalDocumentNumber: '901234567-8',
+      commercialAgreementAccepted: true,
+      termsAccepted: false,
     }
 
     await expect(
@@ -119,6 +148,7 @@ describe('mock handlers — round-trip de persistencia', () => {
         legalDocumentType: 'NIT',
         legalDocumentNumber: '901234567-8',
         commercialAgreementAccepted: true,
+        termsAccepted: true,
       }
 
       const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })

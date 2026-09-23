@@ -13,14 +13,19 @@ const validInput: RegisterBusinessInput = {
   legalDocumentType: 'NIT',
   legalDocumentNumber: '900123456-7',
   commercialAgreementAccepted: true,
+  termsAccepted: true,
 }
 
 describe('registerBusiness', () => {
   it('devuelve el Business creado con status Pending (usa el handler mock real)', async () => {
-    // `commercialAgreementAccepted` is input-only — `businessSchema.parse`
-    // strips it, so it's excluded here rather than asserted as a property
-    // of the persisted `Business`.
-    const { commercialAgreementAccepted: _accepted, ...expectedPersisted } = validInput
+    // `commercialAgreementAccepted` y `termsAccepted` son input-only —
+    // `businessSchema.parse` los descarta, así que se excluyen acá en vez
+    // de afirmarse como propiedad del `Business` persistido.
+    const {
+      commercialAgreementAccepted: _accepted,
+      termsAccepted: _terms,
+      ...expectedPersisted
+    } = validInput
     const business = await registerBusiness(validInput)
     expect(business).toMatchObject({ ...expectedPersisted, status: 'Pending' })
   })

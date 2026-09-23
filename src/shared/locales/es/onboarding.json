@@ -11,13 +11,19 @@
         "placeholder": "Elegí el tipo de documento"
       },
       "legalDocumentNumber": { "label": "Número de documento", "placeholder": "Ej. 900123456-7" },
-      "commercialAgreement": { "label": "Acepto el acuerdo comercial" }
+      "commercialAgreement": { "label": "Acepto el acuerdo comercial" },
+      "terms": { "label": "Acepto los Términos y Condiciones" }
     },
     "agreement": {
       "summary": "Leer el acuerdo comercial [BORRADOR — PENDIENTE]",
       "warning": "Texto provisional. No constituye un acuerdo comercial vinculante.",
       "body": "Texto provisional. No constituye un acuerdo comercial vinculante. Este borrador describe, de forma preliminar, las condiciones bajo las cuales tu negocio participará de la plataforma GeoQuest: verificación de datos, uso de la marca dentro de la app y las reglas generales de la relación comercial entre tu negocio y GeoQuest. El texto legal definitivo será publicado antes de que el registro entre en operación real, y tu aceptación aquí no genera ninguna obligación contractual vinculante.",
       "acceptedAt": "Aceptado el {{date, datetime}}"
+    },
+    "terms": {
+      "summary": "Leer los Términos y Condiciones [BORRADOR — PENDIENTE]",
+      "warning": "Texto provisional. No constituye los Términos y Condiciones vinculantes de la plataforma.",
+      "body": "Texto provisional. No constituye los Términos y Condiciones vinculantes de la plataforma. Esta versión preliminar resume las reglas de uso de la plataforma GeoQuest para negocios registrados: alcance del programa de recompensas, responsabilidades del negocio frente a los canjes y condiciones generales de permanencia. El texto legal definitivo será publicado antes de que el registro entre en operación real, y tu aceptación aquí no genera ninguna obligación contractual vinculante."
     },
     "validation": {
       "required": "Este campo es obligatorio",

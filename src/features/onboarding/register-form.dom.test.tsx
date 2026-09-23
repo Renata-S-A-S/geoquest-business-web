@@ -59,6 +59,16 @@ function acceptAgreement() {
   fireEvent.click(screen.getByLabelText('Acepto el acuerdo comercial'))
 }
 
+/**
+ * Checks the terms & conditions checkbox — issue #24. Same
+ * reasoning as `acceptAgreement()`: with a second required acceptance
+ * field, any test that expects a singular alert or a successful submission
+ * needs both boxes checked.
+ */
+function acceptTerms() {
+  fireEvent.click(screen.getByLabelText('Acepto los Términos y Condiciones'))
+}
+
 function submit() {
   fireEvent.click(screen.getByRole('button', { name: 'Registrar negocio' }))
 }
@@ -78,7 +88,7 @@ describe('RegisterForm', () => {
     submit()
 
     const alerts = await screen.findAllByRole('alert')
-    expect(alerts).toHaveLength(7)
+    expect(alerts).toHaveLength(8)
     for (const alert of alerts) {
       expect(alert).toHaveTextContent('Este campo es obligatorio')
     }
@@ -94,6 +104,7 @@ describe('RegisterForm', () => {
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
     acceptAgreement()
+    acceptTerms()
 
     submit()
 
@@ -106,6 +117,7 @@ describe('RegisterForm', () => {
     fillTextFields()
     selectLegalDocumentType('NIT')
     acceptAgreement()
+    acceptTerms()
 
     submit()
 
@@ -122,6 +134,7 @@ describe('RegisterForm', () => {
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
     acceptAgreement()
+    acceptTerms()
 
     submit()
 
@@ -144,6 +157,7 @@ describe('RegisterForm', () => {
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
     acceptAgreement()
+    acceptTerms()
 
     submit()
 
@@ -166,6 +180,7 @@ describe('RegisterForm', () => {
       fillTextFields()
       selectCategory('Gastronomía')
       selectLegalDocumentType('NIT')
+      acceptTerms()
 
       submit()
 
@@ -190,6 +205,7 @@ describe('RegisterForm', () => {
       selectCategory('Gastronomía')
       selectLegalDocumentType('NIT')
       acceptAgreement()
+      acceptTerms()
 
       submit()
 
@@ -302,6 +318,87 @@ describe('RegisterForm', () => {
       expect(body).not.toBeVisible()
       fireEvent.click(summary)
       expect(body).toBeVisible()
+    })
+  })
+
+  describe('terms & conditions acceptance (issue #24)', () => {
+    it('blocks submission while terms are unchecked, shows the terms error, and never calls the mutation', async () => {
+      let registerCalled = false
+      server.use(
+        http.post(`${API_BASE_URL}/business/register`, () => {
+          registerCalled = true
+          return HttpResponse.json({}, { status: 201 })
+        })
+      )
+      renderRegisterPage()
+      fillTextFields()
+      selectCategory('Gastronomía')
+      selectLegalDocumentType('NIT')
+      acceptAgreement()
+
+      submit()
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Este campo es obligatorio')
+      expect(registerCalled).toBe(false)
+    })
+
+    it('keeps the placeholder terms body hidden until the <summary> disclosure is expanded', () => {
+      renderRegisterPage()
+      const body = screen.getByText(/Esta versión preliminar resume/)
+
+      expect(body).not.toBeVisible()
+
+      fireEvent.click(screen.getByText(/Leer los Términos y Condiciones/))
+
+      expect(body).toBeVisible()
+    })
+
+    it('shows all three non-binding placeholder signals in Spanish', () => {
+      renderRegisterPage()
+
+      expect(
+        screen.getByText(/Leer los Términos y Condiciones \[BORRADOR — PENDIENTE\]/)
+      ).toBeVisible()
+      expect(
+        screen.getByText(
+          'Texto provisional. No constituye los Términos y Condiciones vinculantes de la plataforma.'
+        )
+      ).toBeInTheDocument()
+
+      const body = screen.getByText((_, element) =>
+        Boolean(
+          element?.tagName === 'P' &&
+          element.textContent?.startsWith(
+            'Texto provisional. No constituye los Términos y Condiciones vinculantes de la plataforma.'
+          ) &&
+          element.textContent?.includes('Esta versión preliminar resume')
+        )
+      )
+      expect(body).toBeInTheDocument()
+    })
+
+    it('shows all three non-binding placeholder signals in English', async () => {
+      await i18next.changeLanguage('en')
+      renderRegisterPage()
+
+      expect(screen.getByText(/Read the Terms and Conditions \[DRAFT — PENDING\]/)).toBeVisible()
+      expect(
+        screen.getByText(
+          'Provisional text. These are not the binding Terms and Conditions of the platform.'
+        )
+      ).toBeInTheDocument()
+
+      const body = screen.getByText((_, element) =>
+        Boolean(
+          element?.tagName === 'P' &&
+          element.textContent?.startsWith(
+            'Provisional text. These are not the binding Terms and Conditions'
+          ) &&
+          element.textContent?.includes('This preliminary version outlines')
+        )
+      )
+      expect(body).toBeInTheDocument()
     })
   })
 })
