@@ -1,5 +1,15 @@
 # Kickoff del Portal B2B (Negocios) — scaffolding de `geoquest-business-web`
 
+> **Documento histórico — kickoff del 29 ago 2026.** Se conserva como registro de lo que se decidió y se preguntó ese día. Sus preguntas abiertas y sus borradores de ADR reflejan esa fecha: varias ya fueron resueltas o superadas. Las fuentes de verdad actuales son el código del repo, `contratos-portal-b2b.md` y Confluence — no este archivo.
+>
+> Qué cambió desde entonces:
+>
+> - La pregunta de subida de archivos (“Entregables de la sesión” → “Preguntas abiertas que Derek debe cerrar”) quedó **resuelta por ADR-048** (2 sep 2026): endpoint mediado por el backend sobre Cloudflare R2, no SAS de Azure Blob.
+> - El ADR numerado “ADR-048” en la sección 3 es en realidad **ADR-048-BF** (contratos definidos por el frontend). Un **ADR-048** distinto y posterior, sin sufijo, cubre la subida de archivos.
+> - Desktop-first y “sin PWA” fueron **revertidos por ADR-049-BF / PR #12**: el portal es mobile-first y **sí** es PWA.
+> - La autenticación de `BusinessStaff` quedó resuelta: mismo `Identity` que `Explorer`, con claim de rol distinto.
+> - Los límites de plan de **RN-BIZ-05** fueron **eliminados por ADR-046**.
+
 ## Context
 
 El diagrama del sistema en `🏗️ Arquitectura Técnica` ya contempla un **`Portal B2B (Negocios)`** como cliente separado de la misma API REST + SignalR Hub. No es una decisión nueva: es una pieza prevista desde el diseño original que nunca se materializó. Hoy existen dos frontends previstos y solo uno construido (`geoquest-web`, exploradores).
@@ -67,7 +77,7 @@ src/
   app/
     routes.tsx
     providers.tsx
-    layout/            # sidebar fijo desktop-first (NO bottom nav)
+    layout/            # mobile-first: bottom nav <1024px, sidebar ≥1024px (ADR-049-BF)
   features/
     auth/              # login de BusinessStaff (placeholder)
     onboarding/        # B-01 registro + verificación
@@ -89,12 +99,12 @@ Cada `features/*` se crea **vacía con su placeholder de ruta**. La carpeta exis
 
 ### Diferencias deliberadas frente a `geoquest-web`
 
-| Pieza         | `geoquest-web`                      | Portal B2B                      | Por qué                                                                                                                                                                                |
-| ------------- | ----------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Navegación    | Bottom nav <1024px / rail ≥1024px   | **Sidebar fijo, desktop-first** | El staff opera desde mostrador o escritorio; el único flujo con vocación móvil es escanear el QR (B-04)                                                                                |
-| PWA           | `vite-plugin-pwa` + manifest        | **No en el scaffold**           | Un panel de gestión no necesita instalarse ni offline. Se reevalúa si B-04 termina usándose desde celular. Beneficio lateral: sin service worker propio no hay conflicto con el de MSW |
-| Mapbox        | Central (mapa home)                 | Se instala recién en B-02       | Ubicar el pin de un `Place` es el único uso; no entra en el scaffold                                                                                                                   |
-| Framer Motion | Micro-interacciones de gamificación | **No**                          | La celebración de XP/badges es lenguaje de explorador, no de negocio                                                                                                                   |
+| Pieza         | `geoquest-web`                      | Portal B2B                                            | Por qué                                                                                                                                                                                                                                                               |
+| ------------- | ----------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navegación    | Bottom nav <1024px / rail ≥1024px   | **Mobile-first: bottom nav <1024px, sidebar ≥1024px** | Superado por ADR-049-BF / PR #12. La decisión original era “sidebar fijo, desktop-first”, porque se asumía que el staff opera desde mostrador o escritorio; el portal terminó siendo mobile-first, con el mismo corte `lg` que `geoquest-web`                         |
+| PWA           | `vite-plugin-pwa` + manifest        | **Sí, con manifest propio**                           | Superado por ADR-049-BF / PR #12. La decisión original era no incluirla en el scaffold; hoy `vite-plugin-pwa` está instalado con `name`/`short_name` propios, deliberadamente separados de los de `geoquest-web`, para que ambas PWAs se instalen como apps distintas |
+| Mapbox        | Central (mapa home)                 | Se instala recién en B-02                             | Ubicar el pin de un `Place` es el único uso; no entra en el scaffold                                                                                                                                                                                                  |
+| Framer Motion | Micro-interacciones de gamificación | **No**                                                | La celebración de XP/badges es lenguaje de explorador, no de negocio                                                                                                                                                                                                  |
 
 **Paridad explícita (no son diferencias, se replican igual):** React 18 + TS, Vite 6, Zustand, TanStack Query v5, React Router v6, shadcn/ui + Tailwind v4, React Hook Form + Zod, Axios, Phosphor Icons, react-i18next con ES+EN, hosting en Vercel, Vitest + RTL + MSW. i18n entra **desde el scaffold** por la misma razón que en `geoquest-web`: retrofitearlo cuesta caro (lo confirma su WU11).
 
