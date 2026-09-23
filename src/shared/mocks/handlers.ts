@@ -31,12 +31,16 @@ export const handlers = [
     }
 
     const db = readDb()
-    // `commercialAgreementAccepted` es input-only (RN-BIZ-03, gate de
-    // envío): se destructura afuera de `businessInput` antes de spread,
-    // porque TypeScript NO hace excess-property-check sobre un spread —
-    // dejarlo en `parsed.data` lo filtraría al `Business` persistido.
-    const { commercialAgreementAccepted: _commercialAgreementAccepted, ...businessInput } =
-      parsed.data
+    // `commercialAgreementAccepted` (RN-BIZ-03) y `termsAccepted` (#24)
+    // son input-only, gates de envío: se destructuran afuera de
+    // `businessInput` antes de spread, porque TypeScript NO hace
+    // excess-property-check sobre un spread — dejarlos en `parsed.data` los
+    // filtraría al `Business` persistido.
+    const {
+      commercialAgreementAccepted: _commercialAgreementAccepted,
+      termsAccepted: _termsAccepted,
+      ...businessInput
+    } = parsed.data
     // Sin valor confirmado para trustScore/trustStatus/etc. de un negocio
     // recién registrado (ningún ERD/RN lo define) — defaults mock-only,
     // el backend real decide esto. `db.business` es un solo objeto (sin

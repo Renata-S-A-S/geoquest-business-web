@@ -11,13 +11,19 @@
         "placeholder": "Pick the document type"
       },
       "legalDocumentNumber": { "label": "Document number", "placeholder": "E.g. 900123456-7" },
-      "commercialAgreement": { "label": "I accept the commercial agreement" }
+      "commercialAgreement": { "label": "I accept the commercial agreement" },
+      "terms": { "label": "I accept the Terms and Conditions" }
     },
     "agreement": {
       "summary": "Read the commercial agreement [DRAFT — PENDING]",
       "warning": "Provisional text. This is not a binding commercial agreement.",
       "body": "Provisional text. This is not a binding commercial agreement. This draft describes, on a preliminary basis, the conditions under which your business will participate in the GeoQuest platform: data verification, use of the brand within the app, and the general rules governing the commercial relationship between your business and GeoQuest. The final legal text will be published before registration enters real operation, and your acceptance here does not create any binding contractual obligation.",
       "acceptedAt": "Accepted on {{date, datetime}}"
+    },
+    "terms": {
+      "summary": "Read the Terms and Conditions [DRAFT — PENDING]",
+      "warning": "Provisional text. These are not the binding Terms and Conditions of the platform.",
+      "body": "Provisional text. These are not the binding Terms and Conditions of the platform. This preliminary version outlines the rules of use of the GeoQuest platform for registered businesses: scope of the rewards program, business responsibilities regarding redemptions, and general conditions of continued participation. The final legal text will be published before registration enters real operation, and your acceptance here does not create any binding contractual obligation."
     },
     "validation": {
       "required": "This field is required",

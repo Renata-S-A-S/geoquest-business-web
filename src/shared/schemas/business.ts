@@ -60,6 +60,11 @@ export const registerBusinessInputSchema = z.object({
   // el backend/mock nunca persiste este campo tal cual (ver handlers.ts,
   // que lo destructura antes de guardar `commercialAgreementSignedAt`).
   commercialAgreementAccepted: z.boolean().refine((value) => value === true),
+  // Issue #24: aceptación obligatoria de los Términos y
+  // Condiciones — igual que el acuerdo comercial, input-only. Es un gate
+  // de envío puro: no se persiste ni genera timestamp (ver handlers.ts,
+  // que también lo destructura antes de guardar `Business`).
+  termsAccepted: z.boolean().refine((value) => value === true),
 })
 export type RegisterBusinessInput = z.infer<typeof registerBusinessInputSchema>
 

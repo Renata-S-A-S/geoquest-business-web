@@ -48,6 +48,7 @@ const baseRegisterInput = {
   legalDocumentType: 'NIT',
   legalDocumentNumber: '900123456-7',
   commercialAgreementAccepted: true,
+  termsAccepted: true,
 }
 
 describe('registerBusinessInputSchema', () => {
@@ -103,5 +104,32 @@ describe('registerBusinessInputSchema', () => {
     expect(() =>
       registerBusinessInputSchema.parse({ ...baseRegisterInput, commercialAgreementAccepted: true })
     ).not.toThrow()
+  })
+
+  it('rejects termsAccepted: false (#24)', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({ ...baseRegisterInput, termsAccepted: false })
+    ).toThrow()
+  })
+
+  it('rejects a missing termsAccepted', () => {
+    const { termsAccepted: _terms, ...withoutTerms } = baseRegisterInput
+    expect(() => registerBusinessInputSchema.parse(withoutTerms)).toThrow()
+  })
+
+  it('accepts termsAccepted: true', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({ ...baseRegisterInput, termsAccepted: true })
+    ).not.toThrow()
+  })
+
+  it('rejects termsAccepted: false even when commercialAgreementAccepted is true (#24)', () => {
+    expect(() =>
+      registerBusinessInputSchema.parse({
+        ...baseRegisterInput,
+        commercialAgreementAccepted: true,
+        termsAccepted: false,
+      })
+    ).toThrow()
   })
 })
