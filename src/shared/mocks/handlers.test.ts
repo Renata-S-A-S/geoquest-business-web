@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
 import { resetDb } from '@/shared/mocks/db'
 import type { Place } from '@/shared/schemas/place'
@@ -65,6 +65,27 @@ describe('mock handlers — round-trip de persistencia', () => {
   })
 
   it('POST /business/register crea el negocio y GET /business/me lo refleja después', async () => {
+    const { commercialAgreementAccepted: _accepted, ...expectedPersisted } = {
+      legalName: 'Panadería El Trigal SAS',
+      displayName: 'El Trigal',
+      email: 'contacto@eltrigal.co',
+      category: 'gastronomia',
+      legalDocumentType: 'NIT',
+      legalDocumentNumber: '901234567-8',
+      commercialAgreementAccepted: true,
+    }
+    const input = { ...expectedPersisted, commercialAgreementAccepted: true }
+
+    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
+    expect(created.status).toBe(201)
+    expect(created.data).toMatchObject({ ...expectedPersisted, status: 'Pending' })
+    expect(created.data).not.toHaveProperty('commercialAgreementAccepted')
+
+    const { data: after } = await apiClient.get('/business/me')
+    expect(after).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
+  })
+
+  it('POST /business/register sin aceptar el acuerdo comercial responde 400', async () => {
     const input = {
       legalName: 'Panadería El Trigal SAS',
       displayName: 'El Trigal',
@@ -72,14 +93,41 @@ describe('mock handlers — round-trip de persistencia', () => {
       category: 'gastronomia',
       legalDocumentType: 'NIT',
       legalDocumentNumber: '901234567-8',
+      commercialAgreementAccepted: false,
     }
 
-    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
-    expect(created.status).toBe(201)
-    expect(created.data).toMatchObject({ ...input, status: 'Pending' })
+    await expect(
+      apiClient.post('/business/register', input, { skipSessionAuth: true })
+    ).rejects.toMatchObject({
+      response: {
+        status: 400,
+        data: { title: 'ValidationFailed' },
+      },
+    })
+  })
 
-    const { data: after } = await apiClient.get('/business/me')
-    expect(after).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
+  it('POST /business/register sella commercialAgreementSignedAt con la hora del servidor', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-23T10:00:00.000Z'))
+
+    try {
+      const input = {
+        legalName: 'Panadería El Trigal SAS',
+        displayName: 'El Trigal',
+        email: 'contacto@eltrigal.co',
+        category: 'gastronomia',
+        legalDocumentType: 'NIT',
+        legalDocumentNumber: '901234567-8',
+        commercialAgreementAccepted: true,
+      }
+
+      const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
+
+      expect(created.data.commercialAgreementSignedAt).toBe('2026-09-23T10:00:00.000Z')
+      expect(created.data.commercialAgreementSignedAt).toBe(created.data.createdAt)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('POST /business/register con datos inválidos responde 400 en formato problem+json', async () => {
