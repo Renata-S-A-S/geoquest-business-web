@@ -11,10 +11,12 @@ afterEach(async () => {
   cleanup()
   server.resetHandlers()
   useSessionStore.getState().signOut()
-  // `useBusinessSessionStore` está `persist`ido a `localStorage` (#20) — sin
-  // este reset, la sesión de un test de login (#28) sobrevive al siguiente
-  // test y produce falsos positivos (un test podría pasar solo porque un
-  // test anterior dejó una sesión abierta).
+  // El reset de arriba NO alcanza: el puerto activo es `realSessionPort`,
+  // respaldado por `useBusinessSessionStore` (no por el store mock), y ese
+  // store está `persist`ido a `localStorage` (#20). Sin este reset, la
+  // sesión que abre un test sobrevive al siguiente y produce falsos
+  // positivos — un test podría pasar solo porque el anterior dejó una
+  // sesión abierta. Detectado en #28 y en #70 de forma independiente.
   useBusinessSessionStore.getState().logout()
   window.localStorage.clear()
   await i18next.changeLanguage('es')

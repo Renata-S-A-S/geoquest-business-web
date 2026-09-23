@@ -30,4 +30,14 @@ describe('AppShell', () => {
     renderShell()
     expect(screen.queryByText('Hay una versión nueva disponible')).not.toBeInTheDocument()
   })
+
+  it('monta ambos triggers de cuenta (sidebar y MobileTopBar) sin tocar BottomNav', () => {
+    renderShell()
+
+    // Uno en el pie de SidebarNav (desktop) y otro en MobileTopBar (mobile)
+    // — ambos siempre en el DOM, el corte lg: es puramente CSS (issue #70,
+    // decisión de diseño #1: BottomNav no gana un 6to ítem).
+    expect(screen.getAllByRole('button', { name: 'Abrir menú de cuenta' })).toHaveLength(2)
+    expect(screen.getAllByText('Lugares')).toHaveLength(2)
+  })
 })
