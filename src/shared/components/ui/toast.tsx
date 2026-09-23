@@ -8,8 +8,8 @@ import { useToastStore, type Toast, type ToastVariant } from '@/shared/stores/to
 /**
  * Componente toast/notificación — issue #16 del slice 004c-business-portal-flows.
  *
- * Contraste (mismo criterio que `status-badge.tsx`, #19): fondo blanco +
- * texto `ink` (>12:1, cumple WCAG AA de sobra) en vez del patrón
+ * Contraste (mismo criterio que `status-badge.tsx`, #19): fondo
+ * `surface-raised` + texto `ink` (>12:1, cumple WCAG AA de sobra) en vez del patrón
  * "texto de color sobre tinte" que ya dio problemas de contraste en el
  * badge. El color semántico va en el borde izquierdo y el ícono — nunca es
  * el único portador del significado, porque el mensaje en sí (leído por el
@@ -21,7 +21,7 @@ import { useToastStore, type Toast, type ToastVariant } from '@/shared/stores/to
  * debe esperar a que el lector de pantalla termine de anunciar otra cosa.
  */
 const toastVariants = cva(
-  'pointer-events-auto flex w-full items-start gap-2.5 rounded-md border-y border-r border-border border-l-4 bg-white px-3 py-2.5 shadow-md',
+  'pointer-events-auto flex w-full items-start gap-2.5 rounded-md border-y border-r border-border border-l-4 bg-surface-raised px-3 py-2.5 shadow-md',
   {
     variants: {
       variant: {

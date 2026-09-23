@@ -301,7 +301,7 @@ function FileDropzoneRow({
   const previewUrl = isImageFile(item.file) ? URL.createObjectURL(item.file) : null
 
   return (
-    <li className="flex items-center gap-2.5 rounded-xs border border-border bg-white px-2.5 py-2">
+    <li className="flex items-center gap-2.5 rounded-xs border border-border bg-surface-raised px-2.5 py-2">
       {previewUrl ? (
         <img src={previewUrl} alt="" className="h-9 w-9 shrink-0 rounded-xs object-cover" />
       ) : (

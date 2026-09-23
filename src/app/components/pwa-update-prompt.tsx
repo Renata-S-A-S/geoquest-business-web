@@ -17,7 +17,7 @@ export function UpdatePromptBanner({
   const { t } = useTranslation()
 
   return (
-    <div className="fixed inset-x-3 top-3 z-50 flex items-center justify-between gap-3 rounded-md border border-border bg-white px-3 py-2.5 shadow-md">
+    <div className="fixed inset-x-3 top-3 z-50 flex items-center justify-between gap-3 rounded-md border border-border bg-surface-raised px-3 py-2.5 shadow-md">
       <p className="font-sans text-xs text-ink">
         <b className="text-teal">{t('notifications.updateAvailable')}</b>
       </p>

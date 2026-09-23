@@ -116,7 +116,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       onClick={handleBackdropClick}
     >
       <div
@@ -126,7 +126,7 @@ export function Modal({
         aria-labelledby={titleId}
         tabIndex={-1}
         className={cn(
-          'w-full max-w-md rounded-lg border border-border bg-white p-4 shadow-md focus:outline-none',
+          'w-full max-w-md rounded-lg border border-border bg-surface-raised p-4 shadow-md focus:outline-none',
           className
         )}
       >

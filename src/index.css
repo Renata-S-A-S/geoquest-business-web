@@ -1,5 +1,107 @@
 @import 'tailwindcss';
-@config '../tailwind.config.ts';
+
+/* Dirigido por clase, deliberadamente desacoplado de `prefers-color-scheme`:
+   "Sistema" es uno de los modos explícitos que se sumarán en un PR posterior,
+   y Claro/Oscuro deben poder imponerse sobre el SO. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* `static` (no `@theme` a secas): sin `static`, Tailwind descarta del
+   `:root` cualquier variable que su escáner de utilidades no vea referenciada
+   en una clase. El bloque `.dark` de abajo referencia el set completo de
+   variables por nombre, no a través de una utilidad — así que `static` es la
+   única forma de garantizar que todas existan sin importar qué clases haya
+   escaneado. En el B2B, además, no hay hoy ningún lector de `var()` en estilos
+   inline (a diferencia de `geoquest-web/index.css:7-10`), pero declarar el set
+   completo no cuesta nada y evita que ese caso aparezca sin previo aviso. */
+@theme static {
+  /* Paleta cerrada: se eliminan los ~250 valores por defecto de Tailwind
+     (incluido `white`) y solo se redeclaran las dos palabras clave no-color
+     que la app usa hoy (verificado por grep: `border-transparent`,
+     `bg-transparent`). */
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Marca */
+  --color-teal: #0ea5a0;
+  --color-coral: #ff7a59;
+  --color-green: #3ecf8e;
+  --color-ink: #10262b;
+  --color-cream: #fff9f2;
+  --color-alert: #e5484d;
+
+  /* Neutros */
+  --color-border: #e4dfd4;
+  --color-muted: #8a8578;
+  --color-paper: #f6f3ec;
+
+  /* Superficies */
+  --color-surface-mint: #e1f0e6;
+  --color-surface-teal: #e1f5ee;
+  --color-surface-alert: #fdecec;
+  --color-surface-skeleton: #e9e5dc;
+  --color-surface-placeholder: #dcd6c8;
+  --color-surface-raised: #ffffff;
+
+  /* Roles que solo existen para que el intercambio de tema sea posible — no
+     invierten simplemente el valor de otro token, ver el bloque `.dark`. */
+  --color-surface-inverse: #10262b;
+  --color-on-inverse: #fff9f2;
+  --color-on-brand: #fff9f2; /* invariante: va sobre `teal`/`alert`, tono medio en ambos temas */
+  --color-scrim: color-mix(in srgb, #10262b 55%, transparent);
+
+  --font-display: '"Baloo 2"', sans-serif;
+  --font-sans: '"Nunito"', sans-serif;
+  --font-mono: '"Space Mono"', monospace;
+
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+}
+
+/* SIN CAPA (unlayered) a propósito: `@theme` emite dentro de `@layer theme`,
+   y una regla sin capa le gana a cualquier regla en capa sin importar el
+   orden de aparición en el archivo. `.dark` se aplica sobre `<html>`, que
+   también es `:root`, así que con igual especificidad el orden de aparición
+   quedaría como único desempate — y ese desempate es frágil frente a
+   reordenamientos futuros del CSS. Valores tomados literalmente de
+   `geoquest-web/src/index.css:65-90` (HEAD `5c495c1`), la única referencia
+   de la paleta oscura: no existe ADR ni documento de spec para estos
+   valores. Las anotaciones "decisión del founder" replican las del origen. */
+.dark {
+  --color-teal: #2fbfb8;
+  --color-coral: #ff9270;
+  --color-green: #3ecf8e; /* sin cambios entre temas — decisión del founder #4 */
+  --color-ink: #f2ede4;
+  --color-cream: #10262b;
+  --color-alert: #ff6b70; /* elevado para cumplir WCAG AA — decisión del founder #3 */
+
+  --color-border: #2a474d;
+  --color-muted: #9fafb2;
+  --color-paper: #0a1618;
+
+  --color-surface-mint: #12302c;
+  --color-surface-teal: #123a38;
+  --color-surface-alert: #3a1d1f;
+  --color-surface-skeleton: #1e3a40;
+  --color-surface-placeholder: #24444a;
+  --color-surface-raised: #17343a;
+
+  --color-surface-inverse: #17343a;
+  --color-on-inverse: #f2ede4;
+  /* --color-on-brand NO se sobrescribe a propósito: es invariante entre temas. */
+  --color-scrim: color-mix(in srgb, #0a1618 72%, transparent);
+}
+
+/* Controles nativos, scrollbars y caret siguen el tema activo. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
 
 html {
   scroll-behavior: smooth;
@@ -7,14 +109,16 @@ html {
 
 body {
   margin: 0;
-  background-color: theme('colors.cream');
-  color: theme('colors.ink');
-  font-family: theme('fontFamily.sans');
+  /* `var()`, no `theme()`: `theme()` resuelve en tiempo de build y nunca
+     puede reaccionar a un cambio de clase como `.dark`. */
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
 
 h1,
 h2,
 h3 {
-  font-family: theme('fontFamily.display');
+  font-family: var(--font-display);
   margin: 0;
 }

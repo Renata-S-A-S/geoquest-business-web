@@ -80,7 +80,7 @@ export function LoginPage() {
 
   return (
     <div className="flex h-dvh items-center justify-center bg-cream p-4">
-      <div className="w-full max-w-sm rounded-md border border-border bg-white p-6">
+      <div className="w-full max-w-sm rounded-md border border-border bg-surface-raised p-6">
         <h1 className="mb-4 font-display text-lg font-bold text-ink">{t('login.title')}</h1>
         <form
           onSubmit={handleSubmit((input) => mutation.mutate(input))}
