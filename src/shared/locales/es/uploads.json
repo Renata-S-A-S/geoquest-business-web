@@ -1,0 +1,25 @@
+{
+  "dropzone": {
+    "browse": "Elegí un archivo",
+    "dragHint": "o arrastralo acá",
+    "limitReached": "Ya llegaste al máximo de {{max}} archivos",
+    "uploading": "Subiendo…",
+    "success": "Subido",
+    "retry": "Reintentar",
+    "remove": "Quitar",
+    "removeAria": "Quitar {{fileName}}"
+  },
+  "gallery": {
+    "moveUpAria": "Mover foto {{position}} hacia adelante",
+    "moveDownAria": "Mover foto {{position}} hacia atrás",
+    "removeAria": "Quitar foto {{position}}",
+    "positionLabel": "Foto {{position}} de {{total}}"
+  },
+  "errors": {
+    "invalidType": "Formato no soportado. Formatos aceptados: {{formats}}",
+    "sizeExceeded": "El archivo supera el tamaño máximo permitido ({{maxSizeMb}} MB)",
+    "movUnsupported": "Los videos .mov no se pueden reproducir sin convertirlos antes. Subí un MP4 o WebM.",
+    "tooManyFiles": "Máximo {{max}} archivos — quitá uno para agregar otro",
+    "uploadFailed": "No pudimos subir el archivo. Intentá de nuevo."
+  }
+}

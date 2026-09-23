@@ -1,0 +1,25 @@
+{
+  "dropzone": {
+    "browse": "Choose a file",
+    "dragHint": "or drag it here",
+    "limitReached": "You already reached the {{max}}-file limit",
+    "uploading": "Uploading…",
+    "success": "Uploaded",
+    "retry": "Retry",
+    "remove": "Remove",
+    "removeAria": "Remove {{fileName}}"
+  },
+  "gallery": {
+    "moveUpAria": "Move photo {{position}} earlier",
+    "moveDownAria": "Move photo {{position}} later",
+    "removeAria": "Remove photo {{position}}",
+    "positionLabel": "Photo {{position}} of {{total}}"
+  },
+  "errors": {
+    "invalidType": "Unsupported format. Accepted formats: {{formats}}",
+    "sizeExceeded": "The file exceeds the maximum allowed size ({{maxSizeMb}} MB)",
+    "movUnsupported": ".mov videos can't play without converting them first. Upload an MP4 or WebM instead.",
+    "tooManyFiles": "Maximum {{max}} files — remove one to add another",
+    "uploadFailed": "We couldn't upload the file. Please try again."
+  }
+}
