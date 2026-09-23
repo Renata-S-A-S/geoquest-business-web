@@ -44,6 +44,16 @@
       "Suspended": "Suspendido"
     },
     "sla": "Estamos verificando los datos de tu negocio. La revisión toma hasta 48 horas hábiles desde el registro.",
+    "branch": {
+      "fast": {
+        "title": "Verificación rápida",
+        "body": "Encontramos tu negocio en Google Maps, así que la verificación sigue por la vía rápida. No necesitás hacer nada más."
+      },
+      "reinforced": {
+        "title": "Verificación reforzada",
+        "body": "No encontramos tu negocio en Google Maps, así que la verificación requiere pasos adicionales. La revisión sigue dentro del mismo plazo de 48 horas hábiles."
+      }
+    },
     "refresh": "Actualizar estado",
     "refreshing": "Actualizando…",
     "resolved": {
