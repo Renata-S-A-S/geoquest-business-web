@@ -37,7 +37,14 @@ const VIOLATION_PATTERNS: Record<string, RegExp> = {
  * Una futura excepción genuina debe agregarse acá con una razón escrita,
  * nunca excluirse en silencio vía regex.
  */
-const ALLOWED_HARDCODED_COLORS: Record<string, string> = {}
+const ALLOWED_HARDCODED_COLORS: Record<string, string> = {
+  'shared/lib/theme.ts':
+    'THEME_COLOR_META debe contener strings hex literales porque ' +
+    '<meta name="theme-color" content="…"> es un atributo real del DOM y no ' +
+    'puede consumir una custom property CSS (`var(--color-paper)` no es un ' +
+    'valor válido de `content`). Los valores son el token `paper` (#F6F3EC ' +
+    'claro / #0A1618 oscuro, `index.css`), no un color inventado.',
+}
 
 interface Violation {
   path: string
