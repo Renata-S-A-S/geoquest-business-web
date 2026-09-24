@@ -4,7 +4,13 @@ import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
 import { SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
-import { createPlaceInputSchema, type Place } from '@/shared/schemas/place'
+import {
+  createBusinessPlaceInputSchema,
+  DEFAULT_CHECK_IN_RADIUS_METERS,
+  type BusinessPlaceDetail,
+  type BusinessPlaceSummary,
+} from '@/shared/schemas/business-place'
+import { isValidTaxonomy } from '@/shared/schemas/taxonomy'
 import {
   registerBusinessInputSchema,
   updateBusinessMeInputSchema,
@@ -155,40 +161,90 @@ export const handlers = [
     return HttpResponse.json(newBusiness, { status: 201 })
   }),
 
-  http.get(`${API_BASE_URL}/business/me/places`, () => {
+  /**
+   * `GET /business/places` — devuelve el RESUMEN, no el detalle. El mock
+   * proyecta los 7 campos que expone `BusinessPlaceSummaryResult`, igual
+   * que el backend: la lista no trae descripción, coordenadas, radio ni
+   * fotos. Servir el detalle acá escondería esa asimetría hasta el día de
+   * la conexión real.
+   */
+  http.get(`${API_BASE_URL}/business/places`, () => {
     const { places } = readDb()
-    return HttpResponse.json(places)
+    const summaries: BusinessPlaceSummary[] = places.map((place) => ({
+      placeId: place.placeId,
+      name: place.name,
+      category: place.category,
+      subcategory: place.subcategory,
+      status: place.status,
+      xpReward: place.xpReward,
+      geoPointsReward: place.geoPointsReward,
+    }))
+    return HttpResponse.json(summaries)
   }),
 
-  http.post(`${API_BASE_URL}/business/me/places`, async ({ request }) => {
+  /** `GET /business/places/{id}` — detalle completo, cualquier estado. */
+  http.get(`${API_BASE_URL}/business/places/:placeId`, ({ params }) => {
+    const { places } = readDb()
+    const place = places.find((candidate) => candidate.placeId === params.placeId)
+
+    if (!place) {
+      return HttpResponse.json(
+        {
+          title: 'GetBusinessPlaceByIdQuery.NotFound',
+          detail: `No Place exists with Id '${String(params.placeId)}'.`,
+          status: 404,
+        },
+        { status: 404 }
+      )
+    }
+
+    return HttpResponse.json(place)
+  }),
+
+  /**
+   * `POST /business/places` — responde **201 con solo `{ placeId }`**, no
+   * con el agregado. Quien necesite el lugar recién creado tiene que
+   * pedirlo después con `GET /business/places/{id}`.
+   *
+   * Las fotos no viajan acá: se suben una por una contra
+   * `POST /business/places/{id}/photos`, así que el lugar nace sin ninguna.
+   */
+  http.post(`${API_BASE_URL}/business/places`, async ({ request }) => {
     const body = await request.json()
-    const parsed = createPlaceInputSchema.safeParse(body)
+    const parsed = createBusinessPlaceInputSchema.safeParse(body)
     if (!parsed.success) {
       return HttpResponse.json(
-        { title: 'ValidationFailed', detail: parsed.error.issues[0]?.message, status: 400 },
+        { title: 'Validation.Failed', detail: parsed.error.issues[0]?.message, status: 400 },
+        { status: 400 }
+      )
+    }
+
+    // El backend valida el par categoría/subcategoría server-side y
+    // responde 400 `Place.InvalidTaxonomy`. El mock lo replica para que el
+    // formulario se pruebe contra el mismo rechazo, no contra uno inventado.
+    if (!isValidTaxonomy(parsed.data.category, parsed.data.subcategory)) {
+      return HttpResponse.json(
+        {
+          title: 'Place.InvalidTaxonomy',
+          detail: `Subcategory '${parsed.data.subcategory}' does not belong to Category '${parsed.data.category}'.`,
+          status: 400,
+        },
         { status: 400 }
       )
     }
 
     const db = readDb()
-    const newPlace: Place = {
+    const newPlace: BusinessPlaceDetail = {
       ...parsed.data,
-      id: crypto.randomUUID(),
-      businessId: db.business.id,
-      placeType: 'BusinessVenue',
-      timeZoneId: 'America/Bogota',
-      xpReward: 0,
-      geoPointsReward: 12,
-      isVerified: false,
+      placeId: crypto.randomUUID(),
+      checkInRadiusMeters: parsed.data.checkInRadiusMeters ?? DEFAULT_CHECK_IN_RADIUS_METERS,
       status: 'Draft',
-      totalCheckIns: 0,
-      allowedInDiscoveryRoutes: false,
-      createdAt: new Date().toISOString(),
+      photos: [],
     }
     db.places.push(newPlace)
     writeDb(db)
 
-    return HttpResponse.json(newPlace, { status: 201 })
+    return HttpResponse.json({ placeId: newPlace.placeId }, { status: 201 })
   }),
 
   http.get(`${API_BASE_URL}/rewards`, () => {

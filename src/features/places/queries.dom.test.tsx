@@ -33,7 +33,8 @@ describe('usePlaces', () => {
     const { result } = renderHook(() => usePlaces(), { wrapper: Wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toEqual(SEED_PLACES)
+    // Resumen, no detalle: la lista del backend trae 7 campos.
+    expect(result.current.data?.map((p) => p.name)).toEqual(SEED_PLACES.map((p) => p.name))
   })
 
   it('usa la queryKey de placeKeys.list', async () => {
@@ -42,12 +43,12 @@ describe('usePlaces', () => {
     const { result } = renderHook(() => usePlaces(), { wrapper: Wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(queryClient.getQueryData(placeKeys.list)).toEqual(SEED_PLACES)
+    expect(queryClient.getQueryData(placeKeys.list)).toEqual(result.current.data)
   })
 
   it('expone el error cuando el backend falla, sin reintentar en silencio hacia un estado vacío', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me/places`, () =>
+      http.get(`${API_BASE_URL}/business/places`, () =>
         HttpResponse.json({ title: 'InternalError' }, { status: 500 })
       )
     )
@@ -62,9 +63,9 @@ describe('usePlaces', () => {
   it('aplica staleTime: un segundo mount dentro de la ventana no dispara un nuevo request', async () => {
     let requestCount = 0
     server.use(
-      http.get(`${API_BASE_URL}/business/me/places`, () => {
+      http.get(`${API_BASE_URL}/business/places`, () => {
         requestCount += 1
-        return HttpResponse.json(SEED_PLACES)
+        return HttpResponse.json([])
       })
     )
     const { Wrapper, queryClient } = createWrapper()

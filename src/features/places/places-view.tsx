@@ -2,35 +2,45 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { DataTable, type ColumnDef } from '@/shared/components/ui/data-table'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
-import type { Place } from '@/shared/schemas/place'
+import type { BusinessPlaceSummary, BusinessPlaceStatus } from '@/shared/schemas/business-place'
 
 /**
  * Mapa de estado a variante visual, a nivel de módulo igual que
  * `BUSINESS_STATUS_VARIANT` en `business-profile-view.tsx`. Tiparlo como
- * `Record<Place['status'], ...>` hace que agregar un estado al schema sin
- * decidir su color rompa la compilación, en vez de caer al 'neutral' por
- * defecto de `StatusBadge` sin que nadie se entere.
+ * `Record<BusinessPlaceStatus, ...>` hace que agregar un estado al schema
+ * sin decidir su color rompa la compilación, en vez de caer al 'neutral'
+ * por defecto de `StatusBadge` sin que nadie se entere.
+ *
+ * `Deleted` está acá porque el backend puede devolverlo: ningún
+ * repositorio filtra por estado.
  */
-const PLACE_STATUS_VARIANT: Record<Place['status'], StatusBadgeVariant> = {
+const PLACE_STATUS_VARIANT: Record<BusinessPlaceStatus, StatusBadgeVariant> = {
   Draft: 'neutral',
   Active: 'success',
   Paused: 'warning',
+  Deleted: 'error',
 }
 
 export interface PlacesViewProps {
-  places: Place[]
+  places: BusinessPlaceSummary[]
 }
 
 /**
  * Listado de lugares del negocio (#29, B-02). Primer consumidor real de
  * `DataTable` (#17), que hasta ahora solo tenía su propio test.
  *
- * Columnas: nombre, estado, check-ins y radio. **Sin columna de
- * categoría** a propósito: la única taxonomía existente
- * (`BUSINESS_CATEGORY_OPTIONS`) declara en su propio comentario que NO está
- * confirmada en Confluence, y traducirla acá la duplicaría en un tercer
- * lugar. #29 no la pide; tres fuentes de verdad para una taxonomía sin
- * confirmar cuesta más de lo que informa.
+ * Columnas: nombre, categoría, estado y GeoPoints. Todas salen del
+ * **resumen** que devuelve `GET /business/places` — la lista trae 7 campos,
+ * no el detalle.
+ *
+ * ⚠️ Las columnas anteriores de check-ins y radio se retiraron: `totalCheckIns`
+ * **no existe en ningún DTO del backend** (era invención del portal) y
+ * `checkInRadiusMeters` solo viene en el detalle. Ver
+ * `Renata-S-A-S/geoquest#191`.
+ *
+ * La categoría sí se muestra ahora: la taxonomía está confirmada
+ * (`taxonomy.ts`, RN-TAX-01) y viaja como entero, así que se traduce por
+ * su valor numérico.
  *
  * El CTA del encabezado NO es redundante con el del estado vacío: sin él,
  * un negocio que ya tiene un lugar no tendría por dónde crear el segundo.
@@ -38,8 +48,13 @@ export interface PlacesViewProps {
 export function PlacesView({ places }: PlacesViewProps) {
   const { t } = useTranslation('places')
 
-  const columns: ColumnDef<Place>[] = [
+  const columns: ColumnDef<BusinessPlaceSummary>[] = [
     { key: 'name', header: t('list.columns.name') },
+    {
+      key: 'category',
+      header: t('list.columns.category'),
+      render: (place) => t(`taxonomy.categories.${place.category}`),
+    },
     {
       key: 'status',
       header: t('list.columns.status'),
@@ -56,14 +71,9 @@ export function PlacesView({ places }: PlacesViewProps) {
       ),
     },
     {
-      key: 'totalCheckIns',
-      header: t('list.columns.totalCheckIns'),
-      render: (place) => t('list.checkInsValue', { count: place.totalCheckIns }),
-    },
-    {
-      key: 'checkInRadiusMeters',
-      header: t('list.columns.checkInRadiusMeters'),
-      render: (place) => t('list.radiusValue', { meters: place.checkInRadiusMeters }),
+      key: 'geoPointsReward',
+      header: t('list.columns.geoPointsReward'),
+      render: (place) => t('list.geoPointsValue', { points: place.geoPointsReward }),
     },
   ]
 
@@ -84,7 +94,7 @@ export function PlacesView({ places }: PlacesViewProps) {
         data={places}
         statusField="status"
         statusVariantMap={PLACE_STATUS_VARIANT}
-        getRowId={(place) => place.id}
+        getRowId={(place) => place.placeId}
         emptyState={
           <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-center">
             <span className="font-sans text-sm font-bold text-ink">{t('list.empty.title')}</span>

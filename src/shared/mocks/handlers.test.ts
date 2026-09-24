@@ -9,7 +9,12 @@ import {
 } from '@/shared/mocks/seed'
 import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
 import { authTokensSchema } from '@/shared/schemas/auth'
-import type { Place } from '@/shared/schemas/place'
+import type {
+  BusinessPlaceDetail,
+  BusinessPlaceSummary,
+  CreatedBusinessPlace,
+} from '@/shared/schemas/business-place'
+import { Category, Subcategory } from '@/shared/schemas/taxonomy'
 
 /**
  * Prueba el round-trip completo GET -> POST -> GET a través de `apiClient`
@@ -117,70 +122,146 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(data.role).toBe('Owner')
   })
 
-  it('GET /business/me/places devuelve la semilla inicial', async () => {
-    const { data } = await apiClient.get<Place[]>('/business/me/places')
-    // Atado a la semilla y no a un literal: lo que este caso verifica es que
-    // el handler devuelva la semilla, no cuántos lugares tiene.
+  it('GET /business/places devuelve el RESUMEN de la semilla, no el detalle', async () => {
+    const { data } = await apiClient.get<BusinessPlaceSummary[]>('/business/places')
+
     expect(data).toHaveLength(SEED_PLACES.length)
     expect(data.map((p) => p.name)).toEqual(SEED_PLACES.map((p) => p.name))
   })
 
-  it('POST /business/me/places crea un lugar y GET /business/me/places lo refleja después', async () => {
+  /**
+   * La lista expone 7 campos; el detalle 12. Este caso fija la asimetría:
+   * si el mock sirviera el detalle en la lista, el portal se acostumbraría
+   * a campos que el backend real no manda, y eso recién se descubriría al
+   * apagar los mocks.
+   */
+  it('GET /business/places NO expone descripción, coordenadas, radio ni fotos', async () => {
+    const { data } = await apiClient.get<BusinessPlaceSummary[]>('/business/places')
+
+    expect(Object.keys(data[0]).sort()).toEqual([
+      'category',
+      'geoPointsReward',
+      'name',
+      'placeId',
+      'status',
+      'subcategory',
+      'xpReward',
+    ])
+  })
+
+  it('GET /business/places/{id} devuelve el detalle completo', async () => {
+    const { data } = await apiClient.get<BusinessPlaceDetail>(
+      `/business/places/${SEED_PLACES[0].placeId}`
+    )
+
+    expect(data).toEqual(SEED_PLACES[0])
+    expect(data.latitude).toBeTypeOf('number')
+    expect(data.longitude).toBeTypeOf('number')
+  })
+
+  it('GET /business/places/{id} responde 404 problem+json para un id desconocido', async () => {
+    await expect(
+      apiClient.get('/business/places/00000000-0000-0000-0000-0000000000ff')
+    ).rejects.toMatchObject({
+      response: { status: 404, data: { title: 'GetBusinessPlaceByIdQuery.NotFound' } },
+    })
+  })
+
+  /**
+   * El `POST` responde 201 con SOLO el id, no con el agregado. Quien
+   * necesite el lugar recién creado tiene que pedirlo después.
+   */
+  it('POST /business/places devuelve solo { placeId } y el lugar aparece en la lista', async () => {
     const input = {
       name: 'Café de la 70 — Sede Estadio',
-      category: 'gastronomia',
-      subcategory: 'cafe',
-      coordinates: { lat: 6.253, lng: -75.588 },
+      description: 'Sede nueva sobre la 70.',
+      category: Category.Gastronomia,
+      subcategory: Subcategory.Cafe,
+      latitude: 6.253,
+      longitude: -75.588,
       checkInRadiusMeters: 150,
-      photos: ['https://picsum.photos/seed/cafe70-2/400/300'],
+      xpReward: 60,
+      geoPointsReward: 60,
     }
 
-    const created = await apiClient.post<Place>('/business/me/places', input)
+    const created = await apiClient.post<CreatedBusinessPlace>('/business/places', input)
     expect(created.status).toBe(201)
-    expect(created.data).toMatchObject({
-      name: 'Café de la 70 — Sede Estadio',
-      placeType: 'BusinessVenue',
-      xpReward: 0,
-      status: 'Draft',
-    })
+    expect(Object.keys(created.data)).toEqual(['placeId'])
 
-    const { data: after } = await apiClient.get<Place[]>('/business/me/places')
+    const { data: after } = await apiClient.get<BusinessPlaceSummary[]>('/business/places')
     expect(after).toHaveLength(SEED_PLACES.length + 1)
     expect(after.map((p) => p.name)).toContain('Café de la 70 — Sede Estadio')
   })
 
-  it(
-    'POST /business/me/places crea un lugar sin fotos — ADR-048: el mínimo de 1 se valida ' +
-      'al publicar (#34), no al crear, mientras #31 sigue bloqueado por BL-014',
-    async () => {
-      const input = {
-        name: 'Café de la 70 — Sede Sin Fotos',
-        category: 'gastronomia',
-        subcategory: 'cafe',
-        coordinates: { lat: 6.253, lng: -75.588 },
-        checkInRadiusMeters: 150,
-        photos: [] as string[],
-      }
-
-      const created = await apiClient.post<Place>('/business/me/places', input)
-      expect(created.status).toBe(201)
-      expect(created.data).toMatchObject({
-        name: 'Café de la 70 — Sede Sin Fotos',
-        photos: [],
-        status: 'Draft',
-      })
+  /**
+   * Las fotos no viajan en la creación: se suben aparte contra
+   * `POST /business/places/{id}/photos`. El lugar nace en `Draft` y sin
+   * ninguna, que es lo que el backend declara legítimo — publicar sin
+   * fotos devuelve 409, crear no.
+   */
+  it('POST /business/places crea el lugar en Draft y sin fotos', async () => {
+    const input = {
+      name: 'Café de la 70 — Sede Sin Fotos',
+      description: 'Sin fotos todavía.',
+      category: Category.Gastronomia,
+      subcategory: Subcategory.Cafe,
+      latitude: 6.253,
+      longitude: -75.588,
+      checkInRadiusMeters: 150,
+      xpReward: 50,
+      geoPointsReward: 50,
     }
-  )
 
-  it('POST /business/me/places con datos inválidos responde 400 en formato problem+json', async () => {
+    const created = await apiClient.post<CreatedBusinessPlace>('/business/places', input)
+    const { data: detail } = await apiClient.get<BusinessPlaceDetail>(
+      `/business/places/${created.data.placeId}`
+    )
+
+    expect(detail).toMatchObject({ status: 'Draft', photos: [] })
+  })
+
+  it('POST /business/places con datos inválidos responde 400 con el title punteado del backend', async () => {
     await expect(
-      apiClient.post('/business/me/places', { name: 'sin coordinates' })
+      apiClient.post('/business/places', { name: 'sin el resto' })
     ).rejects.toMatchObject({
-      response: {
-        status: 400,
-        data: { title: 'ValidationFailed' },
-      },
+      response: { status: 400, data: { title: 'Validation.Failed' } },
     })
+  })
+
+  /**
+   * El backend exige mínimo 50 en ambas recompensas porque crea el lugar
+   * como `TouristSite`. Contradice a ADR-041/043; ver geoquest#191.
+   */
+  it('POST /business/places rechaza recompensas por debajo de 50', async () => {
+    await expect(
+      apiClient.post('/business/places', {
+        name: 'Recompensa baja',
+        description: 'Prueba.',
+        category: Category.Gastronomia,
+        subcategory: Subcategory.Cafe,
+        latitude: 6.25,
+        longitude: -75.58,
+        checkInRadiusMeters: 100,
+        xpReward: 10,
+        geoPointsReward: 10,
+      })
+    ).rejects.toMatchObject({ response: { status: 400 } })
+  })
+
+  it('POST /business/places rechaza una subcategoría que no pertenece a su categoría', async () => {
+    await expect(
+      apiClient.post('/business/places', {
+        name: 'Taxonomía cruzada',
+        description: 'Prueba.',
+        category: Category.Gastronomia,
+        subcategory: Subcategory.Hotel,
+        latitude: 6.25,
+        longitude: -75.58,
+        checkInRadiusMeters: 100,
+        xpReward: 60,
+        geoPointsReward: 60,
+      })
+    ).rejects.toMatchObject({ response: { status: 400 } })
   })
 
   it('GET /rewards devuelve la semilla inicial', async () => {

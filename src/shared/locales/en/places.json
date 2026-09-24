@@ -10,11 +10,9 @@
     "columns": {
       "name": "Name",
       "status": "Status",
-      "totalCheckIns": "Check-ins",
-      "checkInRadiusMeters": "Check-in radius"
+      "category": "Category",
+      "geoPointsReward": "GeoPoints"
     },
-    "radiusValue": "{{meters, number}} m",
-    "checkInsValue": "{{count, number}}",
     "status": {
       "Draft": "Draft",
       "Active": "Active",
@@ -23,7 +21,8 @@
     "empty": {
       "title": "You don't have any places yet",
       "description": "Once you create your first place, explorers will be able to check in there and earn GeoPoints."
-    }
+    },
+    "geoPointsValue": "{{points, number}}"
   },
   "taxonomy": {
     "categories": {

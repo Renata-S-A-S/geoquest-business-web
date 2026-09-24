@@ -1,5 +1,6 @@
 import type { Business, BusinessStaff, BusinessStaffMe } from '@/shared/schemas/business'
-import type { Place } from '@/shared/schemas/place'
+import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
+import { Category, Subcategory } from '@/shared/schemas/taxonomy'
 import type { Reward } from '@/shared/schemas/reward'
 
 /**
@@ -68,49 +69,44 @@ export const SEED_BUSINESS_STAFF_ME: BusinessStaffMe = {
   username: SEED_BUSINESS_STAFF_USERNAME,
 }
 
-export const SEED_PLACES: Place[] = [
+/**
+ * Lugares semilla con la forma REAL de `BusinessPlaceDetailResult`. El mock
+ * guarda siempre el detalle completo y proyecta el resumen en `GET
+ * /business/places`, igual que el backend: la lista devuelve 7 campos y el
+ * detalle 12.
+ */
+export const SEED_PLACES: BusinessPlaceDetail[] = [
   {
-    id: '00000000-0000-0000-0000-000000000010',
-    businessId: SEED_BUSINESS.id,
+    placeId: '00000000-0000-0000-0000-000000000010',
     name: 'Café de la 70 — Sede Laureles',
-    placeType: 'BusinessVenue',
-    category: 'gastronomia',
-    subcategory: 'cafe',
-    coordinates: { lat: 6.2447, lng: -75.5916 },
-    timeZoneId: 'America/Bogota',
+    description: 'Café de especialidad con tostión propia, en el corazón de Laureles.',
+    category: Category.Gastronomia,
+    subcategory: Subcategory.Cafe,
+    latitude: 6.2447,
+    longitude: -75.5916,
     checkInRadiusMeters: 100,
-    photos: ['https://picsum.photos/seed/cafe70-1/400/300'],
-    xpReward: 0,
-    geoPointsReward: 12,
-    isVerified: true,
+    xpReward: 60,
+    geoPointsReward: 60,
     status: 'Active',
-    totalCheckIns: 143,
-    allowedInDiscoveryRoutes: false,
-    createdAt: '2026-08-01T00:00:00Z',
+    photos: ['https://picsum.photos/seed/cafe70-1/400/300'],
   },
   // Segundo lugar en `Draft` y sin fotos (#29): el badge de estado solo
   // prueba algo si hay más de un estado sembrado, y un borrador sin fotos
-  // es exactamente el caso que ADR-048 declara legítimo — el mínimo de 1
-  // foto se exige al PUBLICAR, no al crear, y la subida sigue bloqueada
-  // por BL-014.
+  // es el caso que el backend declara legítimo — publicar sin fotos
+  // devuelve 409 `Place.ActiveRequiresAtLeastOnePhoto`, pero crear no.
   {
-    id: '00000000-0000-0000-0000-000000000011',
-    businessId: SEED_BUSINESS.id,
+    placeId: '00000000-0000-0000-0000-000000000011',
     name: 'Café de la 70 — Sede Envigado',
-    placeType: 'BusinessVenue',
-    category: 'gastronomia',
-    subcategory: 'cafe',
-    coordinates: { lat: 6.1667, lng: -75.5833 },
-    timeZoneId: 'America/Bogota',
+    description: 'Segunda sede, todavía sin fotos cargadas.',
+    category: Category.Gastronomia,
+    subcategory: Subcategory.Cafe,
+    latitude: 6.1667,
+    longitude: -75.5833,
     checkInRadiusMeters: 150,
-    photos: [],
-    xpReward: 0,
-    geoPointsReward: 12,
-    isVerified: false,
+    xpReward: 50,
+    geoPointsReward: 50,
     status: 'Draft',
-    totalCheckIns: 0,
-    allowedInDiscoveryRoutes: false,
-    createdAt: '2026-09-10T00:00:00Z',
+    photos: [],
   },
 ]
 
@@ -118,7 +114,7 @@ export const SEED_REWARDS: Reward[] = [
   {
     id: '00000000-0000-0000-0000-000000000020',
     businessId: SEED_BUSINESS.id,
-    placeId: SEED_PLACES[0].id,
+    placeId: SEED_PLACES[0].placeId,
     title: '2x1 en café de especialidad',
     type: 'Discount',
     rewardCategory: 'General',

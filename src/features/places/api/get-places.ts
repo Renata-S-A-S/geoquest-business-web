@@ -1,31 +1,32 @@
 import { z } from 'zod'
 import { apiClient } from '@/shared/lib/api-client'
-import { placeSchema, type Place } from '@/shared/schemas/place'
+import {
+  businessPlaceSummarySchema,
+  type BusinessPlaceSummary,
+} from '@/shared/schemas/business-place'
 
 /**
- * `GET /business/me/places` — issue #29 (B-02). Contrato en
- * contratos-portal-b2b.md §2.2.
+ * `GET /business/places` — issue #29 (B-02). Contrato real verificado
+ * contra `BusinessPlacesEndpoints.cs`; ver `Renata-S-A-S/geoquest#191`.
  *
- * Devuelve TODOS los lugares del negocio de la sesión, en cualquier estado:
- * `Draft`, `Active` y `Paused`. La pantalla de lugares necesita los
- * borradores tanto como los publicados — un `Place` en `Draft` es
- * justamente el que le falta algo al negocio, así que esconderlo sería
- * esconder el trabajo pendiente.
+ * Devuelve el **resumen**, no el detalle: 7 campos, sin descripción,
+ * coordenadas, radio ni fotos. Para cualquiera de esos hay que pedir
+ * `GET /business/places/{id}`. La asimetría es del backend, no una
+ * simplificación nuestra.
  *
- * Sin `skipSessionAuth`: el recurso cuelga de `/business/me`, o sea que el
- * backend real resuelve el negocio desde la sesión activa. Mismo criterio
- * que `getBusinessMe`.
+ * Trae los lugares en todos los estados, incluido `Deleted`: ni el
+ * repositorio de lista ni el de detalle filtran por estado. Esconder el
+ * borrador sería esconderle al negocio el trabajo pendiente.
  *
- * `z.array(placeSchema)` falla la lista ENTERA si una sola fila viola el
- * contrato, y eso es deliberado. Es el mismo mecanismo que se rechazó en
- * la PR anterior (#29, PR1) para expresar la regla de publicación, pero la
- * justificación se invierte: un `.refine()` de "al menos una foto" habría
- * tumbado filas legítimas —borradores válidos, regla equivocada—, mientras
- * que acá solo tumban filas que el backend no debería haber emitido nunca.
+ * Sin `skipSessionAuth`: el backend resuelve el negocio desde la sesión vía
+ * `BusinessMembershipRef`, el cliente nunca manda un `businessId`.
+ *
+ * `z.array(...)` falla la lista ENTERA si una fila viola el contrato, y es
+ * deliberado: solo tumba filas que el backend no debería haber emitido.
  * Ante datos corruptos preferimos un error visible antes que una lista a
  * medias que el negocio lea como completa.
  */
-export async function getPlaces(): Promise<Place[]> {
-  const { data } = await apiClient.get('/business/me/places')
-  return z.array(placeSchema).parse(data)
+export async function getPlaces(): Promise<BusinessPlaceSummary[]> {
+  const { data } = await apiClient.get('/business/places')
+  return z.array(businessPlaceSummarySchema).parse(data)
 }
