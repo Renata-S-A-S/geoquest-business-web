@@ -12,6 +12,8 @@ import esSettings from './es/settings.json'
 import enSettings from './en/settings.json'
 import esPlaces from './es/places.json'
 import enPlaces from './en/places.json'
+import esRewards from './es/rewards.json'
+import enRewards from './en/rewards.json'
 
 /**
  * Bundle de recursos + registro de namespaces, compartido por el init real
@@ -28,6 +30,7 @@ export const resources = {
     business: esBusiness,
     settings: esSettings,
     places: esPlaces,
+    rewards: esRewards,
   },
   en: {
     common: enCommon,
@@ -37,8 +40,9 @@ export const resources = {
     business: enBusiness,
     settings: enSettings,
     places: enPlaces,
+    rewards: enRewards,
   },
 } as const
 
-export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business', 'settings', 'places'] as const
+export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business', 'settings', 'places', 'rewards'] as const
 export const defaultNS = 'common' as const

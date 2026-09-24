@@ -1,0 +1,33 @@
+{
+  "list": {
+    "title": "Mis recompensas",
+    "createCta": "Crear recompensa",
+    "loading": "Cargando tus recompensas…",
+    "retry": "Reintentar",
+    "errors": {
+      "generic": "No pudimos cargar tus recompensas."
+    },
+    "columns": {
+      "title": "Recompensa",
+      "status": "Estado",
+      "geoPointsCost": "Costo",
+      "stock": "Stock"
+    },
+    "geoPointsCostValue": "{{points, number}} GeoPoints",
+    "stock": {
+      "unlimited": "Ilimitado",
+      "remaining": "{{remaining, number}} de {{total, number}}",
+      "outOfStock": "Agotada"
+    },
+    "status": {
+      "Draft": "Borrador",
+      "Published": "Publicada",
+      "Paused": "Pausada",
+      "Archived": "Archivada"
+    },
+    "empty": {
+      "title": "Todavía no hay ninguna recompensa",
+      "description": "Cuando crees tu primera recompensa, los exploradores van a poder canjearla con sus GeoPoints."
+    }
+  }
+}
