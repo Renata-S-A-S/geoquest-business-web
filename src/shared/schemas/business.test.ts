@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { businessSchema, registerBusinessInputSchema } from './business'
+import {
+  businessSchema,
+  registerBusinessInputSchema,
+  updateBusinessMeInputSchema,
+  BUSINESS_READONLY_FIELDS,
+} from './business'
 
 const baseBusiness = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -131,5 +136,78 @@ describe('registerBusinessInputSchema', () => {
         termsAccepted: false,
       })
     ).toThrow()
+  })
+})
+
+describe('updateBusinessMeInputSchema', () => {
+  it('acepta un subconjunto parcial del subconjunto editable', () => {
+    expect(() =>
+      updateBusinessMeInputSchema.parse({ displayName: 'Café de la 70 Renovado' })
+    ).not.toThrow()
+  })
+
+  it('acepta las tres claves editables juntas', () => {
+    expect(() =>
+      updateBusinessMeInputSchema.parse({
+        displayName: 'Café de la 70 Renovado',
+        category: 'servicios',
+        email: 'nuevo-contacto@cafe70.co',
+      })
+    ).not.toThrow()
+  })
+
+  it('rechaza un body vacío', () => {
+    expect(() => updateBusinessMeInputSchema.parse({})).toThrow()
+  })
+
+  it('rechaza displayName vacío', () => {
+    expect(() => updateBusinessMeInputSchema.parse({ displayName: '' })).toThrow()
+  })
+
+  it('rechaza displayName de más de 120 caracteres', () => {
+    expect(() => updateBusinessMeInputSchema.parse({ displayName: 'a'.repeat(121) })).toThrow()
+  })
+
+  it('rechaza category vacío', () => {
+    expect(() => updateBusinessMeInputSchema.parse({ category: '' })).toThrow()
+  })
+
+  it('rechaza un email con formato inválido', () => {
+    expect(() => updateBusinessMeInputSchema.parse({ email: 'no-es-un-email' })).toThrow()
+  })
+
+  it('no declara legalName como clave editable (el guardia de 409 vive en BUSINESS_READONLY_FIELDS, no acá)', () => {
+    const parsed = updateBusinessMeInputSchema.parse({ displayName: 'X' })
+    expect(parsed).not.toHaveProperty('legalName')
+  })
+})
+
+describe('BUSINESS_READONLY_FIELDS', () => {
+  it('incluye los tres campos congelados por RN-BIZ-01', () => {
+    expect(BUSINESS_READONLY_FIELDS).toEqual(
+      expect.arrayContaining(['legalName', 'legalDocumentType', 'legalDocumentNumber'])
+    )
+  })
+
+  it('incluye los campos que solo escribe el servidor', () => {
+    expect(BUSINESS_READONLY_FIELDS).toEqual(
+      expect.arrayContaining([
+        'status',
+        'trustScore',
+        'trustStatus',
+        'totalRedemptions',
+        'totalReports',
+        'isPlatformOwned',
+        'commercialAgreementSignedAt',
+        'createdAt',
+        'id',
+      ])
+    )
+  })
+
+  it('no incluye ninguna de las tres claves editables por PATCH /business/me', () => {
+    expect(BUSINESS_READONLY_FIELDS).not.toEqual(
+      expect.arrayContaining(['displayName', 'category', 'email'])
+    )
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
 import { resetDb } from '@/shared/mocks/db'
-import { SEED_BUSINESS_STAFF } from '@/shared/mocks/seed'
+import { SEED_BUSINESS, SEED_BUSINESS_STAFF } from '@/shared/mocks/seed'
 import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
 import { authTokensSchema } from '@/shared/schemas/auth'
 import type { Place } from '@/shared/schemas/place'
@@ -20,6 +20,87 @@ describe('mock handlers — round-trip de persistencia', () => {
   it('GET /business/me devuelve el negocio semilla', async () => {
     const { data } = await apiClient.get('/business/me')
     expect(data).toMatchObject({ displayName: 'Café de la 70' })
+  })
+
+  it('PATCH /business/me actualiza displayName y GET /business/me lo refleja después', async () => {
+    const patched = await apiClient.patch('/business/me', {
+      displayName: 'Café de la 70 Renovado',
+    })
+    expect(patched.status).toBe(200)
+    expect(patched.data).toMatchObject({ displayName: 'Café de la 70 Renovado' })
+
+    const { data: after } = await apiClient.get('/business/me')
+    expect(after).toMatchObject({ displayName: 'Café de la 70 Renovado' })
+  })
+
+  it('PATCH /business/me con solo category no toca displayName ni email (semántica PATCH parcial)', async () => {
+    const patched = await apiClient.patch('/business/me', { category: 'servicios' })
+    expect(patched.data).toMatchObject({
+      category: 'servicios',
+      displayName: SEED_BUSINESS.displayName,
+      email: SEED_BUSINESS.email,
+    })
+  })
+
+  it('PATCH /business/me devuelve el agregado Business completo, no un eco del patch', async () => {
+    const patched = await apiClient.patch('/business/me', { displayName: 'Nuevo Nombre' })
+    expect(patched.data).toEqual({ ...SEED_BUSINESS, displayName: 'Nuevo Nombre' })
+  })
+
+  it('PATCH /business/me con body vacío responde 400 ValidationFailed', async () => {
+    await expect(apiClient.patch('/business/me', {})).rejects.toMatchObject({
+      response: { status: 400, data: { title: 'ValidationFailed' } },
+    })
+  })
+
+  it('PATCH /business/me con un email inválido responde 400 ValidationFailed', async () => {
+    await expect(
+      apiClient.patch('/business/me', { email: 'no-es-un-email' })
+    ).rejects.toMatchObject({
+      response: { status: 400, data: { title: 'ValidationFailed' } },
+    })
+  })
+
+  it('PATCH /business/me intentando cambiar legalName responde 409 ReadOnlyField y NO lo aplica', async () => {
+    await expect(
+      apiClient.patch('/business/me', { legalName: 'Otro Nombre Legal SAS' })
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'ReadOnlyField' } },
+    })
+
+    const { data: after } = await apiClient.get('/business/me')
+    expect(after.legalName).toBe(SEED_BUSINESS.legalName)
+  })
+
+  it('PATCH /business/me intentando cambiar legalDocumentNumber responde 409 ReadOnlyField y NO lo aplica', async () => {
+    await expect(
+      apiClient.patch('/business/me', { legalDocumentNumber: '999999999-9' })
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'ReadOnlyField' } },
+    })
+
+    const { data: after } = await apiClient.get('/business/me')
+    expect(after.legalDocumentNumber).toBe(SEED_BUSINESS.legalDocumentNumber)
+  })
+
+  it('PATCH /business/me mezclando un campo editable con uno congelado rechaza el request entero (409, nada se aplica)', async () => {
+    await expect(
+      apiClient.patch('/business/me', {
+        displayName: 'Nombre Que No Debería Aplicarse',
+        legalDocumentNumber: '999999999-9',
+      })
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'ReadOnlyField' } },
+    })
+
+    const { data: after } = await apiClient.get('/business/me')
+    expect(after.displayName).toBe(SEED_BUSINESS.displayName)
+  })
+
+  it('PATCH /business/me intentando cambiar un campo server-owned (status) también responde 409 ReadOnlyField', async () => {
+    await expect(apiClient.patch('/business/me', { status: 'Suspended' })).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'ReadOnlyField' } },
+    })
   })
 
   it('GET /places devuelve la semilla inicial', async () => {

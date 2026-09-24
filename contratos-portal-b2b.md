@@ -23,10 +23,71 @@ Los schemas Zod ejecutables (fuente de verdad del shape, más completos que las 
 | Verbo   | Path                 | Body                                                               | Response                      | Fuente                                                                |
 | ------- | -------------------- | ------------------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------- |
 | `GET`   | `/business/me`       | —                                                                  | `Business`                    | Resuelve el negocio del `BusinessStaff` autenticado                   |
-| `PATCH` | `/business/me`       | subconjunto editable (`displayName`, `email`, `category`)          | `Business`                    | B-01 (edición post-registro, no cubierto por el flujo pero implícito) |
+| `PATCH` | `/business/me`       | subconjunto editable — ver detalle en §2.1.1                       | `Business`                    | B-01 (edición post-registro, no cubierto por el flujo pero implícito) |
 | `POST`  | `/business/register` | datos legales + documento (ver §3, pregunta de subida de archivos) | `Business` (status `Pending`) | B-01                                                                  |
 
 `Business.status` — **solo `Suspended` está citado literalmente** en Confluence (RN-BIZ-04). `Pending`/`Active` son propuesta del frontend a partir del SLA de 48h de verificación (B-01, RN-BIZ-01) — confirmar los nombres exactos.
+
+#### 2.1.1 Detalle — `PATCH /business/me`
+
+Propuesta del frontend (ADR-048-BF: contratos definidos por el frontend, validados por el backend), pendiente de confirmación por el backend — sin cita de Confluence propia, porque no hay ningún flujo B-0X que cubra la edición del perfil (B-01 solo cubre el registro inicial). Preguntas abiertas registradas en [`Renata-S-A-S/geoquest#182`](https://github.com/Renata-S-A-S/geoquest/issues/182).
+
+```
+PATCH /business/me
+Auth:    BusinessStaff bearer, mismo sesión que el resto de §1.
+         Requiere rol Owner (403 en caso contrario) — el gate de rol
+         llega con GET /business-staff/me (#72, PR siguiente); este mock
+         todavía no lo aplica, ver nota de implementación más abajo.
+Type:    application/json
+
+Body — todas las claves opcionales; una clave omitida significa "no
+        tocar"; un body vacío es 400.
+  displayName  string, 1..120
+  category     string, 1..caracteres       ← taxonomía sin confirmar,
+                                              ver business-category-options.ts
+  email        string, formato email        ← el CONTACTO PÚBLICO del
+                                              negocio (ej. contacto@cafe70.co),
+                                              NO la credencial de acceso del
+                                              BusinessStaff que inicia sesión
+                                              (esa vive en Identity, es un
+                                              campo distinto y no tiene
+                                              endpoint de edición propuesto
+                                              acá — confundirlas sería un bug
+                                              de seguridad, no una decisión
+                                              de alcance)
+
+200 → Business (el agregado completo, misma forma que GET /business/me)
+      Se devuelve el agregado completo en vez de un eco del patch para que
+      quien llama pueda reemplazar su caché con la verdad del servidor
+      (`setQueryData`) en vez de adivinar el resultado del merge.
+
+Errores (problem+json, RFC7807: { title, detail?, status })
+  400 ValidationFailed  el body no cumple el shape/longitud, o está vacío
+  403 Forbidden         el BusinessStaff autenticado no es el Owner
+                         (documentado acá; la verificación de rol llega en
+                         la PR que agrega GET /business-staff/me — este mock
+                         no la aplica todavía)
+  404 BusinessNotFound  la sesión no resuelve a ningún negocio
+                         (documentado acá; el mock es single-tenant — siempre
+                         hay un `db.business` — así que este caso no es
+                         reproducible con el mock actual)
+  409 ReadOnlyField      el request intentó modificar un campo congelado por
+                         verificación (`legalName`, `legalDocumentType`,
+                         `legalDocumentNumber` — RN-BIZ-01) o un campo que
+                         solo escribe el servidor (`status`, `trustScore`,
+                         `trustStatus`, `totalRedemptions`, `totalReports`,
+                         `isPlatformOwned`, `commercialAgreementSignedAt`,
+                         `createdAt`, `id`) — ver
+                         `BUSINESS_READONLY_FIELDS` en business.ts
+```
+
+**Por qué 409 y no ignorar el campo en silencio:** RN-BIZ-01 verifica el negocio contra su documento legal. Un backend que descarta en silencio un intento de cambiar `legalName` deja al cliente creyendo que el cambio se aplicó — la misma razón por la que esos campos son de solo lectura en primer lugar. El mock de este repo implementa y testea este rechazo para `legalName`/`legalDocumentNumber` (ver `handlers.test.ts`).
+
+**`Business.email` sí queda en el subconjunto editable** (a diferencia de una versión anterior de este documento, que lo excluía como pregunta abierta) — confirmado por el Product Owner: el contacto público del negocio es editable, la credencial de login del `BusinessStaff` no. `description` **no** forma parte de este PATCH — no existe en `businessSchema`, en este contrato ni en el ERD; si debería existir es una pregunta abierta, ver `Renata-S-A-S/geoquest#182`.
+
+⚠️ **Formato del `title` de error — sin confirmar.** El mock de este repo emite títulos sin punto, PascalCase (`ValidationFailed`, `ReadOnlyField` — mismo estilo que `InvalidCredentials` en `POST /auth/login`), por consistencia interna con el resto de `handlers.ts`. El backend real del Explorer (`geoquest-web`) usa códigos con punto (`Validation.Failed`). Como el backend de `Business` para este endpoint todavía no existe, se prioriza la consistencia interna — `Renata-S-A-S/geoquest#182` pide unificar el criterio antes de implementar contra un backend real.
+
+**Ruteo al backend:** el PO pidió sumar este contrato a `Renata-S-A-S/geoquest#164` — ese issue documenta la subida de archivos de ADR-048 (§4.4), no edición de perfil. Sin confirmar si corresponde ahí o en un issue propio — no se abre ninguno desde este documento.
 
 ### 2.2 Place (B2B)
 
@@ -136,7 +197,7 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 ## 5. Cómo consume el frontend estos contratos hoy (mock-first)
 
 - Todos los schemas están en `src/shared/schemas/*.ts` (Zod), con comentario de fuente por campo — cada uno distingue explícitamente valores **confirmados** (citados literalmente en Confluence) de valores **propuestos** (inferidos, a validar acá).
-- Los mocks (`src/shared/mocks/handlers.ts`) implementan un subconjunto de estos endpoints (`GET/POST /places`, `GET /business/me`, `GET /rewards`) contra `localStorage`, sirviendo exactamente estos shapes — sirve como spec ejecutable, no solo este documento en prosa.
+- Los mocks (`src/shared/mocks/handlers.ts`) implementan un subconjunto de estos endpoints (`GET/POST /places`, `GET /business/me`, `PATCH /business/me`, `GET /rewards`) contra `localStorage`, sirviendo exactamente estos shapes — sirve como spec ejecutable, no solo este documento en prosa.
 - `VITE_USE_MOCKS=true` es el default. Cuando el backend real tenga aunque sea un endpoint, se apaga por env var y `apiClient` (`src/shared/lib/api-client.ts`) empieza a pegarle a `VITE_API_BASE_URL` sin cambiar una línea del resto de la app.
 - Auth: `src/shared/lib/session-port.ts` + `session-interceptor.ts` — el cliente Axios adjunta el bearer token y reintenta tras 401 contra un `SessionPort` inyectable, nunca contra un endpoint concreto. La implementación mock hoy vive en `session-port.mock.ts`; el día que exista el mecanismo real, se agrega una implementación nueva y se cambia una sola línea en `session-port.instance.ts`.
 

@@ -69,6 +69,65 @@ export const registerBusinessInputSchema = z.object({
 export type RegisterBusinessInput = z.infer<typeof registerBusinessInputSchema>
 
 /**
+ * Input de `PATCH /business/me` (#72, PR3) — ver contratos-portal-b2b.md
+ * §2.1.1. Todas las claves son opcionales (semántica PATCH: una clave
+ * omitida significa "no tocar"); el `.refine()` rechaza un body vacío
+ * porque un PATCH sin ningún campo a modificar no tiene sentido y el
+ * contrato lo declara 400.
+ *
+ * Subconjunto editable confirmado por el Product Owner: `displayName`,
+ * `category`, `email`. `email` acá es el CONTACTO PÚBLICO del negocio (ej.
+ * `contacto@cafe70.co`), NO la credencial de acceso del `BusinessStaff`
+ * que inicia sesión (esa vive en Identity, es un campo distinto, y no
+ * tiene endpoint de edición propuesto en este PR) — confundirlas sería un
+ * bug de seguridad, no una decisión de alcance.
+ *
+ * `description` NO forma parte de este schema a propósito: no existe en
+ * `businessSchema`, en el contrato ni en el ERD. Si debería existir es una
+ * pregunta abierta, ver `Renata-S-A-S/geoquest#182` — no se agrega acá.
+ *
+ * Propuesta del frontend (ADR-048-BF), sin confirmar contra el backend.
+ */
+export const updateBusinessMeInputSchema = z
+  .object({
+    displayName: z.string().min(1).max(120).optional(),
+    category: z.string().min(1).optional(), // taxonomía sin confirmar — ver business-category-options.ts
+    email: z.string().min(1).email().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'El cuerpo no puede estar vacío: incluí al menos un campo para actualizar.',
+  })
+export type UpdateBusinessMeInput = z.infer<typeof updateBusinessMeInputSchema>
+
+/**
+ * Campos de `Business` congelados para `PATCH /business/me` — ver
+ * contratos-portal-b2b.md §2.1.1. Los tres primeros están protegidos por
+ * RN-BIZ-01 (verificación contra el documento legal antes de activar el
+ * negocio); el resto son campos que solo escribe el servidor (estado,
+ * métricas derivadas, timestamps, flags de plataforma). `handlers.ts`
+ * responde 409 `ReadOnlyField` si el body de un PATCH incluye alguno de
+ * estos — nunca se ignoran en silencio, porque eso dejaría al cliente
+ * creyendo que el cambio se aplicó.
+ *
+ * Propuesta del frontend (ADR-048-BF), sin confirmar contra el backend —
+ * ver `Renata-S-A-S/geoquest#182`.
+ */
+export const BUSINESS_READONLY_FIELDS = [
+  'legalName',
+  'legalDocumentType',
+  'legalDocumentNumber',
+  'status',
+  'trustScore',
+  'trustStatus',
+  'totalRedemptions',
+  'totalReports',
+  'isPlatformOwned',
+  'commercialAgreementSignedAt',
+  'createdAt',
+  'id',
+] as const
+
+/**
  * `BusinessStaff` — el usuario real que opera el portal. `role` sin
  * enumerar en el ERD; se deja como `string` a propósito (no inventar
  * valores). La autenticación de BusinessStaff es la pregunta abierta
