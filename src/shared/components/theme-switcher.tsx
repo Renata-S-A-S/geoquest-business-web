@@ -39,12 +39,12 @@ const optionVariants = cva(
 )
 
 /**
- * Hogar TEMPORAL (design decisión D-2): vive dentro de `AccountMenu`
- * únicamente porque #72 (pantalla de configuración) todavía no existe —
- * cuando #72 aterrice, este componente se muda ahí sin cambios internos
- * (un solo componente, un solo call site) y `AccountMenu` vuelve a ser
- * session-only, igual que el Explorer consolidó su propio switcher en
- * `/configuracion` (commit `a868552`). No es un accidente, es deliberado.
+ * Home definitivo: `/configuracion` (`features/settings/settings-page.tsx`,
+ * issue #72 PR6, decisión de diseño D5). Vivió temporalmente dentro de
+ * `AccountMenu` mientras esa pantalla no existía (#71) — la mudanza fue sin
+ * cambios internos, un solo componente y un solo call site, tal como
+ * estaba planeado, igual que el Explorer consolidó su propio switcher en
+ * `/configuracion` (commit `a868552`).
  *
  * Escribe ÚNICAMENTE en `useThemeStore`: nunca toca el DOM ni
  * `localStorage` directamente. `ThemeEffects` (PR3b) es el único dueño del

@@ -1,0 +1,23 @@
+{
+  "title": "Configuración",
+  "user": {
+    "title": "Tu cuenta",
+    "loading": "Cargando los datos de tu cuenta…",
+    "retry": "Reintentar",
+    "errors": {
+      "generic": "No pudimos cargar los datos de tu cuenta."
+    },
+    "fields": {
+      "username": {
+        "label": "Nombre de usuario"
+      },
+      "email": {
+        "label": "Correo de acceso",
+        "hint": "Es el correo con el que iniciás sesión — distinto del correo de contacto público del negocio, que se edita en tu perfil de negocio."
+      }
+    }
+  },
+  "appearance": {
+    "title": "Apariencia"
+  }
+}

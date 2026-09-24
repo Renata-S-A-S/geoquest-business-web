@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { Button } from '@/shared/components/ui/button'
 import { Modal } from '@/shared/components/ui/modal'
-import { ThemeSwitcher } from '@/shared/components/theme-switcher'
 import { useSession } from '@/shared/hooks/use-session'
 import { queryClient } from '@/shared/lib/query-client'
 
@@ -18,6 +18,14 @@ import { queryClient } from '@/shared/lib/query-client'
  * trae todavía una identidad real (#28 pendiente). Camino hacia adelante
  * documentado en el diseño: cuando #72 pueble `['business','me']`, el
  * trigger puede suscribirse cache-only sin request extra.
+ *
+ * Desde #72 (PR6, decisión de diseño D5) el menú suma un link a
+ * `/configuracion` — NO uno a `/negocio`: ese destino ya es uno de los
+ * `NAV_ITEMS` (sidebar y bottom nav en todo viewport), así que un segundo
+ * link acá sería puramente redundante. `/configuracion` en cambio existe
+ * deliberadamente FUERA de `NAV_ITEMS` (no es un flujo B-0X), así que este
+ * menú es su único acceso — el mismo argumento que #70 ya usó para el
+ * logout.
  */
 export function AccountMenu() {
   const { t } = useTranslation()
@@ -51,18 +59,25 @@ export function AccountMenu() {
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title={t('account.title')}>
         {/*
-          El switcher de tema va ANTES del botón destructivo (design decisión
-          D-2): `Modal` enfoca el primer elemento enfocable al abrir
-          (`modal.tsx`), así que este orden hace que el foco inicial caiga
-          en un control seguro en vez de "Cerrar sesión". El `border-t`
-          separa visualmente la preferencia reversible de la acción
-          irreversible — son dos zonas, no una sola lista de acciones.
-          Hogar TEMPORAL: cuando #72 (pantalla de configuración) exista,
-          `ThemeSwitcher` se muda ahí y este bloque vuelve a ser
-          session-only (ver doc comment de `theme-switcher.tsx`).
+          El link va ANTES del botón destructivo, no por el motivo que este
+          bloque afirmaba antes de #72 PR6: se verificó que es FALSO que
+          `Modal` enfoque un elemento propio del contenido al abrir — su
+          header (título + botón "Cerrar", la "X") siempre renderiza antes
+          que `children`, así que la X ya era el primer foco sin importar
+          este orden (ver Engram #1393 y el test "initial focus..." más
+          abajo). Lo que este orden sí protege es el SIGUIENTE Tab stop
+          después de la X: con el link primero, ese siguiente Tab cae en una
+          navegación reversible en vez de aterrizar directo en la acción
+          destructiva. El `border-t` separa visualmente ambas zonas.
         */}
-        <ThemeSwitcher />
-        <div className="mt-4 border-t border-border pt-4">
+        <Link
+          to="/configuracion"
+          onClick={() => setMenuOpen(false)}
+          className="block rounded-sm px-2 py-2 font-sans text-sm font-bold text-ink hover:bg-teal/10"
+        >
+          {t('account.settingsLink')}
+        </Link>
+        <div className="mt-2 border-t border-border pt-4">
           <Button
             type="button"
             variant="destructive"
