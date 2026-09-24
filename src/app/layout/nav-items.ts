@@ -11,7 +11,12 @@ import { Buildings, MapPin, Gift, QrCode, ChartBar } from '@phosphor-icons/react
  * label renderizado — mismo criterio que geoquest-web.
  */
 export const NAV_ITEMS = [
-  { id: 'onboarding', to: '/negocio', labelKey: 'nav.business', icon: Buildings },
+  // `id: 'business'` — corregido en #72: `/negocio` es la superficie
+  // autenticada "mi negocio" (perfil y ajustes del propio negocio), no el
+  // flujo de onboarding B-01, que ya se completó fuera del shell
+  // (`/registro`, `/login`). `'onboarding'` había quedado como resto
+  // huérfano de esa etapa.
+  { id: 'business', to: '/negocio', labelKey: 'nav.business', icon: Buildings },
   { id: 'places', to: '/lugares', labelKey: 'nav.places', icon: MapPin },
   { id: 'rewards', to: '/recompensas', labelKey: 'nav.rewards', icon: Gift },
   { id: 'redemptions', to: '/canjes', labelKey: 'nav.redemptions', icon: QrCode },
