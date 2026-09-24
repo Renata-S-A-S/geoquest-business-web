@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { Button } from '@/shared/components/ui/button'
 import { Modal } from '@/shared/components/ui/modal'
+import { ThemeSwitcher } from '@/shared/components/theme-switcher'
 import { useSession } from '@/shared/hooks/use-session'
 import { queryClient } from '@/shared/lib/query-client'
 
@@ -49,14 +50,28 @@ export function AccountMenu() {
       </button>
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title={t('account.title')}>
-        <Button
-          type="button"
-          variant="destructive"
-          className="w-full"
-          onClick={handleSignOutRequest}
-        >
-          {t('account.signOut')}
-        </Button>
+        {/*
+          El switcher de tema va ANTES del botón destructivo (design decisión
+          D-2): `Modal` enfoca el primer elemento enfocable al abrir
+          (`modal.tsx`), así que este orden hace que el foco inicial caiga
+          en un control seguro en vez de "Cerrar sesión". El `border-t`
+          separa visualmente la preferencia reversible de la acción
+          irreversible — son dos zonas, no una sola lista de acciones.
+          Hogar TEMPORAL: cuando #72 (pantalla de configuración) exista,
+          `ThemeSwitcher` se muda ahí y este bloque vuelve a ser
+          session-only (ver doc comment de `theme-switcher.tsx`).
+        */}
+        <ThemeSwitcher />
+        <div className="mt-4 border-t border-border pt-4">
+          <Button
+            type="button"
+            variant="destructive"
+            className="w-full"
+            onClick={handleSignOutRequest}
+          >
+            {t('account.signOut')}
+          </Button>
+        </div>
       </Modal>
 
       <Modal

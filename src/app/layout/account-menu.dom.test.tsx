@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AccountMenu } from './account-menu'
 import { useBusinessSessionStore } from '@/shared/stores/business-session-store'
+import { useThemeStore } from '@/shared/stores/theme-store'
 import { queryClient } from '@/shared/lib/query-client'
 import type { AuthTokens } from '@/shared/schemas/auth'
 
@@ -96,5 +97,62 @@ describe('AccountMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(useBusinessSessionStore.getState().isAuthenticated).toBe(false)
+  })
+
+  it('renders the theme group above the sign-out button, separated by a divider', () => {
+    render(<AccountMenu />)
+    openMenu()
+
+    const dialog = screen.getByRole('dialog')
+    const group = within(dialog).getByRole('group', { name: 'Tema' })
+    const signOutButton = within(dialog).getByRole('button', { name: 'Cerrar sesión' })
+
+    // DOCUMENT_POSITION_FOLLOWING: `signOutButton` aparece después de `group`
+    // en el documento — prueba el orden visual exigido por la decisión de
+    // diseño D-2 (grupo de tema arriba, separador, luego cerrar sesión).
+    expect(
+      group.compareDocumentPosition(signOutButton) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('initial focus on open lands on a safe control, never the destructive sign-out button', () => {
+    render(<AccountMenu />)
+    openMenu()
+
+    // `Modal` enfoca el primer elemento enfocable al abrir (modal.tsx). Ese
+    // elemento es el botón de cerrar (la "X" del header), que SIEMPRE
+    // precede a `children` en el DOM sin importar qué contenga — por lo
+    // tanto ya era seguro antes de esta restructuración. Lo que sí cambia
+    // acá es el orden DE TAB inmediatamente después (siguiente prueba): sin
+    // este reordenamiento, el próximo Tab caía directo en "Cerrar sesión".
+    expect(document.activeElement).toHaveAccessibleName('Cerrar')
+    expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Cerrar sesión' }))
+  })
+
+  it('places a theme option, not the destructive sign-out button, as the next Tab stop after the dismiss control', () => {
+    render(<AccountMenu />)
+    openMenu()
+
+    // El orden de tabulación sigue el orden del DOM (ningún `tabIndex`
+    // explícito está en juego acá). Verifica la ganancia real de D-2: el
+    // segundo `Tab` desde que se abre el menú aterriza en una opción de
+    // tema, no en la acción destructiva.
+    const dialog = screen.getByRole('dialog')
+    const focusableNames = within(dialog)
+      .getAllByRole('button')
+      .map((el) => el.getAttribute('aria-label') ?? el.textContent)
+
+    expect(focusableNames).toEqual(['Cerrar', 'Claro', 'Oscuro', 'Sistema', 'Cerrar sesión'])
+  })
+
+  it('selecting a theme keeps the menu open and does not sign out', () => {
+    render(<AccountMenu />)
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Oscuro' }))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(useBusinessSessionStore.getState().isAuthenticated).toBe(true)
+    expect(useThemeStore.getState().mode).toBe('dark')
   })
 })
