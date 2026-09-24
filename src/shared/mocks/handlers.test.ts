@@ -116,12 +116,12 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(data.role).toBe('Owner')
   })
 
-  it('GET /places devuelve la semilla inicial', async () => {
-    const { data } = await apiClient.get<Place[]>('/places')
+  it('GET /business/me/places devuelve la semilla inicial', async () => {
+    const { data } = await apiClient.get<Place[]>('/business/me/places')
     expect(data).toHaveLength(1)
   })
 
-  it('POST /places crea un lugar y GET /places lo refleja después', async () => {
+  it('POST /business/me/places crea un lugar y GET /business/me/places lo refleja después', async () => {
     const input = {
       name: 'Café de la 70 — Sede Estadio',
       category: 'gastronomia',
@@ -131,7 +131,7 @@ describe('mock handlers — round-trip de persistencia', () => {
       photos: ['https://picsum.photos/seed/cafe70-2/400/300'],
     }
 
-    const created = await apiClient.post<Place>('/places', input)
+    const created = await apiClient.post<Place>('/business/me/places', input)
     expect(created.status).toBe(201)
     expect(created.data).toMatchObject({
       name: 'Café de la 70 — Sede Estadio',
@@ -140,14 +140,37 @@ describe('mock handlers — round-trip de persistencia', () => {
       status: 'Draft',
     })
 
-    const { data: after } = await apiClient.get<Place[]>('/places')
+    const { data: after } = await apiClient.get<Place[]>('/business/me/places')
     expect(after).toHaveLength(2)
     expect(after.map((p) => p.name)).toContain('Café de la 70 — Sede Estadio')
   })
 
-  it('POST /places con datos inválidos responde 400 en formato problem+json', async () => {
+  it(
+    'POST /business/me/places crea un lugar sin fotos — ADR-048: el mínimo de 1 se valida ' +
+      'al publicar (#34), no al crear, mientras #31 sigue bloqueado por BL-014',
+    async () => {
+      const input = {
+        name: 'Café de la 70 — Sede Sin Fotos',
+        category: 'gastronomia',
+        subcategory: 'cafe',
+        coordinates: { lat: 6.253, lng: -75.588 },
+        checkInRadiusMeters: 150,
+        photos: [] as string[],
+      }
+
+      const created = await apiClient.post<Place>('/business/me/places', input)
+      expect(created.status).toBe(201)
+      expect(created.data).toMatchObject({
+        name: 'Café de la 70 — Sede Sin Fotos',
+        photos: [],
+        status: 'Draft',
+      })
+    }
+  )
+
+  it('POST /business/me/places con datos inválidos responde 400 en formato problem+json', async () => {
     await expect(
-      apiClient.post('/places', { name: 'sin coordinates ni fotos' })
+      apiClient.post('/business/me/places', { name: 'sin coordinates' })
     ).rejects.toMatchObject({
       response: {
         status: 400,

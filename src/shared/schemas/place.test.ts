@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placeSchema } from './place'
+import { createPlaceInputSchema, placeSchema } from './place'
 
 const validPlace = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -48,7 +48,41 @@ describe('placeSchema', () => {
     expect(() => placeSchema.parse({ ...validPlace, checkInRadiusMeters: 5000 })).toThrow()
   })
 
-  it('rejects zero photos — B-02 requires at least 1', () => {
-    expect(() => placeSchema.parse({ ...validPlace, photos: [] })).toThrow()
+  it(
+    'parses a place with zero photos — ADR-048: el mínimo de 1 se valida al publicar, ' +
+      'no al crear ni al leer (un Draft sin fotos es legítimo mientras #31 sigue bloqueado por BL-014)',
+    () => {
+      expect(placeSchema.parse({ ...validPlace, photos: [] })).toMatchObject({ photos: [] })
+    }
+  )
+
+  it('parses a place with between 1 and 5 photos', () => {
+    const oneUrl = ['https://cdn.example.com/1.jpg']
+    const fiveUrls = Array.from({ length: 5 }, (_, i) => `https://cdn.example.com/${i}.jpg`)
+
+    expect(placeSchema.parse({ ...validPlace, photos: oneUrl })).toMatchObject({ photos: oneUrl })
+    expect(placeSchema.parse({ ...validPlace, photos: fiveUrls })).toMatchObject({
+      photos: fiveUrls,
+    })
+  })
+
+  it('rejects a 6-photo array — ADR-048: la 6ta la rechaza el endpoint', () => {
+    const sixUrls = Array.from({ length: 6 }, (_, i) => `https://cdn.example.com/${i}.jpg`)
+    expect(() => placeSchema.parse({ ...validPlace, photos: sixUrls })).toThrow()
+  })
+})
+
+describe('createPlaceInputSchema', () => {
+  it('accepts a create payload without photos — el mínimo de 1 se exige recién al publicar (#34), no acá', () => {
+    const input = {
+      name: validPlace.name,
+      category: validPlace.category,
+      subcategory: validPlace.subcategory,
+      coordinates: validPlace.coordinates,
+      checkInRadiusMeters: validPlace.checkInRadiusMeters,
+      photos: [] as string[],
+    }
+
+    expect(createPlaceInputSchema.parse(input)).toMatchObject({ photos: [] })
   })
 })

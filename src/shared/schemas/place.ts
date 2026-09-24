@@ -24,7 +24,14 @@ export const placeSchema = z.object({
   coordinates: z.object({ lat: z.number(), lng: z.number() }), // shape del JSON no confirmada contra el backend real
   timeZoneId: z.string(), // resuelto server-side por GeoTimeZoneResolver — el portal no lo setea
   checkInRadiusMeters: z.number().int().min(50).max(1000), // B-02: default 100
-  photos: z.array(z.string().url()).min(1).max(5), // B-02: mínimo 1, máximo 5
+  // ADR-048 (subida de archivos): máximo 5 fotos — la 6ta la rechaza el
+  // endpoint. El mínimo de 1 se valida al PUBLICAR (`POST /places/{id}/publish`,
+  // #34), no acá: un `Place` en `Draft` existe legítimamente sin fotos
+  // mientras #31 sigue bloqueado por BL-014 (subida de archivos no
+  // implementada todavía). `createPlaceInputSchema` hereda esta forma vía
+  // `.pick()` a propósito — no hay override propio, para que lectura y
+  // escritura no diverjan.
+  photos: z.array(z.string().url()).max(5),
   xpReward: z.number().int().nonnegative(), // fijado por la plataforma (ADR-043) — solo lectura desde el portal
   geoPointsReward: z.number().int().nonnegative(), // fijado por la plataforma, 25% del baseline (ADR-041) — solo lectura
   isVerified: z.boolean(),

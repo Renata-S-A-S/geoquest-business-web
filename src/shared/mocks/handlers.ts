@@ -155,12 +155,12 @@ export const handlers = [
     return HttpResponse.json(newBusiness, { status: 201 })
   }),
 
-  http.get(`${API_BASE_URL}/places`, () => {
+  http.get(`${API_BASE_URL}/business/me/places`, () => {
     const { places } = readDb()
     return HttpResponse.json(places)
   }),
 
-  http.post(`${API_BASE_URL}/places`, async ({ request }) => {
+  http.post(`${API_BASE_URL}/business/me/places`, async ({ request }) => {
     const body = await request.json()
     const parsed = createPlaceInputSchema.safeParse(body)
     if (!parsed.success) {
