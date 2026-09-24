@@ -10,11 +10,9 @@
     "columns": {
       "name": "Nombre",
       "status": "Estado",
-      "totalCheckIns": "Check-ins",
-      "checkInRadiusMeters": "Radio de check-in"
+      "category": "Categoría",
+      "geoPointsReward": "GeoPoints"
     },
-    "radiusValue": "{{meters, number}} m",
-    "checkInsValue": "{{count, number}}",
     "status": {
       "Draft": "Borrador",
       "Active": "Activo",
@@ -23,7 +21,8 @@
     "empty": {
       "title": "Todavía no hay ningún lugar",
       "description": "Cuando crees tu primer lugar, los exploradores van a poder hacer check-in ahí y ganar GeoPoints."
-    }
+    },
+    "geoPointsValue": "{{points, number}}"
   },
   "taxonomy": {
     "categories": {

@@ -22,7 +22,7 @@ function renderPlacesPage() {
 describe('PlacesPage', () => {
   it('muestra el estado de carga mientras la consulta está pendiente', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me/places`, () => new Promise<never>(() => {}))
+      http.get(`${API_BASE_URL}/business/places`, () => new Promise<never>(() => {}))
     )
 
     renderPlacesPage()
@@ -60,7 +60,7 @@ describe('PlacesPage', () => {
   })
 
   it('muestra el estado vacío con el CTA de crear cuando el negocio no tiene lugares', async () => {
-    server.use(http.get(`${API_BASE_URL}/business/me/places`, () => HttpResponse.json([])))
+    server.use(http.get(`${API_BASE_URL}/business/places`, () => HttpResponse.json([])))
 
     renderPlacesPage()
 
@@ -86,7 +86,7 @@ describe('PlacesPage', () => {
   it('muestra el `detail` del backend y permite reintentar cuando falla', async () => {
     let callCount = 0
     server.use(
-      http.get(`${API_BASE_URL}/business/me/places`, () => {
+      http.get(`${API_BASE_URL}/business/places`, () => {
         callCount += 1
         return HttpResponse.json(
           { title: 'InternalError', detail: 'No pudimos consultar los lugares' },
@@ -114,7 +114,7 @@ describe('PlacesPage', () => {
    */
   it('cae al mensaje traducido cuando el cuerpo del error no es problem+json', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me/places`, () =>
+      http.get(`${API_BASE_URL}/business/places`, () =>
         HttpResponse.text('boom', { status: 500 })
       )
     )
