@@ -1,11 +1,16 @@
 import { render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { SEED_BUSINESS } from '@/shared/mocks/seed'
 import type { Business } from '@/shared/schemas/business'
 import { BusinessProfileView } from './business-profile-view'
 
-function renderView(business: Business) {
-  return render(<BusinessProfileView business={business} />)
+function renderView(business: Business, canEdit = false) {
+  return render(
+    <MemoryRouter>
+      <BusinessProfileView business={business} canEdit={canEdit} />
+    </MemoryRouter>
+  )
 }
 
 const LEGAL_FROZEN_HINT =
@@ -88,5 +93,18 @@ describe('BusinessProfileView', () => {
 
     expect(screen.queryByText(SEED_BUSINESS.id)).not.toBeInTheDocument()
     expect(screen.queryByText(SEED_BUSINESS.googleMapsPlaceId ?? '')).not.toBeInTheDocument()
+  })
+
+  it('NO renderiza el link de edición cuando canEdit es false (issue #72, PR5, decisión D4)', () => {
+    renderView(SEED_BUSINESS, false)
+
+    expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
+  })
+
+  it('renderiza el link de edición hacia /negocio/editar cuando canEdit es true', () => {
+    renderView(SEED_BUSINESS, true)
+
+    const link = screen.getByRole('link', { name: 'Editar' })
+    expect(link).toHaveAttribute('href', '/negocio/editar')
   })
 })

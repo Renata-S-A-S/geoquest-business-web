@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { LockSimple } from '@phosphor-icons/react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
@@ -27,6 +28,14 @@ const GOOGLE_MAPS_VERIFIED_VARIANT: Record<'true' | 'false', StatusBadgeVariant>
 
 export interface BusinessProfileViewProps {
   business: Business
+  /**
+   * Gate de Owner (issue #72, decisión D4) — decidido por el contenedor
+   * (`BusinessProfilePage`, vía `canEditBusinessProfile`), nunca acá: esta
+   * vista solo recibe el booleano ya resuelto y decide si renderiza el
+   * link. Para un no-Owner, la afordancia simplemente NO se renderiza —
+   * nunca un link/botón deshabilitado.
+   */
+  canEdit: boolean
 }
 
 interface ProfileFieldProps {
@@ -67,9 +76,10 @@ function SectionTitle({ children }: { children: ReactNode }) {
  * (el contenedor `BusinessProfilePage` hace el fork pending/error/success)
  * y lo agrupa en tres bloques:
  *
- * - **Identidad** (`displayName`, `category`, `email`): editables recién en
- *   una PR futura (#72 PR5) detrás del gate de Owner que todavía no existe
- *   — acá se muestran sin ningún botón ni link de edición, a propósito.
+ * - **Identidad** (`displayName`, `category`, `email`): editables desde
+ *   `/negocio/editar` (#72 PR5) para el Owner. El link de edición (`canEdit`)
+ *   vive junto al título de la pantalla, no adentro de esta card — no es un
+ *   campo más, es la acción que lleva a editar los tres.
  * - **Legal** (`legalName`, `legalDocumentType`, `legalDocumentNumber`,
  *   `isInformalBusiness`): solo lectura. Los primeros tres quedan
  *   congelados por RN-BIZ-01 (se verificaron contra el documento legal
@@ -96,12 +106,22 @@ function SectionTitle({ children }: { children: ReactNode }) {
  * `isPlatformOwned` solo es `true` para el negocio semilla de la
  * plataforma — nunca aplica a un usuario real del portal.
  */
-export function BusinessProfileView({ business }: BusinessProfileViewProps) {
+export function BusinessProfileView({ business, canEdit }: BusinessProfileViewProps) {
   const { t } = useTranslation('business')
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <h1 className="font-display text-lg font-bold text-ink">{t('profile.title')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-display text-lg font-bold text-ink">{t('profile.title')}</h1>
+        {canEdit && (
+          <Link
+            to="/negocio/editar"
+            className="font-sans text-xs font-bold text-teal hover:underline"
+          >
+            {t('profile.editLink')}
+          </Link>
+        )}
+      </div>
 
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('profile.sections.identity.title')}</SectionTitle>

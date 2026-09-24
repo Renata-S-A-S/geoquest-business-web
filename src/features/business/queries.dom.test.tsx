@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS, SEED_BUSINESS_STAFF_ME } from '@/shared/mocks/seed'
-import { businessKeys, useBusinessMe, useBusinessStaffMe } from './queries'
+import { businessKeys, useBusinessMe, useBusinessStaffMe, useUpdateBusinessMe } from './queries'
 
 function createWrapper() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -86,5 +86,72 @@ describe('useBusinessStaffMe', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(queryClient.getQueryData(businessKeys.staffMe)).toEqual(SEED_BUSINESS_STAFF_ME)
+  })
+})
+
+/**
+ * `useUpdateBusinessMe` (#72, PR5) — el hook diferido desde PR3/PR4, ahora
+ * con su primer consumidor (`BusinessProfileForm`). Regla verificada del
+ * Explorer (`edit-profile-page.tsx`, "save = setQueryData con la respuesta
+ * del servidor, nunca optimista"): estos tres tests cubren exactamente esa
+ * regla — éxito reemplaza la cache con el agregado completo, NADA la toca
+ * antes de que el servidor responda, y un error la deja intacta.
+ */
+describe('useUpdateBusinessMe', () => {
+  it('reemplaza businessKeys.me con el Business completo que devuelve el servidor tras un PATCH exitoso', async () => {
+    const { Wrapper, queryClient } = createWrapper()
+    queryClient.setQueryData(businessKeys.me, SEED_BUSINESS)
+
+    const { result } = renderHook(() => useUpdateBusinessMe(), { wrapper: Wrapper })
+    result.current.mutate({ displayName: 'Nuevo nombre' })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(queryClient.getQueryData(businessKeys.me)).toEqual({
+      ...SEED_BUSINESS,
+      displayName: 'Nuevo nombre',
+    })
+  })
+
+  it('NO actualiza la cache de forma optimista: mientras el PATCH está pendiente, la cache sigue con el valor previo', async () => {
+    let resolveRequest: (() => void) | undefined
+    server.use(
+      http.patch(`${API_BASE_URL}/business/me`, async () => {
+        await new Promise<void>((resolve) => {
+          resolveRequest = resolve
+        })
+        return HttpResponse.json({ ...SEED_BUSINESS, displayName: 'Nuevo nombre' })
+      })
+    )
+    const { Wrapper, queryClient } = createWrapper()
+    queryClient.setQueryData(businessKeys.me, SEED_BUSINESS)
+
+    const { result } = renderHook(() => useUpdateBusinessMe(), { wrapper: Wrapper })
+    result.current.mutate({ displayName: 'Nuevo nombre' })
+
+    await waitFor(() => expect(result.current.isPending).toBe(true))
+    expect(queryClient.getQueryData(businessKeys.me)).toEqual(SEED_BUSINESS)
+
+    resolveRequest?.()
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(queryClient.getQueryData(businessKeys.me)).toEqual({
+      ...SEED_BUSINESS,
+      displayName: 'Nuevo nombre',
+    })
+  })
+
+  it('propaga el error de un PATCH rechazado sin tocar la cache', async () => {
+    server.use(
+      http.patch(`${API_BASE_URL}/business/me`, () =>
+        HttpResponse.json({ title: 'ValidationFailed', detail: 'Inválido' }, { status: 400 })
+      )
+    )
+    const { Wrapper, queryClient } = createWrapper()
+    queryClient.setQueryData(businessKeys.me, SEED_BUSINESS)
+
+    const { result } = renderHook(() => useUpdateBusinessMe(), { wrapper: Wrapper })
+    result.current.mutate({ displayName: 'Nuevo nombre' })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(queryClient.getQueryData(businessKeys.me)).toEqual(SEED_BUSINESS)
   })
 })

@@ -1,17 +1,20 @@
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
-import { SEED_BUSINESS } from '@/shared/mocks/seed'
+import { SEED_BUSINESS, SEED_BUSINESS_STAFF_ME } from '@/shared/mocks/seed'
 import { BusinessProfilePage } from './business-profile-page'
 
 function renderBusinessProfilePage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <BusinessProfilePage />
+      <MemoryRouter>
+        <BusinessProfilePage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -74,5 +77,36 @@ describe('BusinessProfilePage', () => {
 
     expect(await screen.findByText(SEED_BUSINESS.displayName)).toBeInTheDocument()
     expect(callCount).toBe(2)
+  })
+
+  it('shows the edit link when the authenticated staff is the Owner (default seed)', async () => {
+    renderBusinessProfilePage()
+
+    expect(await screen.findByRole('link', { name: 'Editar' })).toHaveAttribute(
+      'href',
+      '/negocio/editar'
+    )
+  })
+
+  it('does NOT show the edit link for a non-Owner role (#72 D4 — constructed directly, gate always passes today)', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business-staff/me`, () =>
+        HttpResponse.json({ ...SEED_BUSINESS_STAFF_ME, role: 'Staff' })
+      )
+    )
+
+    renderBusinessProfilePage()
+
+    await screen.findByText(SEED_BUSINESS.displayName)
+    expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
+  })
+
+  it('does NOT show the edit link while the staff-identity read is still pending (fail-safe default, never fail-open)', async () => {
+    server.use(http.get(`${API_BASE_URL}/business-staff/me`, () => new Promise(() => {})))
+
+    renderBusinessProfilePage()
+
+    await screen.findByText(SEED_BUSINESS.displayName)
+    expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
   })
 })
