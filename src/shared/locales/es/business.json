@@ -1,0 +1,92 @@
+{
+  "profile": {
+    "title": "Mi negocio",
+    "loading": "Cargando los datos de tu negocio…",
+    "retry": "Reintentar",
+    "errors": {
+      "generic": "No pudimos cargar los datos de tu negocio."
+    },
+    "sections": {
+      "identity": {
+        "title": "Información pública"
+      },
+      "legal": {
+        "title": "Identidad legal"
+      },
+      "platform": {
+        "title": "Estado en la plataforma"
+      }
+    },
+    "fields": {
+      "displayName": {
+        "label": "Nombre público"
+      },
+      "category": {
+        "label": "Categoría"
+      },
+      "email": {
+        "label": "Correo de contacto",
+        "hint": "Correo de contacto público del negocio — distinto del correo con el que iniciás sesión."
+      },
+      "legalName": {
+        "label": "Nombre legal"
+      },
+      "legalDocumentType": {
+        "label": "Tipo de documento"
+      },
+      "legalDocumentNumber": {
+        "label": "Número de documento"
+      },
+      "isInformalBusiness": {
+        "label": "Negocio informal"
+      },
+      "status": {
+        "label": "Estado"
+      },
+      "trustStatus": {
+        "label": "Nivel de confianza"
+      },
+      "trustScore": {
+        "label": "Puntaje de confianza",
+        "value": "{{score, number}}"
+      },
+      "totalRedemptions": {
+        "label": "Canjes totales"
+      },
+      "totalReports": {
+        "label": "Reportes confirmados"
+      },
+      "isGoogleMapsVerified": {
+        "label": "Verificación en Google Maps"
+      },
+      "commercialAgreementSignedAt": {
+        "label": "Acuerdo comercial firmado",
+        "empty": "Sin firmar"
+      },
+      "createdAt": {
+        "label": "Negocio creado"
+      }
+    },
+    "boolean": {
+      "true": "Sí",
+      "false": "No"
+    },
+    "status": {
+      "Pending": "En verificación",
+      "Active": "Activo",
+      "Suspended": "Suspendido"
+    },
+    "trustStatusValues": {
+      "Premium": "Premium",
+      "Active": "Activo",
+      "UnderReview": "En revisión",
+      "Suspended": "Suspendido"
+    },
+    "googleMapsVerified": {
+      "true": "Verificado",
+      "false": "No verificado"
+    },
+    "legalFrozenHint": "No editable: se verificó contra tu documento legal antes de activar el negocio.",
+    "dateFormatted": "{{date, datetime}}"
+  }
+}
