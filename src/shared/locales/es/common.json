@@ -23,5 +23,11 @@
     "confirmTitle": "¿Cerrar sesión?",
     "confirmDescription": "Vas a salir del portal. Tendrás que iniciar sesión de nuevo para volver a entrar.",
     "cancel": "Cancelar"
+  },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
   }
 }

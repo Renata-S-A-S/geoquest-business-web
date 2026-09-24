@@ -23,5 +23,11 @@
     "confirmTitle": "Sign out?",
     "confirmDescription": "You are about to leave the portal. You will need to sign in again to come back.",
     "cancel": "Cancel"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   }
 }
