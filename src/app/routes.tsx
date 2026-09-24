@@ -8,6 +8,7 @@ import { BusinessProfilePage } from '@/features/business/business-profile-page'
 import { BusinessProfileEditPage } from '@/features/business/business-profile-edit-page'
 import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
+import { CreatePlacePage } from '@/features/places/create-place-page'
 import { RoutePlaceholder } from '@/app/route-placeholder'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
@@ -115,7 +116,7 @@ export const router = createBrowserRouter([
             path: '/lugares/nuevo',
             element: (
               <FeatureErrorBoundary featureName="Lugares">
-                <RoutePlaceholder label="crear lugar — pendiente (#30)" />
+                <CreatePlacePage />
               </FeatureErrorBoundary>
             ),
           },

@@ -55,5 +55,56 @@
       "18": "Hotel",
       "19": "Hostal"
     }
+  },
+  "createForm": {
+    "title": "Crear lugar",
+    "fields": {
+      "name": {
+        "label": "Nombre del lugar",
+        "placeholder": "Café de la 70 — Sede Laureles"
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Contá qué hace especial a este lugar.",
+        "hint": "La ven los exploradores en el mapa."
+      },
+      "category": {
+        "label": "Categoría",
+        "placeholder": "Elegí una categoría"
+      },
+      "subcategory": {
+        "label": "Subcategoría",
+        "placeholder": "Elegí una subcategoría",
+        "pickCategoryFirst": "Elegí primero una categoría"
+      },
+      "latitude": {
+        "label": "Latitud",
+        "placeholder": "6.2447"
+      },
+      "longitude": {
+        "label": "Longitud",
+        "placeholder": "-75.5916"
+      },
+      "coordinatesHint": "Por ahora se escriben a mano. El selector en mapa llega en una tarea aparte.",
+      "checkInRadiusMeters": {
+        "label": "Radio de check-in (metros)",
+        "hint": "Entre 50 y 1000 metros. Es la distancia desde la que un explorador puede registrar su visita."
+      }
+    },
+    "validation": {
+      "required": "Este campo es obligatorio",
+      "latitudeRange": "La latitud va entre -90 y 90",
+      "longitudeRange": "La longitud va entre -180 y 180",
+      "radiusRange": "El radio va entre 50 y 1000 metros",
+      "number": "Escribí un número"
+    },
+    "submit": "Crear lugar",
+    "submitting": "Creando…",
+    "cancel": "Cancelar",
+    "success": "Lugar creado como borrador",
+    "errors": {
+      "generic": "No pudimos crear el lugar.",
+      "invalidTaxonomy": "Esa subcategoría no pertenece a la categoría elegida."
+    }
   }
 }

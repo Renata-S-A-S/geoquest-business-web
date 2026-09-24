@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getPlaces } from './api/get-places'
+import { createPlace } from './api/create-place'
 
 /**
  * Registro de query keys de la slice `places` — issue #29 (B-02). Mismo
@@ -32,16 +33,39 @@ export const placeKeys = {
  * bifurcar la key, o la invalidación deja de alcanzar esa pantalla en
  * silencio.
  *
- * La mutación de creación (`POST /business/me/places`) NO vive acá
- * todavía: llega con su primer consumidor real, el formulario de #30/#33,
- * siguiendo el precedente de `useUpdateBusinessMe` (#72), que se difirió
- * de PR3/PR4 a PR5 por exactamente este motivo. Un hook sin consumidor no
- * se puede verificar contra un uso real.
+ * La mutación de creación llega en #30/#33 (abajo), con su primer
+ * consumidor real — `PlaceForm`.
  */
 export function usePlaces() {
   return useQuery({
     queryKey: placeKeys.list,
     queryFn: getPlaces,
     staleTime: 30_000,
+  })
+}
+
+/**
+ * `POST /business/places` (#30, #33) — mutación del formulario de creación.
+ *
+ * **Nunca optimista**, misma regla verificada del Explorer que aplica
+ * `useUpdateBusinessMe` (#72): el servidor puede rechazar el alta (400 por
+ * validación o taxonomía cruzada), y una lista que ya mostró el lugar
+ * tendría que quitarlo, lo que confunde más de lo que ayuda.
+ *
+ * En éxito **invalida** en vez de hacer `setQueryData`, a diferencia de
+ * `useUpdateBusinessMe`. El motivo es concreto: el `POST` devuelve solo
+ * `{ placeId }`, no el agregado, así que no hay con qué sembrar la cache.
+ * Construir la fila a mano desde el input sería adivinar lo que el servidor
+ * decidió — el estado, las recompensas resueltas — y esa fila inventada
+ * quedaría en pantalla hasta el próximo refetch.
+ */
+export function useCreatePlace() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createPlace,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: placeKeys.list })
+    },
   })
 }
