@@ -106,5 +106,60 @@
       "generic": "We couldn't create the place.",
       "invalidTaxonomy": "That subcategory doesn't belong to the chosen category."
     }
+  },
+  "detail": {
+    "title": "Place details",
+    "backToList": "Back to places",
+    "loading": "Loading the place…",
+    "retry": "Retry",
+    "errors": {
+      "generic": "We couldn't load this place.",
+      "notFound": "That place doesn't exist or doesn't belong to your business."
+    },
+    "sections": {
+      "identity": {
+        "title": "Place information"
+      },
+      "location": {
+        "title": "Location"
+      },
+      "platform": {
+        "title": "Platform rewards"
+      },
+      "photos": {
+        "title": "Photos"
+      }
+    },
+    "fields": {
+      "description": {
+        "label": "Description"
+      },
+      "category": {
+        "label": "Category"
+      },
+      "subcategory": {
+        "label": "Subcategory"
+      },
+      "coordinates": {
+        "label": "Coordinates",
+        "value": "{{latitude}}, {{longitude}}"
+      },
+      "checkInRadiusMeters": {
+        "label": "Check-in radius",
+        "value": "{{meters, number}} m"
+      },
+      "xpReward": {
+        "label": "XP per check-in"
+      },
+      "geoPointsReward": {
+        "label": "GeoPoints per check-in"
+      }
+    },
+    "platformFixedNote": "GeoQuest sets these values, not your business. They stay the same across every business in the network, because GeoPoints can be redeemed at any of them.",
+    "photos": {
+      "empty": "This place has no photos yet.",
+      "publishNeedsPhoto": "At least one photo is required before it can be published.",
+      "count": "{{count, number}} of 5"
+    }
   }
 }

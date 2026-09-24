@@ -49,7 +49,20 @@ export function PlacesView({ places }: PlacesViewProps) {
   const { t } = useTranslation('places')
 
   const columns: ColumnDef<BusinessPlaceSummary>[] = [
-    { key: 'name', header: t('list.columns.name') },
+    {
+      key: 'name',
+      header: t('list.columns.name'),
+      // El nombre es la entrada al detalle (#35). Sin esto el listado sería
+      // un cul-de-sac: se ve el estado pero no hay cómo actuar sobre él.
+      render: (place) => (
+        <Link
+          to={`/lugares/${place.placeId}`}
+          className="font-sans font-bold text-teal hover:underline"
+        >
+          {place.name}
+        </Link>
+      ),
+    },
     {
       key: 'category',
       header: t('list.columns.category'),

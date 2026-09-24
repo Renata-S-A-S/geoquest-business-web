@@ -106,5 +106,60 @@
       "generic": "No pudimos crear el lugar.",
       "invalidTaxonomy": "Esa subcategoría no pertenece a la categoría elegida."
     }
+  },
+  "detail": {
+    "title": "Detalle del lugar",
+    "backToList": "Volver a lugares",
+    "loading": "Cargando el lugar…",
+    "retry": "Reintentar",
+    "errors": {
+      "generic": "No pudimos cargar este lugar.",
+      "notFound": "Ese lugar no existe o no es de tu negocio."
+    },
+    "sections": {
+      "identity": {
+        "title": "Información del lugar"
+      },
+      "location": {
+        "title": "Ubicación"
+      },
+      "platform": {
+        "title": "Recompensas de la plataforma"
+      },
+      "photos": {
+        "title": "Fotos"
+      }
+    },
+    "fields": {
+      "description": {
+        "label": "Descripción"
+      },
+      "category": {
+        "label": "Categoría"
+      },
+      "subcategory": {
+        "label": "Subcategoría"
+      },
+      "coordinates": {
+        "label": "Coordenadas",
+        "value": "{{latitude}}, {{longitude}}"
+      },
+      "checkInRadiusMeters": {
+        "label": "Radio de check-in",
+        "value": "{{meters, number}} m"
+      },
+      "xpReward": {
+        "label": "XP por check-in"
+      },
+      "geoPointsReward": {
+        "label": "GeoPoints por check-in"
+      }
+    },
+    "platformFixedNote": "Estos valores los fija GeoQuest, no tu negocio. Se mantienen iguales para todos los comercios de la red, porque los GeoPoints se pueden canjear en cualquiera de ellos.",
+    "photos": {
+      "empty": "Este lugar todavía no tiene fotos.",
+      "publishNeedsPhoto": "Hace falta al menos una foto para poder publicarlo.",
+      "count": "{{count, number}} de 5"
+    }
   }
 }
