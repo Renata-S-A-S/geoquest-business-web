@@ -23,13 +23,13 @@ export function SidebarNav() {
   const { t } = useTranslation()
 
   return (
-    <nav className="hidden h-full w-[220px] shrink-0 flex-col justify-between rounded-md bg-ink p-4 lg:flex">
+    <nav className="hidden h-full w-[220px] shrink-0 flex-col justify-between rounded-md bg-surface-inverse p-4 lg:flex">
       <div className="flex flex-col gap-1">
         <div className="mb-4 flex items-center gap-2 px-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-teal">
-            <b className="font-display text-sm text-cream">G</b>
+            <b className="font-display text-sm text-on-inverse">G</b>
           </div>
-          <span className="font-display text-sm font-bold text-cream">Negocios</span>
+          <span className="font-display text-sm font-bold text-on-inverse">Negocios</span>
         </div>
         {NAV_ITEMS.map(({ id, to, labelKey, icon: Icon }) => (
           <NavLink
@@ -37,8 +37,8 @@ export function SidebarNav() {
             to={to}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-2.5 rounded-sm px-3 py-2 font-sans text-sm text-cream/70 transition-colors',
-                isActive ? 'bg-teal/15 font-bold text-teal' : 'hover:bg-white/5'
+                'flex items-center gap-2.5 rounded-sm px-3 py-2 font-sans text-sm text-on-inverse/70 transition-colors',
+                isActive ? 'bg-teal/15 font-bold text-teal' : 'hover:bg-on-inverse/5'
               )
             }
           >
@@ -49,7 +49,7 @@ export function SidebarNav() {
       </div>
       <div className="flex items-center gap-2 px-2 pt-4">
         <AccountMenu />
-        <span className="font-sans text-sm text-cream/70">{t('account.title')}</span>
+        <span className="font-sans text-sm text-on-inverse/70">{t('account.title')}</span>
       </div>
     </nav>
   )

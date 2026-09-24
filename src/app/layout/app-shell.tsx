@@ -21,7 +21,7 @@ export function AppShell() {
       <SidebarNav />
       <div className="flex flex-1 flex-col overflow-hidden">
         <MobileTopBar />
-        <main className="flex-1 overflow-y-auto bg-white p-4 lg:rounded-md lg:p-6">
+        <main className="flex-1 overflow-y-auto bg-surface-raised p-4 lg:rounded-md lg:p-6">
           <Outlet />
         </main>
         <BottomNav />

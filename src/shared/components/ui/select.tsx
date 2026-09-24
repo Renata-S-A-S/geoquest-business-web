@@ -167,7 +167,7 @@ export function Select({
           }
         }}
         onKeyDown={handleTriggerKeyDown}
-        className="flex w-full items-center justify-between gap-2 rounded-xs border border-border bg-white px-3 py-2 font-sans text-sm text-ink focus:border-teal focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-between gap-2 rounded-xs border border-border bg-surface-raised px-3 py-2 font-sans text-sm text-ink focus:border-teal focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={cn('truncate', !selectedOption && 'text-muted')}>
           {selectedOption?.label ?? placeholder ?? ''}
@@ -184,7 +184,7 @@ export function Select({
           id={listboxId}
           role="listbox"
           aria-labelledby={ariaLabelledBy ?? (label ? selectId : undefined)}
-          className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xs border border-border bg-white py-1 shadow-md"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xs border border-border bg-surface-raised py-1 shadow-md"
         >
           {options.map((option, index) => {
             const isSelected = option.value === value

@@ -10,12 +10,12 @@ import { AccountMenu } from './account-menu'
  */
 export function MobileTopBar() {
   return (
-    <header className="flex items-center justify-between gap-2 bg-ink px-4 py-3 lg:hidden">
+    <header className="flex items-center justify-between gap-2 bg-surface-inverse px-4 py-3 lg:hidden">
       <div className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-teal">
-          <b className="font-display text-sm text-cream">G</b>
+          <b className="font-display text-sm text-on-inverse">G</b>
         </div>
-        <span className="font-display text-sm font-bold text-cream">Negocios</span>
+        <span className="font-display text-sm font-bold text-on-inverse">Negocios</span>
       </div>
       <AccountMenu />
     </header>

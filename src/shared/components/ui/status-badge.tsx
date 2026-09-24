@@ -10,7 +10,7 @@ import { cn } from '@/shared/lib/cn'
  * variant usa `coral`.
  *
  * No existe token `warning` (ámbar/amarillo) en la paleta heredada de 6
- * colores (tailwind.config.ts) — ADR-047-BF la hereda "tal cual", sin
+ * colores (`src/index.css`) — ADR-047-BF la hereda "tal cual", sin
  * agregar colores nuevos. 'warning' se resuelve por ahora con el mismo
  * tratamiento neutral que 'neutral' (fondo/punto grises). Anotado también
  * en 📋 Backlog de Descubrimientos — no inventar un color de marca sin
