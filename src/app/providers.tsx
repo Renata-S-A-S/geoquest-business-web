@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { IconContext } from '@phosphor-icons/react'
 import { queryClient } from '@/shared/lib/query-client'
 import { ToastViewport } from '@/shared/components/ui/toast'
+import { ThemeEffects } from '@/app/theme-effects'
 
 /**
  * Peso de ícono global: fill — misma identidad visual que geoquest-web.
@@ -10,10 +11,16 @@ import { ToastViewport } from '@/shared/components/ui/toast'
  * `ToastViewport` (#16) vive acá y no en `AppShell`: `/login` y el registro
  * de B-01 (`routes.tsx`) están fuera del shell protegido y también
  * necesitan mostrar toasts.
+ *
+ * `<ThemeEffects />` va acá como HERMANO, no como un hook llamado dentro
+ * del cuerpo de este componente: suscribir un hook que re-resuelve en cada
+ * cambio de tema re-renderizaría todo el árbol (incluido `AppShell` y todo
+ * lo que cuelga de `children`) en cada toggle de tema.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeEffects />
       <IconContext.Provider value={{ weight: 'fill' }}>
         {children}
         <ToastViewport />
