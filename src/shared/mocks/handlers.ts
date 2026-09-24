@@ -12,6 +12,11 @@ import {
 } from '@/shared/schemas/business-place'
 import { isValidTaxonomy } from '@/shared/schemas/taxonomy'
 import {
+  canPublishReward,
+  createBusinessRewardInputSchema,
+  type BusinessRewardSummary,
+} from '@/shared/schemas/business-reward'
+import {
   registerBusinessInputSchema,
   updateBusinessMeInputSchema,
   BUSINESS_READONLY_FIELDS,
@@ -247,9 +252,99 @@ export const handlers = [
     return HttpResponse.json({ placeId: newPlace.placeId }, { status: 201 })
   }),
 
-  http.get(`${API_BASE_URL}/rewards`, () => {
+  /**
+   * `GET /portal/rewards` — listado de las recompensas DEL NEGOCIO.
+   *
+   * ⚠️ El path es una propuesta (`geoquest#191`); la forma no. Hoy el
+   * único listado que existe es `GET /rewards`, **anónimo y global**: usarlo
+   * para «mis recompensas» mostraría el catálogo de la competencia sin que
+   * nada falle. Por eso el mock NO lo sirve en esa ruta — servirlo
+   * legitimaria el error.
+   */
+  http.get(`${API_BASE_URL}/portal/rewards`, () => {
     const { rewards } = readDb()
     return HttpResponse.json(rewards)
+  }),
+
+  /**
+   * `POST /portal/rewards` — crea la recompensa en **`Draft`**.
+   *
+   * Decisión de producto (Derek, 24 sep 2026): se mantiene el flujo B-03,
+   * borrador primero y publicación aparte. El backend hoy crea directo en
+   * `Published`, pero `Draft` ya existe como estado persistido y su propio
+   * docstring lo declara diferido, no descartado. Divergencia deliberada,
+   * registrada en `geoquest#191`.
+   *
+   * Sin imagen: se sube después con `PUT /portal/rewards/{id}/image`.
+   */
+  http.post(`${API_BASE_URL}/portal/rewards`, async ({ request }) => {
+    const body = await request.json()
+    const parsed = createBusinessRewardInputSchema.safeParse(body)
+    if (!parsed.success) {
+      return HttpResponse.json(
+        { title: 'Validation.Failed', detail: parsed.error.issues[0]?.message, status: 400 },
+        { status: 400 }
+      )
+    }
+
+    const db = readDb()
+    const newReward: BusinessRewardSummary = {
+      ...parsed.data,
+      rewardId: crypto.randomUUID(),
+      businessId: db.business.id,
+      status: 'Draft',
+      stockRemaining: parsed.data.stockTotal,
+      imageUrl: null,
+    }
+    db.rewards.push(newReward)
+    writeDb(db)
+
+    return HttpResponse.json({ rewardId: newReward.rewardId }, { status: 201 })
+  }),
+
+  /**
+   * `POST /portal/rewards/{id}/publish` — la transición que hoy falta en
+   * el backend. Espejo de `POST /business/places/{id}/publish`, incluida la
+   * precondición: así como un lugar no se publica sin al menos una foto,
+   * una recompensa no se publica sin imagen. Ver `canPublishReward`.
+   */
+  http.post(`${API_BASE_URL}/portal/rewards/:rewardId/publish`, ({ params }) => {
+    const db = readDb()
+    const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+
+    if (!reward) {
+      return HttpResponse.json(
+        {
+          title: 'PublishRewardCommand.NotFound',
+          detail: `No Reward exists with Id '${String(params.rewardId)}'.`,
+          status: 404,
+        },
+        { status: 404 }
+      )
+    }
+
+    if (reward.status === 'Published') {
+      return HttpResponse.json(
+        { title: 'Reward.AlreadyPublished', detail: 'The Reward is already published.', status: 409 },
+        { status: 409 }
+      )
+    }
+
+    if (!canPublishReward(reward)) {
+      return HttpResponse.json(
+        {
+          title: 'Reward.PublishRequiresImage',
+          detail: 'A Reward cannot be published without an image.',
+          status: 409,
+        },
+        { status: 409 }
+      )
+    }
+
+    reward.status = 'Published'
+    writeDb(db)
+
+    return HttpResponse.json({ status: reward.status, visibleToExplorers: true })
   }),
 
   http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {

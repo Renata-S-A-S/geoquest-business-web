@@ -6,6 +6,7 @@ import {
   SEED_BUSINESS_STAFF,
   SEED_BUSINESS_STAFF_USERNAME,
   SEED_PLACES,
+  SEED_REWARDS,
 } from '@/shared/mocks/seed'
 import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
 import { authTokensSchema } from '@/shared/schemas/auth'
@@ -15,6 +16,7 @@ import type {
   CreatedBusinessPlace,
 } from '@/shared/schemas/business-place'
 import { Category, Subcategory } from '@/shared/schemas/taxonomy'
+import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
 
 /**
  * Prueba el round-trip completo GET -> POST -> GET a través de `apiClient`
@@ -264,9 +266,75 @@ describe('mock handlers — round-trip de persistencia', () => {
     ).rejects.toMatchObject({ response: { status: 400 } })
   })
 
-  it('GET /rewards devuelve la semilla inicial', async () => {
-    const { data } = await apiClient.get('/rewards')
-    expect(data).toHaveLength(1)
+  it('GET /portal/rewards devuelve las recompensas del negocio', async () => {
+    const { data } = await apiClient.get<BusinessRewardSummary[]>('/portal/rewards')
+
+    expect(data).toHaveLength(SEED_REWARDS.length)
+    expect(data.map((r) => r.status)).toEqual(['Published', 'Draft'])
+  })
+
+  /**
+   * `GET /rewards` existe en el backend pero es **anónimo y global**:
+   * devolvería el catálogo de la competencia. El mock NO lo sirve a
+   * propósito — servirlo legitimaría el error y el portal se acostumbraría
+   * a una fuente que no es suya.
+   */
+  it('NO sirve /rewards: ese listado es global y no es el del negocio', async () => {
+    await expect(apiClient.get('/rewards')).rejects.toBeTruthy()
+  })
+
+  it('POST /portal/rewards crea la recompensa en Draft y sin imagen', async () => {
+    const input = {
+      title: 'Segundo postre gratis',
+      description: 'Prueba de creación.',
+      geoPointsCost: 90,
+      estimatedValueCop: 11000,
+      menuItemId: null,
+      placeId: null,
+      stockTotal: 10,
+    }
+
+    const created = await apiClient.post<{ rewardId: string }>('/portal/rewards', input)
+    expect(created.status).toBe(201)
+    expect(Object.keys(created.data)).toEqual(['rewardId'])
+
+    const { data: after } = await apiClient.get<BusinessRewardSummary[]>('/portal/rewards')
+    const persisted = after.find((r) => r.rewardId === created.data.rewardId)
+
+    expect(persisted).toMatchObject({ status: 'Draft', imageUrl: null, stockRemaining: 10 })
+  })
+
+  /**
+   * Precondición espejo del precedente de `Place`: así como un lugar no se
+   * publica sin al menos una foto, una recompensa no se publica sin imagen.
+   * La semilla en `Draft` no la tiene, que es justo el caso a bloquear.
+   */
+  it('POST /portal/rewards/{id}/publish responde 409 si la recompensa no tiene imagen', async () => {
+    const draft = SEED_REWARDS.find((r) => r.status === 'Draft')
+
+    await expect(
+      apiClient.post(`/portal/rewards/${draft!.rewardId}/publish`, {})
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'Reward.PublishRequiresImage' } },
+    })
+  })
+
+  it('POST /portal/rewards/{id}/publish responde 409 si ya está publicada', async () => {
+    const published = SEED_REWARDS.find((r) => r.status === 'Published')
+
+    await expect(
+      apiClient.post(`/portal/rewards/${published!.rewardId}/publish`, {})
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'Reward.AlreadyPublished' } },
+    })
+  })
+
+  it('POST /portal/rewards/{id}/publish responde 404 para un id desconocido', async () => {
+    await expect(
+      apiClient.post('/portal/rewards/00000000-0000-0000-0000-0000000000ff/publish', {})
+    ).rejects.toMatchObject({
+      response: { status: 404, data: { title: 'PublishRewardCommand.NotFound' } },
+    })
   })
 
   it('POST /business/register crea el negocio y GET /business/me lo refleja después', async () => {

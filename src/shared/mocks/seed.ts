@@ -1,7 +1,7 @@
 import type { Business, BusinessStaff, BusinessStaffMe } from '@/shared/schemas/business'
 import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
 import { Category, Subcategory } from '@/shared/schemas/taxonomy'
-import type { Reward } from '@/shared/schemas/reward'
+import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
 
 /**
  * Semilla mínima pero coherente con el ERD — un negocio verificado, su
@@ -110,24 +110,38 @@ export const SEED_PLACES: BusinessPlaceDetail[] = [
   },
 ]
 
-export const SEED_REWARDS: Reward[] = [
+/**
+ * Recompensas semilla con la forma REAL del dominio `Reward`. Dos estados
+ * sembrados a propósito: una publicada con imagen y una en borrador sin
+ * ella, que es justo el caso que el botón de publicar tiene que bloquear.
+ */
+export const SEED_REWARDS: BusinessRewardSummary[] = [
   {
-    id: '00000000-0000-0000-0000-000000000020',
+    rewardId: '00000000-0000-0000-0000-000000000020',
     businessId: SEED_BUSINESS.id,
-    placeId: SEED_PLACES[0].placeId,
     title: '2x1 en café de especialidad',
-    type: 'Discount',
-    rewardCategory: 'General',
+    description: 'Llevá dos cafés pagando uno, de lunes a jueves.',
     geoPointsCost: 100,
-    minLevelRequired: null,
-    linkedTouristPlaceId: null,
-    linkedPlaceWindowDays: null,
-    stock: 50,
-    stockRedeemed: 8,
     estimatedValueCop: 15000,
-    validFrom: null,
-    validUntil: null,
-    ownTerms: null,
-    status: 'Active',
+    status: 'Published',
+    stockTotal: 50,
+    stockRemaining: 42,
+    placeId: SEED_PLACES[0].placeId,
+    menuItemId: null,
+    imageUrl: 'https://picsum.photos/seed/reward-2x1/400/300',
+  },
+  {
+    rewardId: '00000000-0000-0000-0000-000000000021',
+    businessId: SEED_BUSINESS.id,
+    title: 'Postre gratis con bebida caliente',
+    description: 'Un postre de la vitrina llevando cualquier bebida caliente.',
+    geoPointsCost: 80,
+    estimatedValueCop: 12000,
+    status: 'Draft',
+    stockTotal: null,
+    stockRemaining: null,
+    placeId: null,
+    menuItemId: null,
+    imageUrl: null,
   },
 ]
