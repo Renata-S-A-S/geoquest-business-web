@@ -128,18 +128,52 @@ export const BUSINESS_READONLY_FIELDS = [
 ] as const
 
 /**
- * `BusinessStaff` — el usuario real que opera el portal. `role` sin
- * enumerar en el ERD; se deja como `string` a propósito (no inventar
- * valores). La autenticación de BusinessStaff es la pregunta abierta
- * central de este handoff — ver contratos-portal-b2b.md.
+ * Rol de un `BusinessStaff` (#72, PR4) — ya definido en el backend, en
+ * `src/GeoQuest.Modules.Business/Domain/BusinessStaffRole.cs`:
+ * `internal enum BusinessStaffRole { Owner = 0, Manager = 1, Staff = 2 }`.
+ * PascalCase, tal como lo serializa el backend — ver "Definiciones de
+ * producto para #72". El registro (BA-1) siempre crea exactamente un
+ * `BusinessStaff` Owner; ningún comando asigna Manager/Staff todavía
+ * (gestión de staff adicional, fuera de alcance) — ver
+ * `canEditBusinessProfile` en `features/business/can-edit-business-profile.ts`.
+ */
+export const businessStaffRoleSchema = z.enum(['Owner', 'Manager', 'Staff'])
+export type BusinessStaffRole = z.infer<typeof businessStaffRoleSchema>
+
+/**
+ * `BusinessStaff` — el usuario real que opera el portal. `role` ahora usa
+ * `businessStaffRoleSchema`: el ERD no enumeraba los valores, pero el
+ * enum del backend sí los define (ver arriba), así que ya no corresponde
+ * dejarlo como `string` "para no inventar valores" — los valores no son
+ * una invención del frontend.
  */
 export const businessStaffSchema = z.object({
   id: z.string().uuid(),
   businessId: z.string().uuid(),
   fullName: z.string(),
   email: z.string().email(),
-  role: z.string(),
+  role: businessStaffRoleSchema,
   status: z.string(), // sin valores confirmados — no se propone enum sin fuente
   createdAt: z.string().datetime(),
 })
 export type BusinessStaff = z.infer<typeof businessStaffSchema>
+
+/**
+ * Respuesta de `GET /business-staff/me` (#72, PR4) — ver
+ * contratos-portal-b2b.md §2.1.2. Extiende `businessStaffSchema` con
+ * `username`, que NO es un campo de `BusinessStaff`: vive en el mismo
+ * `Identity` que usa el Explorer, enlazado vía `BusinessStaff.ExplorerId`
+ * (contratos §4.1) — este endpoint es quien arma la proyección, no un
+ * campo persistido en el dominio `Business`.
+ *
+ * ⚠️ `username` es una PROPUESTA sin confirmar: si esa proyección es
+ * alcanzable para una cuenta que es solo `BusinessStaff` (sin
+ * `ExplorerProfile`) es la pregunta abierta de
+ * `Renata-S-A-S/geoquest#182`. Si la respuesta es negativa, esta clave se
+ * quita de acá y de `/configuracion` (PR6) — es un campo menos, no un
+ * rediseño del contrato.
+ */
+export const businessStaffMeSchema = businessStaffSchema.extend({
+  username: z.string(),
+})
+export type BusinessStaffMe = z.infer<typeof businessStaffMeSchema>

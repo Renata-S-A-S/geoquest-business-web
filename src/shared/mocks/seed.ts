@@ -1,4 +1,4 @@
-import type { Business, BusinessStaff } from '@/shared/schemas/business'
+import type { Business, BusinessStaff, BusinessStaffMe } from '@/shared/schemas/business'
 import type { Place } from '@/shared/schemas/place'
 import type { Reward } from '@/shared/schemas/reward'
 
@@ -28,14 +28,44 @@ export const SEED_BUSINESS: Business = {
   createdAt: '2026-08-01T00:00:00Z',
 }
 
+// `role: 'Owner'` — PascalCase, no 'owner'. Fuente:
+// `src/GeoQuest.Modules.Business/Domain/BusinessStaffRole.cs`:
+// `internal enum BusinessStaffRole { Owner = 0, Manager = 1, Staff = 2 }`.
+// El casing importa: contra un backend real, un `role` en minúscula nunca
+// haría match con este enum y `canEditBusinessProfile` fallaría en
+// silencio (ningún error de tipo lo detectaría, porque `role` era
+// `z.string()` antes de #72 PR4) — ver businessStaffRoleSchema.
 export const SEED_BUSINESS_STAFF: BusinessStaff = {
   id: '00000000-0000-0000-0000-000000000002',
   businessId: SEED_BUSINESS.id,
   fullName: 'María Restrepo',
   email: 'maria@cafe70.co',
-  role: 'owner',
+  role: 'Owner',
   status: 'Active',
   createdAt: '2026-08-01T00:00:00Z',
+}
+
+/**
+ * Username propuesto para `GET /business-staff/me` (#72, PR4) — no existe
+ * en `BusinessStaff` (`businessStaffSchema`), porque vive en el mismo
+ * `Identity` que usa el Explorer, enlazado vía `ExplorerId` (contratos
+ * §4.1). Si esa proyección es alcanzable para una cuenta que es SOLO
+ * BusinessStaff (sin `ExplorerProfile`) es una pregunta abierta — ver
+ * `Renata-S-A-S/geoquest#182`. Semilla de demo, no un dato confirmado.
+ */
+export const SEED_BUSINESS_STAFF_USERNAME = 'maria_cafe70'
+
+/**
+ * Vista combinada que sirve `GET /business-staff/me`: el `BusinessStaff`
+ * semilla + el `username` propuesto de Identity. No se modela como parte
+ * de `MockDb` (ver db.ts) porque `username` no es un campo del dominio
+ * `BusinessStaff` — es una proyección que el handler arma en el momento,
+ * igual que lo haría un backend real al resolver el `Identity` del
+ * bearer token.
+ */
+export const SEED_BUSINESS_STAFF_ME: BusinessStaffMe = {
+  ...SEED_BUSINESS_STAFF,
+  username: SEED_BUSINESS_STAFF_USERNAME,
 }
 
 export const SEED_PLACES: Place[] = [
