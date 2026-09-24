@@ -5,6 +5,7 @@ import i18next from '@/test/i18n'
 import { server } from '@/test/msw-server'
 import { useSessionStore } from '@/shared/stores/session-store'
 import { useBusinessSessionStore } from '@/shared/stores/business-session-store'
+import { useThemeStore } from '@/shared/stores/theme-store'
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(async () => {
@@ -18,6 +19,13 @@ afterEach(async () => {
   // positivos — un test podría pasar solo porque el anterior dejó una
   // sesión abierta. Detectado en #28 y en #70 de forma independiente.
   useBusinessSessionStore.getState().logout()
+  // Tercera vez que aparece esta misma trampa: `useThemeStore` también está
+  // `persist`ido, así que un test que llame `setMode('dark')` dejaría ese
+  // valor filtrado hacia el siguiente test del mismo archivo. El patrón ya
+  // se detectó dos veces antes, en `useSessionStore`/`useBusinessSessionStore`
+  // arriba (#28, #70) — vale la pena dejarlo explícito acá en vez de volver
+  // a descubrirlo una cuarta vez con otro store persistido.
+  useThemeStore.setState({ mode: 'system' })
   window.localStorage.clear()
   await i18next.changeLanguage('es')
 })
