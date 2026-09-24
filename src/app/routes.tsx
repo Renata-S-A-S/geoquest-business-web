@@ -128,6 +128,25 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            /*
+             * `/recompensas/nueva` (#36) — hermana de `/recompensas`, mismo
+             * criterio que `/lugares/nuevo`. Se registra acá contra el
+             * placeholder porque el CTA «Crear recompensa» es criterio de
+             * aceptación de #36: sin esta ruta el listado mergearía con un
+             * link muerto. El formulario reemplaza el placeholder.
+             *
+             * ⚠️ Ese formulario está parcialmente bloqueado: #37 (tipo), #39
+             * (General/Special) y #42 (Términos propios) son campos que NO
+             * existen en el backend. Ver `Renata-S-A-S/geoquest#191`.
+             */
+            path: '/recompensas/nueva',
+            element: (
+              <FeatureErrorBoundary featureName="Recompensas">
+                <RoutePlaceholder label="crear recompensa — pendiente (#37-#42)" />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
             path: '/canjes',
             element: (
               <FeatureErrorBoundary featureName="Validar canje">

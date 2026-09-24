@@ -1,0 +1,33 @@
+{
+  "list": {
+    "title": "My rewards",
+    "createCta": "Create reward",
+    "loading": "Loading your rewards…",
+    "retry": "Retry",
+    "errors": {
+      "generic": "We couldn't load your rewards."
+    },
+    "columns": {
+      "title": "Reward",
+      "status": "Status",
+      "geoPointsCost": "Cost",
+      "stock": "Stock"
+    },
+    "geoPointsCostValue": "{{points, number}} GeoPoints",
+    "stock": {
+      "unlimited": "Unlimited",
+      "remaining": "{{remaining, number}} of {{total, number}}",
+      "outOfStock": "Out of stock"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Published": "Published",
+      "Paused": "Paused",
+      "Archived": "Archived"
+    },
+    "empty": {
+      "title": "You don't have any rewards yet",
+      "description": "Once you create your first reward, explorers will be able to redeem it with their GeoPoints."
+    }
+  }
+}
