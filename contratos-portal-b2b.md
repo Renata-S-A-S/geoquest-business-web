@@ -135,7 +135,7 @@ Auth: BusinessStaff bearer, misma sesión que el resto de §1.
 - El negocio **no configura sus GeoPoints** — el racional (RN-GAM-10) es evitar que compita subiendo el número, ya que esos puntos son canjeables en toda la red.
 - El formulario de B-02 debe **eliminar** el campo de puntos por completo, no solo cambiar su default.
 
-`checkInRadiusMeters`: 50–1000, default 100 (B-02, confirmado). `photos`: 1–5 (B-02, confirmado).
+`checkInRadiusMeters`: 50–1000, default 100 (B-02, confirmado). `photos`: máximo 5 (ADR-048, la 6ta la rechaza el endpoint). **Corrección (#29):** el mínimo de 1 se valida al PUBLICAR (`POST /places/{id}/publish`), no al crear ni al leer — un `Place` en `Draft` existe legítimamente sin fotos mientras la subida de archivos (#31) sigue bloqueada por BL-014. `createPlaceInputSchema` (§2.2, tabla) ya no exige `photos` en el `POST`.
 
 ### 2.3 Reward
 
@@ -226,7 +226,7 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 ## 5. Cómo consume el frontend estos contratos hoy (mock-first)
 
 - Todos los schemas están en `src/shared/schemas/*.ts` (Zod), con comentario de fuente por campo — cada uno distingue explícitamente valores **confirmados** (citados literalmente en Confluence) de valores **propuestos** (inferidos, a validar acá).
-- Los mocks (`src/shared/mocks/handlers.ts`) implementan un subconjunto de estos endpoints (`GET/POST /places`, `GET /business/me`, `PATCH /business/me`, `GET /business-staff/me`, `GET /rewards`) contra `localStorage`, sirviendo exactamente estos shapes — sirve como spec ejecutable, no solo este documento en prosa.
+- Los mocks (`src/shared/mocks/handlers.ts`) implementan un subconjunto de estos endpoints (`GET/POST /business/me/places`, `GET /business/me`, `PATCH /business/me`, `GET /business-staff/me`, `GET /rewards`) contra `localStorage`, sirviendo exactamente estos shapes — sirve como spec ejecutable, no solo este documento en prosa. ⚠️ `GET /rewards` mantiene el mismo desfase de path que tenía `/places` antes de esta corrección (la tabla de §2.3 dice `/business/me/rewards`) — queda fuera de alcance de esta corrección, corresponde a #36.
 - `VITE_USE_MOCKS=true` es el default. Cuando el backend real tenga aunque sea un endpoint, se apaga por env var y `apiClient` (`src/shared/lib/api-client.ts`) empieza a pegarle a `VITE_API_BASE_URL` sin cambiar una línea del resto de la app.
 - Auth: `src/shared/lib/session-port.ts` + `session-interceptor.ts` — el cliente Axios adjunta el bearer token y reintenta tras 401 contra un `SessionPort` inyectable, nunca contra un endpoint concreto. La implementación mock hoy vive en `session-port.mock.ts`; el día que exista el mecanismo real, se agrega una implementación nueva y se cambia una sola línea en `session-port.instance.ts`.
 
