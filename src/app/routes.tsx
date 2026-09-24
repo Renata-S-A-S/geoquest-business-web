@@ -8,6 +8,7 @@ import { BusinessProfilePage } from '@/features/business/business-profile-page'
 import { BusinessProfileEditPage } from '@/features/business/business-profile-edit-page'
 import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
+import { RoutePlaceholder } from '@/app/route-placeholder'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
 import { AnalyticsPage } from '@/features/analytics/analytics-page'
@@ -99,6 +100,22 @@ export const router = createBrowserRouter([
             element: (
               <FeatureErrorBoundary featureName="Lugares">
                 <PlacesPage />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
+            /*
+             * `/lugares/nuevo` (#29) — hermana de `/lugares`, mismo criterio
+             * que `/negocio/editar`. Se registra acá contra el placeholder
+             * y no junto al formulario (#30/#33) por una razón concreta: el
+             * CTA «Crear lugar» es criterio de aceptación de #29, así que
+             * sin esta ruta el listado mergearía con un link muerto. El
+             * formulario reemplaza este placeholder, no agrega la ruta.
+             */
+            path: '/lugares/nuevo',
+            element: (
+              <FeatureErrorBoundary featureName="Lugares">
+                <RoutePlaceholder label="crear lugar — pendiente (#30)" />
               </FeatureErrorBoundary>
             ),
           },

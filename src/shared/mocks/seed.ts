@@ -88,6 +88,30 @@ export const SEED_PLACES: Place[] = [
     allowedInDiscoveryRoutes: false,
     createdAt: '2026-08-01T00:00:00Z',
   },
+  // Segundo lugar en `Draft` y sin fotos (#29): el badge de estado solo
+  // prueba algo si hay más de un estado sembrado, y un borrador sin fotos
+  // es exactamente el caso que ADR-048 declara legítimo — el mínimo de 1
+  // foto se exige al PUBLICAR, no al crear, y la subida sigue bloqueada
+  // por BL-014.
+  {
+    id: '00000000-0000-0000-0000-000000000011',
+    businessId: SEED_BUSINESS.id,
+    name: 'Café de la 70 — Sede Envigado',
+    placeType: 'BusinessVenue',
+    category: 'gastronomia',
+    subcategory: 'cafe',
+    coordinates: { lat: 6.1667, lng: -75.5833 },
+    timeZoneId: 'America/Bogota',
+    checkInRadiusMeters: 150,
+    photos: [],
+    xpReward: 0,
+    geoPointsReward: 12,
+    isVerified: false,
+    status: 'Draft',
+    totalCheckIns: 0,
+    allowedInDiscoveryRoutes: false,
+    createdAt: '2026-09-10T00:00:00Z',
+  },
 ]
 
 export const SEED_REWARDS: Reward[] = [

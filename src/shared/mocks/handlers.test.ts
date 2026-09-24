@@ -5,6 +5,7 @@ import {
   SEED_BUSINESS,
   SEED_BUSINESS_STAFF,
   SEED_BUSINESS_STAFF_USERNAME,
+  SEED_PLACES,
 } from '@/shared/mocks/seed'
 import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
 import { authTokensSchema } from '@/shared/schemas/auth'
@@ -118,7 +119,10 @@ describe('mock handlers — round-trip de persistencia', () => {
 
   it('GET /business/me/places devuelve la semilla inicial', async () => {
     const { data } = await apiClient.get<Place[]>('/business/me/places')
-    expect(data).toHaveLength(1)
+    // Atado a la semilla y no a un literal: lo que este caso verifica es que
+    // el handler devuelva la semilla, no cuántos lugares tiene.
+    expect(data).toHaveLength(SEED_PLACES.length)
+    expect(data.map((p) => p.name)).toEqual(SEED_PLACES.map((p) => p.name))
   })
 
   it('POST /business/me/places crea un lugar y GET /business/me/places lo refleja después', async () => {
@@ -141,7 +145,7 @@ describe('mock handlers — round-trip de persistencia', () => {
     })
 
     const { data: after } = await apiClient.get<Place[]>('/business/me/places')
-    expect(after).toHaveLength(2)
+    expect(after).toHaveLength(SEED_PLACES.length + 1)
     expect(after.map((p) => p.name)).toContain('Café de la 70 — Sede Estadio')
   })
 

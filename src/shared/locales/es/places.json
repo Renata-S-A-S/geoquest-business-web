@@ -1,0 +1,28 @@
+{
+  "list": {
+    "title": "Mis lugares",
+    "createCta": "Crear lugar",
+    "loading": "Cargando tus lugares…",
+    "retry": "Reintentar",
+    "errors": {
+      "generic": "No pudimos cargar tus lugares."
+    },
+    "columns": {
+      "name": "Nombre",
+      "status": "Estado",
+      "totalCheckIns": "Check-ins",
+      "checkInRadiusMeters": "Radio de check-in"
+    },
+    "radiusValue": "{{meters, number}} m",
+    "checkInsValue": "{{count, number}}",
+    "status": {
+      "Draft": "Borrador",
+      "Active": "Activo",
+      "Paused": "Pausado"
+    },
+    "empty": {
+      "title": "Todavía no hay ningún lugar",
+      "description": "Cuando crees tu primer lugar, los exploradores van a poder hacer check-in ahí y ganar GeoPoints."
+    }
+  }
+}

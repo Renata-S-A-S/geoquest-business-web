@@ -10,6 +10,8 @@ import esBusiness from './es/business.json'
 import enBusiness from './en/business.json'
 import esSettings from './es/settings.json'
 import enSettings from './en/settings.json'
+import esPlaces from './es/places.json'
+import enPlaces from './en/places.json'
 
 /**
  * Bundle de recursos + registro de namespaces, compartido por el init real
@@ -25,6 +27,7 @@ export const resources = {
     uploads: esUploads,
     business: esBusiness,
     settings: esSettings,
+    places: esPlaces,
   },
   en: {
     common: enCommon,
@@ -33,8 +36,9 @@ export const resources = {
     uploads: enUploads,
     business: enBusiness,
     settings: enSettings,
+    places: enPlaces,
   },
 } as const
 
-export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business', 'settings'] as const
+export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business', 'settings', 'places'] as const
 export const defaultNS = 'common' as const
