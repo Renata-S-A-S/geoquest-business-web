@@ -6,6 +6,7 @@ import { RegisterPage } from '@/features/onboarding/register-page'
 import { PendingStatusPage } from '@/features/onboarding/pending-page'
 import { BusinessProfilePage } from '@/features/business/business-profile-page'
 import { BusinessProfileEditPage } from '@/features/business/business-profile-edit-page'
+import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
@@ -74,6 +75,22 @@ export const router = createBrowserRouter([
             element: (
               <FeatureErrorBoundary featureName="Negocio">
                 <BusinessProfileEditPage />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
+            /*
+             * `/configuracion` (#72, PR6) — pantalla de cuenta a nivel de
+             * sesión (username, correo de acceso, tema), no un flujo de
+             * negocio B-0X. Por eso NO está en `NAV_ITEMS` (mismo criterio
+             * que el logout, issue #70): ya es alcanzable en cualquier
+             * viewport desde el link que `AccountMenu` agrega, sin sumar
+             * un sexto ítem a `BottomNav`/`SidebarNav`.
+             */
+            path: '/configuracion',
+            element: (
+              <FeatureErrorBoundary featureName="Configuración">
+                <SettingsPage />
               </FeatureErrorBoundary>
             ),
           },

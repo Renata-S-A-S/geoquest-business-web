@@ -8,6 +8,8 @@ import esUploads from './es/uploads.json'
 import enUploads from './en/uploads.json'
 import esBusiness from './es/business.json'
 import enBusiness from './en/business.json'
+import esSettings from './es/settings.json'
+import enSettings from './en/settings.json'
 
 /**
  * Bundle de recursos + registro de namespaces, compartido por el init real
@@ -22,6 +24,7 @@ export const resources = {
     onboarding: esOnboarding,
     uploads: esUploads,
     business: esBusiness,
+    settings: esSettings,
   },
   en: {
     common: enCommon,
@@ -29,8 +32,9 @@ export const resources = {
     onboarding: enOnboarding,
     uploads: enUploads,
     business: enBusiness,
+    settings: enSettings,
   },
 } as const
 
-export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business'] as const
+export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business', 'settings'] as const
 export const defaultNS = 'common' as const

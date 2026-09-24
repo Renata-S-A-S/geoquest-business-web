@@ -1,0 +1,128 @@
+import { render, screen, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HttpResponse, http } from 'msw'
+import { describe, expect, it } from 'vitest'
+import { server } from '@/test/msw-server'
+import { API_BASE_URL } from '@/shared/lib/env'
+import { SEED_BUSINESS_STAFF, SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
+import { useThemeStore } from '@/shared/stores/theme-store'
+import { SettingsPage } from './settings-page'
+
+function renderSettingsPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SettingsPage />
+    </QueryClientProvider>
+  )
+}
+
+describe('SettingsPage', () => {
+  it('muestra el título de la pantalla', () => {
+    renderSettingsPage()
+
+    expect(screen.getByRole('heading', { name: 'Configuración' })).toBeInTheDocument()
+  })
+
+  it('muestra el indicador de carga del bloque de cuenta mientras la query está pendiente', async () => {
+    server.use(http.get(`${API_BASE_URL}/business-staff/me`, () => new Promise(() => {})))
+
+    renderSettingsPage()
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Cargando los datos de tu cuenta…')
+  })
+
+  it('muestra el error inline con reintento cuando la query falla, sin renderizar los datos', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business-staff/me`, () =>
+        HttpResponse.json(
+          { title: 'InternalError', detail: 'No pudimos consultar tu cuenta' },
+          { status: 500 }
+        )
+      )
+    )
+
+    renderSettingsPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos consultar tu cuenta')
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled()
+    expect(screen.queryByText(SEED_BUSINESS_STAFF_USERNAME)).not.toBeInTheDocument()
+  })
+
+  it('el selector de tema se renderiza igual aunque la lectura de la cuenta falle — son independientes', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business-staff/me`, () =>
+        HttpResponse.json({ title: 'InternalError' }, { status: 500 })
+      )
+    )
+
+    renderSettingsPage()
+
+    await screen.findByRole('alert')
+    expect(screen.getByRole('group', { name: 'Tema' })).toBeInTheDocument()
+  })
+
+  it('reintenta la query al hacer click en el botón de reintentar tras un error', async () => {
+    let callCount = 0
+    server.use(
+      http.get(`${API_BASE_URL}/business-staff/me`, () => {
+        callCount += 1
+        if (callCount === 1) {
+          return HttpResponse.json(
+            { title: 'InternalError', detail: 'No pudimos consultar tu cuenta' },
+            { status: 500 }
+          )
+        }
+        return HttpResponse.json({ ...SEED_BUSINESS_STAFF, username: SEED_BUSINESS_STAFF_USERNAME })
+      })
+    )
+
+    renderSettingsPage()
+
+    const retryButton = await screen.findByRole('button', { name: 'Reintentar' })
+    retryButton.click()
+
+    expect(await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
+    expect(callCount).toBe(2)
+  })
+
+  it('muestra el username y el correo de acceso cuando la query resuelve, con el correo etiquetado como credencial', async () => {
+    renderSettingsPage()
+
+    expect(await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
+    expect(screen.getByText(SEED_BUSINESS_STAFF.email)).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Es el correo con el que iniciás sesión — distinto del correo de contacto público del negocio, que se edita en tu perfil de negocio.'
+      )
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('no ofrece edición de username ni de correo — ambos son de solo lectura', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument()
+  })
+
+  it('no muestra un botón de cerrar sesión — el logout sigue siendo exclusivo del menú de cuenta', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument()
+  })
+
+  it('el selector de tema funciona desde /configuracion', async () => {
+    renderSettingsPage()
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    const group = screen.getByRole('group', { name: 'Tema' })
+    within(group).getByRole('button', { name: 'Oscuro' }).click()
+
+    expect(useThemeStore.getState().mode).toBe('dark')
+  })
+})

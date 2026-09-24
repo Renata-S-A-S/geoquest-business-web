@@ -19,6 +19,7 @@
   "account": {
     "title": "Account",
     "open": "Open account menu",
+    "settingsLink": "Settings",
     "signOut": "Sign out",
     "confirmTitle": "Sign out?",
     "confirmDescription": "You are about to leave the portal. You will need to sign in again to come back.",

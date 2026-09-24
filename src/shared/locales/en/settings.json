@@ -1,0 +1,23 @@
+{
+  "title": "Settings",
+  "user": {
+    "title": "Your account",
+    "loading": "Loading your account details…",
+    "retry": "Retry",
+    "errors": {
+      "generic": "We couldn't load your account details."
+    },
+    "fields": {
+      "username": {
+        "label": "Username"
+      },
+      "email": {
+        "label": "Sign-in email",
+        "hint": "This is the email you sign in with — different from the business's public contact email, which is edited on your business profile."
+      }
+    }
+  },
+  "appearance": {
+    "title": "Appearance"
+  }
+}
