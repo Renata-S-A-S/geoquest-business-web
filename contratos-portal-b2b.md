@@ -1,5 +1,17 @@
 # Contratos propuestos — Portal B2B → Backend `Business`
 
+> 🚨 **AVISO (24 sep 2026): este documento describe en gran parte una API que NO EXISTE.**
+>
+> Se auditó endpoint por endpoint contra el backend desplegado (`Renata-S-A-S/geoquest`) y **ninguna de las seis secciones coincide**. Ninguna ruta asumida acá existe en el path que este documento declara. Tres flujos centrales del portal (auto-registro del negocio, identidad del `BusinessStaff`, edición del perfil) **no tienen ningún camino posible** con los endpoints actuales.
+>
+> Este documento fue una **propuesta del frontend** bajo ADR-048-BF ("contratos definidos por el frontend, validados por el backend"). El paso de validación nunca ocurrió.
+>
+> El mapa completo, con veredicto por sección y propuestas concretas, está en **[`Renata-S-A-S/geoquest#191`](https://github.com/Renata-S-A-S/geoquest/issues/191)**. Léelo antes de usar cualquier cosa de acá.
+>
+> **Lo único ya alineado con el backend real** es la taxonomía (`src/shared/schemas/taxonomy.ts`) y los schemas de lugar (`src/shared/schemas/business-place.ts`). El resto de este documento sigue sin corregir a propósito: corregirlo antes de que el backend decida sobre los tres bloqueantes sería inventar una segunda ficción.
+
+---
+
 **De:** Jose David (frontend, `geoquest-business-web`) · **Para:** Derek (backend, `geoquest`, slice `004-business-rewards`)
 **Estado:** Revisado por Derek el 31 ago 2026 ([comentario en PR #8](https://github.com/Renata-S-A-S/geoquest-business-web/pull/8)) — correcciones aplicadas más abajo. El módulo `Business` ya existe y está implementado (Work Units A-G del slice `004-business-rewards`, mergeados 29-31 ago 2026); este documento deja de ser una propuesta pura y pasa a documentar qué del contrato original se confirmó, qué cambió, y qué sigue sin resolver.
 
@@ -218,7 +230,7 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 
 ### Genuinamente sin resolver — no es un error del documento, falta documentarse en Confluence antes de implementar (nota de Derek)
 
-5. **Shape de `coordinates` en `Place`**: el ERD dice `json coordinates` sin más detalle. El frontend propuso `{ lat: number, lng: number }` — sin definición registrada de si es eso, GeoJSON `Point`, o `{ latitude, longitude }`.
+5. ~~**Shape de `coordinates` en `Place`**~~ — ✅ **RESUELTA, y ya lo estaba**. El backend serializa **`latitude` y `longitude` como dobles planos**, sin objeto envolvente, en todos sus DTOs públicos. Internamente guarda un `geography(point,4326)` de PostGIS, pero ese `Point` nunca viaja. Confirmado además por el Explorer (`geoquest-web`) contra el backend en vivo. Esta pregunta figuró como "genuinamente sin resolver" mientras la respuesta estaba en código: nadie fue a mirar el backend.
 6. **`Commission.billingPeriod`**: sin convención registrada — ¿facturación mes vencido, semana ISO, o rango de fechas? (RN-BIZ-06 confirma que la facturación es "mensual consolidada" vía sweep, pero no el shape exacto del campo).
 
 ---
