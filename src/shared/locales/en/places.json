@@ -24,5 +24,37 @@
       "title": "You don't have any places yet",
       "description": "Once you create your first place, explorers will be able to check in there and earn GeoPoints."
     }
+  },
+  "taxonomy": {
+    "categories": {
+      "0": "Food & drink",
+      "1": "Nature",
+      "2": "History & culture",
+      "3": "Adventure",
+      "4": "Art",
+      "5": "Stays"
+    },
+    "subcategories": {
+      "0": "Restaurant",
+      "1": "Café",
+      "2": "Bar",
+      "3": "Food market",
+      "4": "Park",
+      "5": "Viewpoint",
+      "6": "Trail",
+      "7": "Beach",
+      "8": "Museum",
+      "9": "Monument",
+      "10": "Historic site",
+      "11": "Cultural center",
+      "12": "Adventure activity",
+      "13": "Cable car",
+      "14": "Sports",
+      "15": "Street art",
+      "16": "Gallery",
+      "17": "Public art",
+      "18": "Hotel",
+      "19": "Hostel"
+    }
   }
 }
