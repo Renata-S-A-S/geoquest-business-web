@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
-import { useBusinessMe } from '@/features/business/queries'
+import { useBusinessMe, useBusinessStaffMe } from '@/features/business/queries'
+import { canEditBusinessProfile } from '@/features/business/can-edit-business-profile'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { BusinessProfileView } from '@/features/business/business-profile-view'
 
@@ -17,13 +18,18 @@ import { BusinessProfileView } from '@/features/business/business-profile-view'
  * segunda query independiente que pueda fallar por separado, así que un
  * fork binario alcanza.
  *
- * A propósito NO hay ningún link ni botón de edición en esta pantalla
- * todavía: `/negocio/editar` (PR5) y el gate de Owner que decide si el
- * link aparece (PR4, `GET /business-staff/me`) no existen en esta PR.
+ * El link de edición (`/negocio/editar`, PR5) llega en esta PR: compone
+ * `useBusinessStaffMe()` además de `useBusinessMe()` y deriva `canEdit` con
+ * `canEditBusinessProfile` (D4). La lectura del rol NO bloquea la lectura
+ * del negocio — son fallas independientes (mismo criterio que el fork de
+ * `BusinessProfileEditPage`): si `staffQuery` está pendiente o en error,
+ * `canEdit` cae a `false` (fail-safe, nunca fail-open) y la pantalla igual
+ * muestra los datos del negocio que sí se pudieron leer.
  */
 export function BusinessProfilePage() {
   const { t } = useTranslation('business')
   const businessQuery = useBusinessMe()
+  const staffQuery = useBusinessStaffMe()
 
   if (businessQuery.isPending) {
     return (
@@ -46,5 +52,7 @@ export function BusinessProfilePage() {
     )
   }
 
-  return <BusinessProfileView business={businessQuery.data} />
+  const canEdit = staffQuery.data ? canEditBusinessProfile(staffQuery.data.role) : false
+
+  return <BusinessProfileView business={businessQuery.data} canEdit={canEdit} />
 }

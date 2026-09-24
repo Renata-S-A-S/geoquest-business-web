@@ -1,6 +1,7 @@
 {
   "profile": {
     "title": "Mi negocio",
+    "editLink": "Editar",
     "loading": "Cargando los datos de tu negocio…",
     "retry": "Reintentar",
     "errors": {
@@ -88,5 +89,36 @@
     },
     "legalFrozenHint": "No editable: se verificó contra tu documento legal antes de activar el negocio.",
     "dateFormatted": "{{date, datetime}}"
+  },
+  "editForm": {
+    "title": "Editar mi negocio",
+    "fields": {
+      "displayName": {
+        "label": "Nombre público"
+      },
+      "category": {
+        "label": "Categoría",
+        "placeholder": "Elegí una categoría"
+      },
+      "email": {
+        "label": "Correo de contacto",
+        "hint": "Correo de contacto público del negocio — distinto del correo con el que iniciás sesión."
+      }
+    },
+    "validation": {
+      "required": "Este campo es obligatorio.",
+      "email": "Ingresá un correo válido."
+    },
+    "submit": "Guardar cambios",
+    "submitting": "Guardando…",
+    "cancel": "Cancelar",
+    "errors": {
+      "generic": "No pudimos guardar los cambios.",
+      "readOnlyField": "Uno de los campos que intentaste cambiar no se puede editar desde acá."
+    },
+    "notOwner": {
+      "message": "Solo el dueño del negocio puede editar estos datos.",
+      "backLink": "Volver a Mi negocio"
+    }
   }
 }

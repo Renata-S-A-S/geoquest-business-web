@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getBusinessMe } from './api/get-business-me'
 import { getBusinessStaffMe } from './api/get-business-staff-me'
+import { patchBusinessMe } from './api/patch-business-me'
 
 /**
  * Registro de query keys de la slice `business` — issue #72. Se crea ahora
@@ -15,10 +16,9 @@ import { getBusinessStaffMe } from './api/get-business-staff-me'
  * fábrica de keys genérica ni un registro cross-feature — si esa necesidad
  * aparece, se resuelve ahí, no generalizando esto.
  *
- * `useUpdateBusinessMe` (la mutación de `PATCH /business/me`, PR3) sigue
- * diferido: su contrato ya existe (`patchBusinessMe` en
- * `api/patch-business-me.ts`), pero el hook llega recién con su primer
- * consumidor de UI (el formulario de edición, PR5) — no se anticipa acá.
+ * `useUpdateBusinessMe` (la mutación de `PATCH /business/me`, diferida
+ * desde PR3/PR4) llega en esta PR (#72, PR5) con su primer consumidor real:
+ * `BusinessProfileForm`.
  */
 export const businessKeys = {
   me: ['business', 'me'] as const,
@@ -54,5 +54,31 @@ export function useBusinessStaffMe() {
     queryKey: businessKeys.staffMe,
     queryFn: getBusinessStaffMe,
     staleTime: 30_000,
+  })
+}
+
+/**
+ * `PATCH /business/me` (#72, PR5) — mutación del formulario de edición
+ * (`BusinessProfileForm`). Regla verificada del Explorer (`useUpdateProfile`
+ * en `gamification/queries.ts`): NUNCA optimista — sin `onMutate` que
+ * adelante la cache, porque `PATCH /business/me` puede rechazar el request
+ * (400/409) y una UI que ya mostró el cambio tendría que revertirlo, lo que
+ * confunde más de lo que ayuda en un formulario con feedback síncrono.
+ *
+ * En éxito, `setQueryData(businessKeys.me, ...)` con el `Business` completo
+ * que devuelve el servidor — no un merge local del input — porque el
+ * contrato (§2.1.1) devuelve el agregado completo exactamente para esto: el
+ * cliente reemplaza su verdad en vez de adivinar el resultado del merge.
+ * Ningún `invalidateQueries` adicional: `setQueryData` ya deja la cache
+ * consistente para el próximo consumidor de `businessKeys.me`.
+ */
+export function useUpdateBusinessMe() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: patchBusinessMe,
+    onSuccess: (business) => {
+      queryClient.setQueryData(businessKeys.me, business)
+    },
   })
 }

@@ -1,6 +1,7 @@
 {
   "profile": {
     "title": "My business",
+    "editLink": "Edit",
     "loading": "Loading your business data…",
     "retry": "Retry",
     "errors": {
@@ -88,5 +89,36 @@
     },
     "legalFrozenHint": "Not editable: verified against your legal document before the business was activated.",
     "dateFormatted": "{{date, datetime}}"
+  },
+  "editForm": {
+    "title": "Edit my business",
+    "fields": {
+      "displayName": {
+        "label": "Public name"
+      },
+      "category": {
+        "label": "Category",
+        "placeholder": "Choose a category"
+      },
+      "email": {
+        "label": "Contact email",
+        "hint": "The business's public contact email — different from the email you sign in with."
+      }
+    },
+    "validation": {
+      "required": "This field is required.",
+      "email": "Enter a valid email."
+    },
+    "submit": "Save changes",
+    "submitting": "Saving…",
+    "cancel": "Cancel",
+    "errors": {
+      "generic": "We couldn't save your changes.",
+      "readOnlyField": "One of the fields you tried to change can't be edited from here."
+    },
+    "notOwner": {
+      "message": "Only the business owner can edit this information.",
+      "backLink": "Back to My business"
+    }
   }
 }

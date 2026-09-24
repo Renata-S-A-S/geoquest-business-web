@@ -5,6 +5,7 @@ import { LoginPage } from '@/features/auth/login-page'
 import { RegisterPage } from '@/features/onboarding/register-page'
 import { PendingStatusPage } from '@/features/onboarding/pending-page'
 import { BusinessProfilePage } from '@/features/business/business-profile-page'
+import { BusinessProfileEditPage } from '@/features/business/business-profile-edit-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
@@ -57,6 +58,22 @@ export const router = createBrowserRouter([
             element: (
               <FeatureErrorBoundary featureName="Negocio">
                 <BusinessProfilePage />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
+            /*
+             * `/negocio/editar` (#72, PR5) — hermana de `/negocio`, no un
+             * modo dentro de la misma página (mismo criterio que
+             * `/registro`/`/registro/pendiente`): le da a `navigate` un
+             * destino real tras guardar y mantiene el fork
+             * pending/error/no-Owner/form de `BusinessProfileEditPage`
+             * simple, en un solo lugar (decisión D4).
+             */
+            path: '/negocio/editar',
+            element: (
+              <FeatureErrorBoundary featureName="Negocio">
+                <BusinessProfileEditPage />
               </FeatureErrorBoundary>
             ),
           },
