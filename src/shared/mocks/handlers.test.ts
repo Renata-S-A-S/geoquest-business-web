@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
-import { resetDb } from '@/shared/mocks/db'
+import { readDb, resetDb, writeDb } from '@/shared/mocks/db'
 import {
   SEED_BUSINESS,
   SEED_BUSINESS_STAFF,
@@ -264,6 +264,82 @@ describe('mock handlers — round-trip de persistencia', () => {
         geoPointsReward: 60,
       })
     ).rejects.toMatchObject({ response: { status: 400 } })
+  })
+
+  /**
+   * Las tres razones de rechazo de `Place.Activate`, contra el mock real.
+   * La semilla las provee sin montaje: hay un `Active` (ya publicado) y un
+   * `Draft` sin fotos.
+   */
+  it('POST /business/places/{id}/publish activa un borrador que tiene fotos', async () => {
+    const draft = SEED_PLACES.find((place) => place.status === 'Draft')!
+
+    // Primero se le da una foto, porque la semilla lo tiene sin ninguna.
+    const db = readDb()
+    db.places.find((place) => place.placeId === draft.placeId)!.photos = [
+      'https://cdn.example/a.jpg',
+    ]
+    writeDb(db)
+
+    const { data } = await apiClient.post(`/business/places/${draft.placeId}/publish`)
+
+    expect(data).toEqual({ status: 'Active', visibleToExplorers: true })
+  })
+
+  it('POST /business/places/{id}/publish responde 409 cuando el borrador no tiene fotos', async () => {
+    const draft = SEED_PLACES.find((place) => place.status === 'Draft')!
+
+    await expect(
+      apiClient.post(`/business/places/${draft.placeId}/publish`)
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'Place.ActiveRequiresAtLeastOnePhoto' } },
+    })
+  })
+
+  it('POST /business/places/{id}/publish responde 409 cuando el lugar ya está activo', async () => {
+    const active = SEED_PLACES.find((place) => place.status === 'Active')!
+
+    await expect(
+      apiClient.post(`/business/places/${active.placeId}/publish`)
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'Place.AlreadyActive' } },
+    })
+  })
+
+  it('POST /business/places/{id}/publish responde 409 sobre un lugar borrado', async () => {
+    const db = readDb()
+    db.places[1].status = 'Deleted'
+    writeDb(db)
+
+    await expect(
+      apiClient.post(`/business/places/${db.places[1].placeId}/publish`)
+    ).rejects.toMatchObject({
+      response: { status: 409, data: { title: 'Place.Deleted' } },
+    })
+  })
+
+  it('POST /business/places/{id}/publish responde 404 para un id desconocido', async () => {
+    await expect(
+      apiClient.post('/business/places/00000000-0000-0000-0000-0000000000ff/publish')
+    ).rejects.toMatchObject({
+      response: { status: 404, data: { title: 'PublishBusinessPlaceCommand.NotFound' } },
+    })
+  })
+
+  /**
+   * `visibleToExplorers` sale del estado del NEGOCIO, no del lugar: el lugar
+   * se activa igual, pero queda invisible si GeoQuest todavía no verificó al
+   * comercio. Publicar y ser visible no son lo mismo.
+   */
+  it('POST /business/places/{id}/publish activa pero deja invisible si el negocio no está activo', async () => {
+    const db = readDb()
+    db.business.status = 'Pending'
+    db.places[1].photos = ['https://cdn.example/a.jpg']
+    writeDb(db)
+
+    const { data } = await apiClient.post(`/business/places/${db.places[1].placeId}/publish`)
+
+    expect(data).toEqual({ status: 'Active', visibleToExplorers: false })
   })
 
   it('GET /portal/rewards devuelve las recompensas del negocio', async () => {

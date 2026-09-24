@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getPlaces } from './api/get-places'
 import { createPlace } from './api/create-place'
 import { getPlace } from './api/get-place'
+import { publishPlace } from './api/publish-place'
 
 /**
  * Registro de query keys de la slice `places` — issue #29 (B-02). Mismo
@@ -91,5 +92,29 @@ export function usePlace(placeId: string | undefined) {
     queryFn: () => getPlace(placeId as string),
     enabled: Boolean(placeId),
     staleTime: 30_000,
+  })
+}
+
+/**
+ * `POST /business/places/{id}/publish` (#34).
+ *
+ * En éxito invalida **todo el prefijo `['places']`**, no solo el detalle: el
+ * estado del lugar cambió, y el listado muestra ese estado en su badge.
+ * Invalidar solo el detalle dejaría el listado diciendo «Borrador» sobre un
+ * lugar que ya está activo, y el negocio no tendría motivo para dudar de lo
+ * que ve.
+ *
+ * Nunca optimista, por la misma razón que el resto: el servidor puede
+ * rechazar con 409 (sin fotos, ya activo, borrado), y una pantalla que ya
+ * mostró «Activo» tendría que retractarse.
+ */
+export function usePublishPlace() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: publishPlace,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['places'] })
+    },
   })
 }

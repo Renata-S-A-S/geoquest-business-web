@@ -253,6 +253,67 @@ export const handlers = [
   }),
 
   /**
+   * `POST /business/places/{id}/publish` (#34) — espejo de `Place.Activate`.
+   *
+   * Las tres razones de rechazo son 409 y están todas replicadas: un lugar
+   * borrado no revive, uno ya activo no se republica, y uno sin fotos no se
+   * publica porque no habría nada que mostrarle al explorador.
+   *
+   * `visibleToExplorers` se calcula del estado del negocio: el lugar se
+   * activa igual, pero queda invisible si el negocio no está verificado.
+   * Publicar y ser visible NO son lo mismo, y el mock lo refleja para que la
+   * interfaz pueda distinguirlo.
+   */
+  http.post(`${API_BASE_URL}/business/places/:placeId/publish`, ({ params }) => {
+    const db = readDb()
+    const place = db.places.find((candidate) => candidate.placeId === params.placeId)
+
+    if (!place) {
+      return HttpResponse.json(
+        {
+          title: 'PublishBusinessPlaceCommand.NotFound',
+          detail: `No Place exists with Id '${String(params.placeId)}'.`,
+          status: 404,
+        },
+        { status: 404 }
+      )
+    }
+
+    if (place.status === 'Deleted') {
+      return HttpResponse.json(
+        { title: 'Place.Deleted', detail: 'The Place is deleted.', status: 409 },
+        { status: 409 }
+      )
+    }
+
+    if (place.status === 'Active') {
+      return HttpResponse.json(
+        { title: 'Place.AlreadyActive', detail: 'The Place is already active.', status: 409 },
+        { status: 409 }
+      )
+    }
+
+    if (place.photos.length === 0) {
+      return HttpResponse.json(
+        {
+          title: 'Place.ActiveRequiresAtLeastOnePhoto',
+          detail: 'An active Place requires at least one photo.',
+          status: 409,
+        },
+        { status: 409 }
+      )
+    }
+
+    place.status = 'Active'
+    writeDb(db)
+
+    return HttpResponse.json({
+      status: place.status,
+      visibleToExplorers: db.business.status === 'Active',
+    })
+  }),
+
+  /**
    * `GET /portal/rewards` — listado de las recompensas DEL NEGOCIO.
    *
    * ⚠️ El path es una propuesta (`geoquest#191`); la forma no. Hoy el

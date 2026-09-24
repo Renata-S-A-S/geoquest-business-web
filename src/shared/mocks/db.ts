@@ -13,13 +13,26 @@ interface MockDb {
   rewards: BusinessRewardSummary[]
 }
 
+/**
+ * Semilla CLONADA en profundidad, no por referencia.
+ *
+ * ⚠️ `[...SEED_PLACES]` copiaba el arreglo pero **compartía los objetos**.
+ * Los handlers que mutan estado in situ — publicar un lugar, publicar una
+ * recompensa — escribían entonces sobre las constantes del módulo, y esa
+ * mutación sobrevivía a `resetDb()` porque la semilla misma quedaba
+ * corrompida. El síntoma es un test que pasa solo o falla según el ORDEN en
+ * que corre, que es la clase de falla más cara de diagnosticar.
+ *
+ * `structuredClone` corta la referencia, incluidos los arreglos anidados
+ * (`photos`). Detectado al cubrir los 409 de publicación (#34).
+ */
 function seedDb(): MockDb {
-  return {
+  return structuredClone({
     business: SEED_BUSINESS,
     businessStaff: SEED_BUSINESS_STAFF,
-    places: [...SEED_PLACES],
-    rewards: [...SEED_REWARDS],
-  }
+    places: SEED_PLACES,
+    rewards: SEED_REWARDS,
+  })
 }
 
 /**
