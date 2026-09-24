@@ -1,0 +1,28 @@
+{
+  "list": {
+    "title": "My places",
+    "createCta": "Create place",
+    "loading": "Loading your places…",
+    "retry": "Retry",
+    "errors": {
+      "generic": "We couldn't load your places."
+    },
+    "columns": {
+      "name": "Name",
+      "status": "Status",
+      "totalCheckIns": "Check-ins",
+      "checkInRadiusMeters": "Check-in radius"
+    },
+    "radiusValue": "{{meters, number}} m",
+    "checkInsValue": "{{count, number}}",
+    "status": {
+      "Draft": "Draft",
+      "Active": "Active",
+      "Paused": "Paused"
+    },
+    "empty": {
+      "title": "You don't have any places yet",
+      "description": "Once you create your first place, explorers will be able to check in there and earn GeoPoints."
+    }
+  }
+}
