@@ -71,11 +71,19 @@ export type BusinessRewardSummary = z.infer<typeof businessRewardSummarySchema>
 /**
  * `POST /portal/rewards` → body. Copia exacta de `PublishRewardRequest`.
  *
- * ⚠️ **Nace `Published`, no `Draft`.** El nombre del comando es
- * `PublishRewardCommand` y no hay endpoint de publicación aparte: crear y
- * publicar son el mismo acto. Eso contradice el paso "publica la
- * recompensa" del flujo B-03, que implica un borrador previo, y deja sin
- * sustento a un futuro "guardar como borrador" del lado de recompensas.
+ * **Decisión de producto (Derek, 24 sep 2026): la recompensa se crea como
+ * `Draft` y se publica en un paso aparte**, manteniendo el flujo B-03.
+ *
+ * Hoy el backend la crea directamente en `Published` — `Reward.Publish`
+ * fija el estado y no hay endpoint de publicación. Pero eso estaba
+ * diferido, no descartado: el docstring de `RewardStatus` dice que `Draft`
+ * es «transición de work units futuros» y el valor **ya se persiste**.
+ *
+ * Así que el mock modela el borrador a propósito, siguiendo el precedente
+ * de `Place` en el mismo backend (`POST /business/places` crea en `Draft`,
+ * `POST /business/places/{id}/publish` transiciona). Es una divergencia
+ * DELIBERADA y registrada en `Renata-S-A-S/geoquest#191`, no un descuido:
+ * cuando el endpoint exista, solo cambia el transporte.
  *
  * La imagen no viaja acá: se sube después con
  * `PUT /portal/rewards/{id}/image`, mismo patrón que las fotos de lugar.
@@ -104,4 +112,35 @@ export type CreatedBusinessReward = z.infer<typeof createdBusinessRewardSchema>
  */
 export function isRewardOutOfStock(reward: BusinessRewardSummary): boolean {
   return reward.stockRemaining !== null && reward.stockRemaining <= 0
+}
+
+/**
+ * `POST /portal/rewards/{id}/publish` → 200.
+ *
+ * Espejo de `PublishBusinessPlaceResult`: el backend de lugares ya devuelve
+ * `{ status, visibleToExplorers }` en su publicación, y no hay motivo para
+ * que recompensas invente otra forma.
+ */
+export const publishBusinessRewardResultSchema = z.object({
+  status: businessRewardStatusSchema,
+  visibleToExplorers: z.boolean(),
+})
+export type PublishBusinessRewardResult = z.infer<typeof publishBusinessRewardResultSchema>
+
+/**
+ * Precondiciones de publicación, replicadas del precedente de `Place`.
+ *
+ * Un lugar no se publica sin al menos una foto (409
+ * `Place.ActiveRequiresAtLeastOnePhoto`). El paralelo para una recompensa
+ * es la imagen: se sube DESPUÉS de crear, así que una recién creada nunca
+ * la tiene — publicarla sin imagen la dejaría visible sin nada que
+ * mostrar.
+ *
+ * ⚠️ Es una regla PROPUESTA, no confirmada: está planteada en
+ * `geoquest#191` junto con el endpoint. Se modela acá para que la pantalla
+ * exista; si el backend decide otra precondición, cambia esta función y
+ * nada más.
+ */
+export function canPublishReward(reward: BusinessRewardSummary): boolean {
+  return reward.status === 'Draft' && reward.imageUrl !== null
 }

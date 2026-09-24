@@ -2,7 +2,7 @@ import { createMockStorage, type MockStorage } from '@/shared/mocks/storage'
 import { SEED_BUSINESS, SEED_BUSINESS_STAFF, SEED_PLACES, SEED_REWARDS } from '@/shared/mocks/seed'
 import type { Business, BusinessStaff } from '@/shared/schemas/business'
 import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
-import type { Reward } from '@/shared/schemas/reward'
+import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
 
 const STORAGE_KEY = 'geoquest-business.mock-db'
 
@@ -10,7 +10,7 @@ interface MockDb {
   business: Business
   businessStaff: BusinessStaff
   places: BusinessPlaceDetail[]
-  rewards: Reward[]
+  rewards: BusinessRewardSummary[]
 }
 
 function seedDb(): MockDb {

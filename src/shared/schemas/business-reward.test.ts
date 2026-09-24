@@ -5,6 +5,8 @@ import {
   createBusinessRewardInputSchema,
   createdBusinessRewardSchema,
   isRewardOutOfStock,
+  canPublishReward,
+  publishBusinessRewardResultSchema,
   type BusinessRewardSummary,
 } from './business-reward'
 
@@ -147,5 +149,41 @@ describe('isRewardOutOfStock', () => {
 
   it('no marca agotada una recompensa con unidades disponibles', () => {
     expect(isRewardOutOfStock(SUMMARY)).toBe(false)
+  })
+})
+
+/**
+ * Precondición espejo del precedente de `Place`: así como un lugar no se
+ * publica sin al menos una foto, una recompensa no se publica sin imagen.
+ * Una recién creada NUNCA la tiene — se sube después —, así que sin esta
+ * guarda el botón de publicar dejaría visible una recompensa sin nada que
+ * mostrar.
+ */
+describe('canPublishReward', () => {
+  it('permite publicar un borrador que ya tiene imagen', () => {
+    expect(
+      canPublishReward({ ...SUMMARY, status: 'Draft', imageUrl: 'https://cdn/x.jpg' })
+    ).toBe(true)
+  })
+
+  it('NO permite publicar un borrador sin imagen', () => {
+    expect(canPublishReward({ ...SUMMARY, status: 'Draft', imageUrl: null })).toBe(false)
+  })
+
+  it('NO permite republicar una ya publicada', () => {
+    expect(canPublishReward({ ...SUMMARY, status: 'Published' })).toBe(false)
+  })
+
+  it('NO permite publicar desde Paused ni Archived', () => {
+    expect(canPublishReward({ ...SUMMARY, status: 'Paused' })).toBe(false)
+    expect(canPublishReward({ ...SUMMARY, status: 'Archived' })).toBe(false)
+  })
+})
+
+describe('publishBusinessRewardResultSchema', () => {
+  it('replica la forma que ya devuelve la publicación de lugares', () => {
+    expect(
+      publishBusinessRewardResultSchema.parse({ status: 'Published', visibleToExplorers: true })
+    ).toEqual({ status: 'Published', visibleToExplorers: true })
   })
 })
