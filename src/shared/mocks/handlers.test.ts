@@ -1,7 +1,11 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
 import { resetDb } from '@/shared/mocks/db'
-import { SEED_BUSINESS, SEED_BUSINESS_STAFF } from '@/shared/mocks/seed'
+import {
+  SEED_BUSINESS,
+  SEED_BUSINESS_STAFF,
+  SEED_BUSINESS_STAFF_USERNAME,
+} from '@/shared/mocks/seed'
 import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
 import { authTokensSchema } from '@/shared/schemas/auth'
 import type { Place } from '@/shared/schemas/place'
@@ -101,6 +105,15 @@ describe('mock handlers — round-trip de persistencia', () => {
     await expect(apiClient.patch('/business/me', { status: 'Suspended' })).rejects.toMatchObject({
       response: { status: 409, data: { title: 'ReadOnlyField' } },
     })
+  })
+
+  it('GET /business-staff/me devuelve el staff semilla con username y role Owner en PascalCase', async () => {
+    const { data } = await apiClient.get('/business-staff/me')
+    expect(data).toMatchObject({
+      ...SEED_BUSINESS_STAFF,
+      username: SEED_BUSINESS_STAFF_USERNAME,
+    })
+    expect(data.role).toBe('Owner')
   })
 
   it('GET /places devuelve la semilla inicial', async () => {

@@ -20,11 +20,12 @@ Los schemas Zod ejecutables (fuente de verdad del shape, más completos que las 
 
 ### 2.1 Business
 
-| Verbo   | Path                 | Body                                                               | Response                      | Fuente                                                                |
-| ------- | -------------------- | ------------------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------- |
-| `GET`   | `/business/me`       | —                                                                  | `Business`                    | Resuelve el negocio del `BusinessStaff` autenticado                   |
-| `PATCH` | `/business/me`       | subconjunto editable — ver detalle en §2.1.1                       | `Business`                    | B-01 (edición post-registro, no cubierto por el flujo pero implícito) |
-| `POST`  | `/business/register` | datos legales + documento (ver §3, pregunta de subida de archivos) | `Business` (status `Pending`) | B-01                                                                  |
+| Verbo   | Path                 | Body                                                               | Response                                  | Fuente                                                                |
+| ------- | -------------------- | ------------------------------------------------------------------ | ----------------------------------------- | --------------------------------------------------------------------- |
+| `GET`   | `/business/me`       | —                                                                  | `Business`                                | Resuelve el negocio del `BusinessStaff` autenticado                   |
+| `PATCH` | `/business/me`       | subconjunto editable — ver detalle en §2.1.1                       | `Business`                                | B-01 (edición post-registro, no cubierto por el flujo pero implícito) |
+| `POST`  | `/business/register` | datos legales + documento (ver §3, pregunta de subida de archivos) | `Business` (status `Pending`)             | B-01                                                                  |
+| `GET`   | `/business-staff/me` | —                                                                  | `BusinessStaffMe` — ver detalle en §2.1.2 | Identidad del `BusinessStaff` autenticado (#72, PR4)                  |
 
 `Business.status` — **solo `Suspended` está citado literalmente** en Confluence (RN-BIZ-04). `Pending`/`Active` son propuesta del frontend a partir del SLA de 48h de verificación (B-01, RN-BIZ-01) — confirmar los nombres exactos.
 
@@ -88,6 +89,34 @@ Errores (problem+json, RFC7807: { title, detail?, status })
 ⚠️ **Formato del `title` de error — sin confirmar.** El mock de este repo emite títulos sin punto, PascalCase (`ValidationFailed`, `ReadOnlyField` — mismo estilo que `InvalidCredentials` en `POST /auth/login`), por consistencia interna con el resto de `handlers.ts`. El backend real del Explorer (`geoquest-web`) usa códigos con punto (`Validation.Failed`). Como el backend de `Business` para este endpoint todavía no existe, se prioriza la consistencia interna — `Renata-S-A-S/geoquest#182` pide unificar el criterio antes de implementar contra un backend real.
 
 **Ruteo al backend:** el PO pidió sumar este contrato a `Renata-S-A-S/geoquest#164` — ese issue documenta la subida de archivos de ADR-048 (§4.4), no edición de perfil. Sin confirmar si corresponde ahí o en un issue propio — no se abre ninguno desde este documento.
+
+#### 2.1.2 Detalle — `GET /business-staff/me`
+
+Propuesta del frontend (ADR-048-BF), sin confirmar contra el backend — sin cita de Confluence propia, mismo motivo que §2.1.1 (no hay flujo B-0X que cubra la identidad del staff). Resuelve la identidad del `BusinessStaff` autenticado: es la fuente tanto del gate de edición Owner-only (`canEditBusinessProfile`, decisión D4 del diseño de #72) como del bloque de usuario de `/configuracion` (PR6).
+
+```
+GET /business-staff/me
+Auth: BusinessStaff bearer, misma sesión que el resto de §1.
+
+200 → {
+  id, businessId, fullName, username, email, role, status, createdAt
+}
+      role ∈ Owner | Manager | Staff — mismo enum que el backend ya
+      define en BusinessStaffRole.cs (Owner = 0, Manager = 1, Staff = 2,
+      PascalCase). Ver businessStaffRoleSchema.
+
+404 BusinessStaffNotFound  la Identity autenticada no tiene una fila
+                           BusinessStaff asociada (documentado acá; el
+                           mock es single-tenant — siempre hay un
+                           `db.businessStaff` — así que este caso no es
+                           reproducible con el mock actual)
+```
+
+**`role`** reutiliza el mismo enum que `businessStaffSchema.role` — ya no es `z.string()` (ver corrección de casing más abajo). Hoy `role` es siempre `Owner`: el registro (BA-1) crea exactamente un `BusinessStaff` Owner y ningún comando asigna Manager/Staff todavía (gestión de staff adicional, fuera de alcance de #72).
+
+⚠️ **`username` — sin confirmar.** `username` NO es un campo de `BusinessStaff` — vive en el mismo `Identity` que usa el Explorer, enlazado vía `BusinessStaff.ExplorerId` (§4.1). Si esa proyección es alcanzable para una cuenta que es SOLO `BusinessStaff` (sin `ExplorerProfile`) es la pregunta abierta de `Renata-S-A-S/geoquest#182`. Se propone incluirlo acá (y se semilla un valor en el mock, `SEED_BUSINESS_STAFF_USERNAME`) porque es la única forma de que `/configuracion` funcione de punta a punta bajo `VITE_USE_MOCKS=true` mientras se confirma — si la respuesta es negativa, la consecuencia queda confinada a un campo menos en PR6, no a un rediseño de este contrato.
+
+⚠️ **Casing de `role` corregido en este PR.** El mock previo a #72-PR4 seedeaba `role: 'owner'` en minúscula; el backend usa PascalCase (`BusinessStaffRole.cs`). Con `role` como `z.string()`, ese desfase no producía ningún error de tipo — recién con `businessStaffRoleSchema` (`z.enum(['Owner', 'Manager', 'Staff'])`) se vuelve un error de validación detectable. Corregido en `seed.ts`; verificado que ningún otro archivo del repo comparaba contra el valor en minúscula.
 
 ### 2.2 Place (B2B)
 
@@ -197,7 +226,7 @@ No solo validar el shape — estas son invariantes de negocio, citadas con su fu
 ## 5. Cómo consume el frontend estos contratos hoy (mock-first)
 
 - Todos los schemas están en `src/shared/schemas/*.ts` (Zod), con comentario de fuente por campo — cada uno distingue explícitamente valores **confirmados** (citados literalmente en Confluence) de valores **propuestos** (inferidos, a validar acá).
-- Los mocks (`src/shared/mocks/handlers.ts`) implementan un subconjunto de estos endpoints (`GET/POST /places`, `GET /business/me`, `PATCH /business/me`, `GET /rewards`) contra `localStorage`, sirviendo exactamente estos shapes — sirve como spec ejecutable, no solo este documento en prosa.
+- Los mocks (`src/shared/mocks/handlers.ts`) implementan un subconjunto de estos endpoints (`GET/POST /places`, `GET /business/me`, `PATCH /business/me`, `GET /business-staff/me`, `GET /rewards`) contra `localStorage`, sirviendo exactamente estos shapes — sirve como spec ejecutable, no solo este documento en prosa.
 - `VITE_USE_MOCKS=true` es el default. Cuando el backend real tenga aunque sea un endpoint, se apaga por env var y `apiClient` (`src/shared/lib/api-client.ts`) empieza a pegarle a `VITE_API_BASE_URL` sin cambiar una línea del resto de la app.
 - Auth: `src/shared/lib/session-port.ts` + `session-interceptor.ts` — el cliente Axios adjunta el bearer token y reintenta tras 401 contra un `SessionPort` inyectable, nunca contra un endpoint concreto. La implementación mock hoy vive en `session-port.mock.ts`; el día que exista el mecanismo real, se agrega una implementación nueva y se cambia una sola línea en `session-port.instance.ts`.
 

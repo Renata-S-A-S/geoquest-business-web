@@ -4,6 +4,9 @@ import {
   registerBusinessInputSchema,
   updateBusinessMeInputSchema,
   BUSINESS_READONLY_FIELDS,
+  businessStaffRoleSchema,
+  businessStaffSchema,
+  businessStaffMeSchema,
 } from './business'
 
 const baseBusiness = {
@@ -209,5 +212,58 @@ describe('BUSINESS_READONLY_FIELDS', () => {
     expect(BUSINESS_READONLY_FIELDS).not.toEqual(
       expect.arrayContaining(['displayName', 'category', 'email'])
     )
+  })
+})
+
+describe('businessStaffRoleSchema', () => {
+  it.each(['Owner', 'Manager', 'Staff'] as const)(
+    'acepta el valor %s (BusinessStaffRole.cs del backend)',
+    (role) => {
+      expect(() => businessStaffRoleSchema.parse(role)).not.toThrow()
+    }
+  )
+
+  it('rechaza el valor legacy en minúscula "owner" (casing incorrecto vs. el backend)', () => {
+    expect(() => businessStaffRoleSchema.parse('owner')).toThrow()
+  })
+
+  it('rechaza un valor fuera del enum', () => {
+    expect(() => businessStaffRoleSchema.parse('Admin')).toThrow()
+  })
+})
+
+const baseBusinessStaff = {
+  id: '22222222-2222-2222-2222-222222222222',
+  businessId: '11111111-1111-1111-1111-111111111111',
+  fullName: 'María Restrepo',
+  email: 'maria@cafe70.co',
+  role: 'Owner',
+  status: 'Active',
+  createdAt: '2026-08-01T00:00:00Z',
+}
+
+describe('businessStaffSchema', () => {
+  it('parsea un BusinessStaff válido con role Owner', () => {
+    expect(businessStaffSchema.parse(baseBusinessStaff)).toMatchObject({ role: 'Owner' })
+  })
+
+  it('rechaza el role legacy en minúscula "owner"', () => {
+    expect(() => businessStaffSchema.parse({ ...baseBusinessStaff, role: 'owner' })).toThrow()
+  })
+
+  it('rechaza un role fuera de Owner/Manager/Staff', () => {
+    expect(() => businessStaffSchema.parse({ ...baseBusinessStaff, role: 'SuperAdmin' })).toThrow()
+  })
+})
+
+describe('businessStaffMeSchema', () => {
+  it('parsea un BusinessStaffMe válido, incluyendo username', () => {
+    expect(
+      businessStaffMeSchema.parse({ ...baseBusinessStaff, username: 'maria_cafe70' })
+    ).toMatchObject({ username: 'maria_cafe70', role: 'Owner' })
+  })
+
+  it('rechaza un BusinessStaffMe sin username (username no es opcional)', () => {
+    expect(() => businessStaffMeSchema.parse(baseBusinessStaff)).toThrow()
   })
 })

@@ -3,6 +3,7 @@ import { API_BASE_URL } from '@/shared/lib/env'
 import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
+import { SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
 import { createPlaceInputSchema, type Place } from '@/shared/schemas/place'
 import {
   registerBusinessInputSchema,
@@ -79,6 +80,24 @@ export const handlers = [
     writeDb(db)
 
     return HttpResponse.json(updatedBusiness, { status: 200 })
+  }),
+
+  /**
+   * `GET /business-staff/me` — #72, PR4. Ver contratos-portal-b2b.md
+   * §2.1.2 para el contrato completo. `username` no vive en `MockDb`
+   * (`db.businessStaff` es `BusinessStaff`, sin ese campo — ver
+   * `businessStaffSchema`): se arma acá igual que lo haría un backend real
+   * al resolver el `Identity` del bearer token, con el valor semilla de
+   * `SEED_BUSINESS_STAFF_USERNAME` (propuesta sin confirmar, ver
+   * `Renata-S-A-S/geoquest#182`).
+   *
+   * Nota de alcance: este handler NO modela el 404 `BusinessStaffNotFound`
+   * documentado en el contrato — el mock es single-tenant, siempre hay un
+   * `db.businessStaff`, así que ese caso no es reproducible acá.
+   */
+  http.get(`${API_BASE_URL}/business-staff/me`, () => {
+    const { businessStaff } = readDb()
+    return HttpResponse.json({ ...businessStaff, username: SEED_BUSINESS_STAFF_USERNAME })
   }),
 
   http.post(`${API_BASE_URL}/business/register`, async ({ request }) => {
