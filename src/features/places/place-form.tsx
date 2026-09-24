@@ -32,38 +32,49 @@ import {
  * construirse, así que un schema a nivel de módulo se quedaría con el
  * idioma del primer import.
  *
- * Los campos numéricos se declaran como `string` y se convierten en el
- * submit: un `<input type="number">` vacío entrega `''`, y `z.coerce.number()`
- * lo convertiría en `0` — un cero silencioso que pasaría la validación de
- * rango del radio por debajo y mandaría una latitud de 0 al backend. Validar
- * el texto primero y convertir después es lo que evita ese cero fantasma.
+ * Los campos numéricos se validan **como números**, no como texto: los
+ * inputs se registran con `valueAsNumber: true`, así que el estado del
+ * formulario ya es numérico y `z.number()` valida sobre el tipo real.
+ *
+ * El punto delicado es el campo VACÍO. Un `<input>` siempre entrega
+ * `string`, y hay dos maneras de convertirlo:
+ *
+ * - `z.coerce.number()` convierte ANTES de validar, y `Number('')` es `0`.
+ *   Para latitud y longitud eso es un desastre silencioso: **`0` está dentro
+ *   de su rango válido**, así que un campo vacío pasaría la validación sin
+ *   un solo error y el backend recibiría una coordenada en el Golfo de
+ *   Guinea. (Para el radio no aplica, porque su mínimo de 50 rechaza el
+ *   cero — el problema es específico de los rangos que contienen al 0.)
+ * - `valueAsNumber: true` entrega `NaN` para un campo vacío, y `z.number()`
+ *   rechaza `NaN`. Vacío y cero quedan distinguidos, que es exactamente la
+ *   distinción que importa acá.
+ *
+ * Se usa la segunda.
  */
 function createPlaceFormSchema(t: TFunction<'places'>) {
-  const numericText = z
-    .string()
-    .min(1, t('createForm.validation.required'))
-    .refine((value) => value.trim() !== '' && Number.isFinite(Number(value)), {
-      message: t('createForm.validation.number'),
-    })
+  const requiredNumber = {
+    required_error: t('createForm.validation.required'),
+    invalid_type_error: t('createForm.validation.number'),
+  }
 
   return z.object({
     name: z.string().min(1, t('createForm.validation.required')),
     description: z.string().min(1, t('createForm.validation.required')),
     category: z.string().min(1, t('createForm.validation.required')),
     subcategory: z.string().min(1, t('createForm.validation.required')),
-    latitude: numericText.refine((value) => Number(value) >= -90 && Number(value) <= 90, {
-      message: t('createForm.validation.latitudeRange'),
-    }),
-    longitude: numericText.refine((value) => Number(value) >= -180 && Number(value) <= 180, {
-      message: t('createForm.validation.longitudeRange'),
-    }),
-    checkInRadiusMeters: numericText.refine(
-      (value) =>
-        Number.isInteger(Number(value)) &&
-        Number(value) >= MIN_CHECK_IN_RADIUS_METERS &&
-        Number(value) <= MAX_CHECK_IN_RADIUS_METERS,
-      { message: t('createForm.validation.radiusRange') }
-    ),
+    latitude: z
+      .number(requiredNumber)
+      .min(-90, t('createForm.validation.latitudeRange'))
+      .max(90, t('createForm.validation.latitudeRange')),
+    longitude: z
+      .number(requiredNumber)
+      .min(-180, t('createForm.validation.longitudeRange'))
+      .max(180, t('createForm.validation.longitudeRange')),
+    checkInRadiusMeters: z
+      .number(requiredNumber)
+      .int(t('createForm.validation.radiusRange'))
+      .min(MIN_CHECK_IN_RADIUS_METERS, t('createForm.validation.radiusRange'))
+      .max(MAX_CHECK_IN_RADIUS_METERS, t('createForm.validation.radiusRange')),
   })
 }
 type PlaceFormValues = z.infer<ReturnType<typeof createPlaceFormSchema>>
@@ -127,9 +138,9 @@ export function PlaceForm() {
       description: '',
       category: '',
       subcategory: '',
-      latitude: '',
-      longitude: '',
-      checkInRadiusMeters: String(DEFAULT_CHECK_IN_RADIUS_METERS),
+      latitude: undefined,
+      longitude: undefined,
+      checkInRadiusMeters: DEFAULT_CHECK_IN_RADIUS_METERS,
     },
   })
 
@@ -169,9 +180,9 @@ export function PlaceForm() {
         description: values.description,
         category,
         subcategory,
-        latitude: Number(values.latitude),
-        longitude: Number(values.longitude),
-        checkInRadiusMeters: Number(values.checkInRadiusMeters),
+        latitude: values.latitude,
+        longitude: values.longitude,
+        checkInRadiusMeters: values.checkInRadiusMeters,
       },
       {
         onSuccess: () => {
@@ -196,6 +207,7 @@ export function PlaceForm() {
           <Input
             id="place-name"
             aria-describedby={errors.name ? 'place-name-error' : undefined}
+            aria-invalid={errors.name ? true : undefined}
             placeholder={t('createForm.fields.name.placeholder')}
             {...register('name')}
           />
@@ -210,12 +222,11 @@ export function PlaceForm() {
           <Textarea
             id="place-description"
             aria-describedby={errors.description ? 'place-description-error' : undefined}
+            aria-invalid={errors.description ? true : undefined}
             placeholder={t('createForm.fields.description.placeholder')}
             {...register('description')}
           />
-          <p className="font-sans text-xs text-muted">
-            {t('createForm.fields.description.hint')}
-          </p>
+          <p className="font-sans text-xs text-muted">{t('createForm.fields.description.hint')}</p>
         </FormField>
 
         <FormField
@@ -283,10 +294,12 @@ export function PlaceForm() {
             >
               <Input
                 id="place-latitude"
-                inputMode="decimal"
+                type="number"
+                step="any"
                 aria-describedby={errors.latitude ? 'place-latitude-error' : undefined}
+                aria-invalid={errors.latitude ? true : undefined}
                 placeholder={t('createForm.fields.latitude.placeholder')}
-                {...register('latitude')}
+                {...register('latitude', { valueAsNumber: true })}
               />
             </FormField>
 
@@ -298,10 +311,12 @@ export function PlaceForm() {
             >
               <Input
                 id="place-longitude"
-                inputMode="decimal"
+                type="number"
+                step="any"
                 aria-describedby={errors.longitude ? 'place-longitude-error' : undefined}
+                aria-invalid={errors.longitude ? true : undefined}
                 placeholder={t('createForm.fields.longitude.placeholder')}
-                {...register('longitude')}
+                {...register('longitude', { valueAsNumber: true })}
               />
             </FormField>
           </div>
@@ -316,9 +331,11 @@ export function PlaceForm() {
         >
           <Input
             id="place-radius"
-            inputMode="numeric"
+            type="number"
+            step="1"
             aria-describedby={errors.checkInRadiusMeters ? 'place-radius-error' : undefined}
-            {...register('checkInRadiusMeters')}
+            aria-invalid={errors.checkInRadiusMeters ? true : undefined}
+            {...register('checkInRadiusMeters', { valueAsNumber: true })}
           />
           <p className="font-sans text-xs text-muted">
             {t('createForm.fields.checkInRadiusMeters.hint')}

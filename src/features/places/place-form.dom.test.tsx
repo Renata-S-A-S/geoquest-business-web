@@ -63,7 +63,7 @@ describe('PlaceForm', () => {
   it('precarga el radio de check-in en 100 metros (#33)', () => {
     renderPlaceForm()
 
-    expect(screen.getByLabelText('Radio de check-in (metros)')).toHaveValue('100')
+    expect(screen.getByLabelText('Radio de check-in (metros)')).toHaveValue(100)
   })
 
   it('deja la subcategoría deshabilitada hasta que haya una categoría elegida', () => {
@@ -133,12 +133,61 @@ describe('PlaceForm', () => {
   })
 
   /**
-   * Un `<input>` vacío entrega `''`. Si el schema usara `z.coerce.number()`,
-   * eso se volvería `0` — un cero silencioso que pasaría el mínimo del radio
-   * por debajo y mandaría latitud 0 al backend. Este caso fija que un campo
-   * numérico vacío se rechace como obligatorio, no como cero.
+   * El par de casos que justifica `valueAsNumber` sobre `z.coerce.number()`.
+   *
+   * Con `coerce`, `Number('')` es `0`. Para la latitud eso es un desastre
+   * silencioso porque **`0` está dentro de su rango válido**: el campo vacío
+   * pasaría la validación sin un solo error y el backend recibiría una
+   * coordenada en el Golfo de Guinea. Con `valueAsNumber` el vacío llega
+   * como `NaN` y `z.number()` lo rechaza.
+   *
+   * El primer caso fija que vacío se rechaza; el segundo, que un cero
+   * ESCRITO a propósito sí se acepta — porque cero es una latitud legítima y
+   * confundir las dos cosas es el error opuesto.
    */
-  it('trata un campo numérico vacío como obligatorio, no como cero', async () => {
+  it('rechaza una latitud vacía en vez de tomarla como cero', async () => {
+    let posted = false
+    server.use(
+      http.post(`${API_BASE_URL}/business/places`, () => {
+        posted = true
+        return HttpResponse.json({ placeId: crypto.randomUUID() }, { status: 201 })
+      })
+    )
+    renderPlaceForm()
+
+    typeIn('Nombre del lugar', 'Sin latitud')
+    typeIn('Descripción', 'Prueba.')
+    pickCategory('Gastronomía')
+    pickSubcategory('Café')
+    typeIn('Longitud', '-75.588')
+    submit()
+
+    // La aserción fuerte es que NO se envía nada. Con `z.coerce.number()` el
+    // vacío se habría vuelto 0, que es una latitud válida, y este POST
+    // habría salido sin un solo error visible.
+    expect(await screen.findByLabelText('Latitud')).toBeInvalid()
+    expect(posted).toBe(false)
+  })
+
+  it('acepta un cero ESCRITO como latitud válida, sin confundirlo con vacío', async () => {
+    let received: Record<string, unknown> | undefined
+    server.use(
+      http.post(`${API_BASE_URL}/business/places`, async ({ request }) => {
+        received = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ placeId: crypto.randomUUID() }, { status: 201 })
+      })
+    )
+    renderPlaceForm()
+
+    fillValidForm()
+    typeIn('Latitud', '0')
+    submit()
+
+    await waitFor(() => expect(received).toBeDefined())
+    expect(received?.latitude).toBe(0)
+  })
+
+  it('trata el radio vacío como obligatorio', async () => {
     renderPlaceForm()
 
     typeIn('Radio de check-in (metros)', '')
