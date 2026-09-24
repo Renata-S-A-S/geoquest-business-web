@@ -1,9 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
-import { getBusinessMe } from '@/features/onboarding/api/get-business-me'
+import { useBusinessMe } from '@/features/business/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import type { Business } from '@/shared/schemas/business'
 
@@ -16,15 +15,17 @@ const BUSINESS_STATUS_VARIANT: Record<Business['status'], StatusBadgeVariant> = 
 
 /**
  * `/registro/pendiente` — issue #27. Primera pantalla del repo que consulta
- * y renderiza estado de servidor: un único `useQuery`, sin abstracción
- * nueva (ver design decision 4). RN-BIZ-01 fija el SLA de 48 horas hábiles
+ * y renderiza estado de servidor. RN-BIZ-01 fija el SLA de 48 horas hábiles
  * mientras `status === 'Pending'`; RN-BIZ-02 (rama rápida/reforzada según
  * el cruce con Google Maps, #25) decide qué copy mostrar dentro de esa
  * ventana.
  *
- * `staleTime: 30_000` amortigua refetches automáticos (foco de pestaña) sin
- * afectar el refresh manual, que ignora `staleTime`. Ver design decision 3
- * sobre por qué esto vive acá y no en `query-client.ts`.
+ * Issue #72: esta pantalla ahora consume `useBusinessMe()` de
+ * `features/business/queries.ts` en vez de un `useQuery` inline — la
+ * abstracción que la design decision 4 original deliberadamente pospuso
+ * hasta que apareciera un segundo consumidor. Con `/negocio` (#72) y la
+ * mutación de edición ya son tres, así que el registro de keys pasa a
+ * vivir ahí, `staleTime` incluido: ver el JSDoc de `useBusinessMe`.
  *
  * Rama rápida/reforzada (#25, RN-BIZ-02): puramente informativa. BL-014
  * bloquea las acciones de subida de #26 — esta sección nunca debe ofrecer
@@ -32,11 +33,7 @@ const BUSINESS_STATUS_VARIANT: Record<Business['status'], StatusBadgeVariant> = 
  */
 export function PendingStatusPage() {
   const { t } = useTranslation('onboarding')
-  const { data, isPending, isError, error, isFetching, refetch } = useQuery({
-    queryKey: ['business', 'me'],
-    queryFn: getBusinessMe,
-    staleTime: 30_000,
-  })
+  const { data, isPending, isError, error, isFetching, refetch } = useBusinessMe()
   // Rama fast/reinforced (#25) — solo se usa mientras `Pending`, pero se
   // computa una vez acá para no repetir el ternario en título y cuerpo.
   const verificationBranch = data?.isGoogleMapsVerified ? 'fast' : 'reinforced'
