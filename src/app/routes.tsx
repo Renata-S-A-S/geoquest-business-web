@@ -4,7 +4,7 @@ import { ProtectedRoute } from './protected-route'
 import { LoginPage } from '@/features/auth/login-page'
 import { RegisterPage } from '@/features/onboarding/register-page'
 import { PendingStatusPage } from '@/features/onboarding/pending-page'
-import { OnboardingPage } from '@/features/onboarding/onboarding-page'
+import { BusinessProfilePage } from '@/features/business/business-profile-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
@@ -24,8 +24,8 @@ import { FeatureErrorBoundary } from '@/shared/components/feature-error-boundary
  * `/registro` y `/registro/pendiente` (B-01, #21) son hermanas de `/login`
  * por el mismo motivo: un negocio registrándose no tiene sesión todavía, así
  * que no pueden vivir dentro de `ProtectedRoute`. No son lo mismo que
- * `/negocio` (`OnboardingPage`, más abajo) — esa es la vista autenticada de
- * "mi negocio" post-login, no el alta inicial.
+ * `/negocio` (`BusinessProfilePage`, más abajo) — esa es la vista
+ * autenticada de "mi negocio" post-login (#72), no el alta inicial.
  */
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -56,7 +56,7 @@ export const router = createBrowserRouter([
             path: '/negocio',
             element: (
               <FeatureErrorBoundary featureName="Negocio">
-                <OnboardingPage />
+                <BusinessProfilePage />
               </FeatureErrorBoundary>
             ),
           },
