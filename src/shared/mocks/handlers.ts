@@ -4,7 +4,12 @@ import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
 import { createPlaceInputSchema, type Place } from '@/shared/schemas/place'
-import { registerBusinessInputSchema, type Business } from '@/shared/schemas/business'
+import {
+  registerBusinessInputSchema,
+  updateBusinessMeInputSchema,
+  BUSINESS_READONLY_FIELDS,
+  type Business,
+} from '@/shared/schemas/business'
 import { loginInputSchema, type AuthTokens } from '@/shared/schemas/auth'
 
 /**
@@ -21,6 +26,59 @@ export const handlers = [
   http.get(`${API_BASE_URL}/business/me`, () => {
     const { business } = readDb()
     return HttpResponse.json(business)
+  }),
+
+  /**
+   * `PATCH /business/me` — #72, PR3. Ver contratos-portal-b2b.md §2.1.1
+   * para el contrato completo.
+   *
+   * El chequeo de campos congelados corre ANTES del `safeParse` del
+   * subconjunto editable, y sobre el body crudo — `updateBusinessMeInputSchema`
+   * ni siquiera declara `legalName`/`status`/etc. como claves, así que si
+   * se validara primero esas claves se descartarían en silencio (el
+   * comportamiento default de `z.object()` sin `.strict()`) y el 409
+   * nunca se dispararía. RN-BIZ-01 exige rechazar el intento, no
+   * ignorarlo — devolver 200 sin aplicar el cambio dejaría al cliente
+   * creyendo que se guardó.
+   *
+   * Nota de alcance: este handler NO verifica el rol Owner (403) ni
+   * "negocio inexistente" (404) — ambos están documentados en el
+   * contrato pero su verificación depende de infraestructura que todavía
+   * no existe en este repo (lectura de rol vía `GET /business-staff/me`,
+   * mock single-tenant sin noción de "sin negocio"). Ver contrato §2.1.1.
+   */
+  http.patch(`${API_BASE_URL}/business/me`, async ({ request }) => {
+    const body: unknown = await request.json()
+
+    const hasReadOnlyField =
+      body !== null &&
+      typeof body === 'object' &&
+      BUSINESS_READONLY_FIELDS.some((field) => field in body)
+    if (hasReadOnlyField) {
+      return HttpResponse.json(
+        {
+          title: 'ReadOnlyField',
+          detail: 'No se pueden modificar campos de solo lectura del negocio.',
+          status: 409,
+        },
+        { status: 409 }
+      )
+    }
+
+    const parsed = updateBusinessMeInputSchema.safeParse(body)
+    if (!parsed.success) {
+      return HttpResponse.json(
+        { title: 'ValidationFailed', detail: parsed.error.issues[0]?.message, status: 400 },
+        { status: 400 }
+      )
+    }
+
+    const db = readDb()
+    const updatedBusiness: Business = { ...db.business, ...parsed.data }
+    db.business = updatedBusiness
+    writeDb(db)
+
+    return HttpResponse.json(updatedBusiness, { status: 200 })
   }),
 
   http.post(`${API_BASE_URL}/business/register`, async ({ request }) => {
