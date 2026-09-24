@@ -24,5 +24,37 @@
       "title": "Todavía no hay ningún lugar",
       "description": "Cuando crees tu primer lugar, los exploradores van a poder hacer check-in ahí y ganar GeoPoints."
     }
+  },
+  "taxonomy": {
+    "categories": {
+      "0": "Gastronomía",
+      "1": "Naturaleza",
+      "2": "Historia y cultura",
+      "3": "Aventura",
+      "4": "Arte",
+      "5": "Alojamiento"
+    },
+    "subcategories": {
+      "0": "Restaurante",
+      "1": "Café",
+      "2": "Bar",
+      "3": "Mercado gastronómico",
+      "4": "Parque",
+      "5": "Mirador",
+      "6": "Sendero",
+      "7": "Playa",
+      "8": "Museo",
+      "9": "Monumento",
+      "10": "Sitio histórico",
+      "11": "Centro cultural",
+      "12": "Actividad de aventura",
+      "13": "Teleférico",
+      "14": "Deportes",
+      "15": "Arte urbano",
+      "16": "Galería",
+      "17": "Arte público",
+      "18": "Hotel",
+      "19": "Hostal"
+    }
   }
 }
