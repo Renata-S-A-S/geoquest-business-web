@@ -158,10 +158,17 @@ describe('RedemptionsPage', () => {
    */
   it('deshabilita el botón en vuelo y no manda un segundo escaneo con doble click', async () => {
     let scans = 0
+    // El test libera la respuesta a mano: con una demora fija, el polling de
+    // `waitFor` competía contra el mock y en una máquina cargada la petición
+    // resolvía antes de observar el estado en vuelo.
+    let releaseScan: () => void = () => {}
+    const scanReleased = new Promise<void>((resolve) => {
+      releaseScan = resolve
+    })
     server.use(
       http.post(`${API_BASE_URL}/portal/businesses/:businessId/redemptions/scan`, async () => {
         scans += 1
-        await new Promise((resolve) => setTimeout(resolve, 50))
+        await scanReleased
         return new HttpResponse(null, { status: 204 })
       })
     )
@@ -176,6 +183,7 @@ describe('RedemptionsPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Confirmando…' })).toBeDisabled())
     fireEvent.click(screen.getByRole('button', { name: 'Confirmando…' }))
 
+    releaseScan()
     await screen.findByRole('status')
     expect(scans).toBe(1)
   })
