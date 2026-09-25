@@ -56,6 +56,28 @@ export const SEED_BUSINESS_STAFF: BusinessStaff = {
 export const SEED_BUSINESS_STAFF_USERNAME = 'maria_cafe70'
 
 /**
+ * Base compartida por cada escenario de `SEED_BUSINESS_SCENARIOS` — evita
+ * repetir los 6 campos que no varían entre estados (`businessId`/`name`
+ * fijos, y los defaults "sin bandera especial" de un negocio verificado).
+ * Cada escenario solo declara `status` y lo que realmente cambia.
+ */
+function myBusinessScenario(
+  overrides: Pick<MyBusiness, 'status'> & Partial<Omit<MyBusiness, 'businessId' | 'name'>>
+): MyBusiness {
+  return {
+    businessId: SEED_BUSINESS.id,
+    name: SEED_BUSINESS.displayName,
+    rejectionReason: null,
+    rejectedAtUtc: null,
+    hasLegalDocument: true,
+    legalDocumentWaived: false,
+    logoUrl: null,
+    hasVerificationVideo: false,
+    ...overrides,
+  }
+}
+
+/**
  * Escenarios demo de `GET /business/mine` (real-backend-readiness PR6a,
  * design "Mock status demo"): un `MyBusiness` por cada uno de los 5 estados
  * reales del backend, más `none` para el caso "sin negocio propio"
@@ -70,62 +92,19 @@ export const SEED_BUSINESS_STAFF_USERNAME = 'maria_cafe70'
  * mock db — ningún handler debe construir un `MyBusiness` ad hoc.
  */
 export const SEED_BUSINESS_SCENARIOS = {
-  Active: {
-    businessId: SEED_BUSINESS.id,
-    name: SEED_BUSINESS.displayName,
-    status: 'Active',
-    rejectionReason: null,
-    rejectedAtUtc: null,
-    hasLegalDocument: true,
-    legalDocumentWaived: false,
-    logoUrl: null,
-    hasVerificationVideo: false,
-  },
-  Paused: {
-    businessId: SEED_BUSINESS.id,
-    name: SEED_BUSINESS.displayName,
-    status: 'Paused',
-    rejectionReason: null,
-    rejectedAtUtc: null,
-    hasLegalDocument: true,
-    legalDocumentWaived: false,
-    logoUrl: null,
-    hasVerificationVideo: false,
-  },
-  Suspended: {
-    businessId: SEED_BUSINESS.id,
-    name: SEED_BUSINESS.displayName,
-    status: 'Suspended',
-    rejectionReason: null,
-    rejectedAtUtc: null,
-    hasLegalDocument: true,
-    legalDocumentWaived: false,
-    logoUrl: null,
-    hasVerificationVideo: false,
-  },
-  PendingVerification: {
-    businessId: SEED_BUSINESS.id,
-    name: SEED_BUSINESS.displayName,
+  Active: myBusinessScenario({ status: 'Active' }),
+  Paused: myBusinessScenario({ status: 'Paused' }),
+  Suspended: myBusinessScenario({ status: 'Suspended' }),
+  PendingVerification: myBusinessScenario({
     status: 'PendingVerification',
-    rejectionReason: null,
-    rejectedAtUtc: null,
     hasLegalDocument: false,
-    legalDocumentWaived: false,
-    logoUrl: null,
-    hasVerificationVideo: false,
-  },
-  Rejected: {
-    businessId: SEED_BUSINESS.id,
-    name: SEED_BUSINESS.displayName,
+  }),
+  Rejected: myBusinessScenario({
     status: 'Rejected',
     rejectionReason:
       'El documento legal no coincide con el nombre registrado ante cámara de comercio.',
     rejectedAtUtc: '2026-09-01T12:00:00Z',
-    hasLegalDocument: true,
-    legalDocumentWaived: false,
-    logoUrl: null,
-    hasVerificationVideo: false,
-  },
+  }),
   none: null,
 } as const satisfies Record<MyBusiness['status'] | 'none', MyBusiness | null>
 
