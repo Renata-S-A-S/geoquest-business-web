@@ -33,9 +33,12 @@ function createFakePort(initialToken: string | null): SessionPort {
   }
 }
 
-function createClient(port: SessionPort) {
+function createClient(
+  port: SessionPort,
+  options?: Parameters<typeof installSessionInterceptors>[2]
+) {
   const client = axios.create({ baseURL })
-  installSessionInterceptors(client, port)
+  installSessionInterceptors(client, port, options)
   return client
 }
 
@@ -188,5 +191,70 @@ describe('installSessionInterceptors — refresh failure', () => {
       response: { status: 401 },
     })
     expect(port.refresh).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * spec "session-expiry" (#1547): un toast tiene que avisar ANTES del
+ * redirect forzado a `/login` (que dispara `ProtectedRoute` al reaccionar a
+ * `isAuthenticated` en `false`, no este archivo). `onSessionExpired` es un
+ * callback inyectado — no un import directo de `toast-store.ts` acá — para
+ * que este archivo siga probando el flujo con un puerto falso en memoria,
+ * sin mockear el store de toasts (decisión de diseño #1549).
+ */
+describe('installSessionInterceptors — onSessionExpired', () => {
+  it('llama a onSessionExpired ANTES de signOut() cuando el refresh falla', async () => {
+    server.use(http.get(`${baseURL}/resource`, () => new HttpResponse(null, { status: 401 })))
+    const port = createFakePort(null)
+    const calls: string[] = []
+    const onSessionExpired = vi.fn(() => calls.push('onSessionExpired'))
+    port.signOut = vi.fn(() => calls.push('signOut'))
+    const client = createClient(port, { onSessionExpired })
+
+    await expect(client.get('/resource')).rejects.toMatchObject({ response: { status: 401 } })
+
+    expect(calls).toEqual(['onSessionExpired', 'signOut'])
+  })
+
+  it('NO llama a onSessionExpired si el refresh tiene éxito (la sesión sigue viva)', async () => {
+    let calls = 0
+    server.use(
+      http.get(`${baseURL}/resource`, ({ request }) => {
+        const authorized = request.headers.get('Authorization') === 'Bearer fresh-token'
+        return authorized
+          ? HttpResponse.json({ ok: true })
+          : new HttpResponse(null, { status: 401 })
+      })
+    )
+    const port = createFakePort('stale-token')
+    const onSessionExpired = vi.fn(() => {
+      calls += 1
+    })
+    const client = createClient(port, { onSessionExpired })
+
+    await client.get('/resource')
+
+    expect(calls).toBe(0)
+  })
+
+  it('NO llama a onSessionExpired si la respuesta nunca fue un 401 — triangulación', async () => {
+    server.use(http.get(`${baseURL}/resource`, () => HttpResponse.json({ ok: true })))
+    const port = createFakePort('a-token')
+    const onSessionExpired = vi.fn()
+    const client = createClient(port, { onSessionExpired })
+
+    await client.get('/resource')
+
+    expect(onSessionExpired).not.toHaveBeenCalled()
+  })
+
+  it('sigue funcionando sin onSessionExpired (parámetro opcional, compatibilidad con api-client.ts previo)', async () => {
+    server.use(http.get(`${baseURL}/resource`, () => new HttpResponse(null, { status: 401 })))
+    const port = createFakePort(null)
+
+    await expect(createClient(port).get('/resource')).rejects.toMatchObject({
+      response: { status: 401 },
+    })
+    expect(port.signOut).toHaveBeenCalledTimes(1)
   })
 })
