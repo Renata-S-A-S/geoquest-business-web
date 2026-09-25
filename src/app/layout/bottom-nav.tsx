@@ -21,7 +21,7 @@ export function BottomNav() {
           to={to}
           className={({ isActive }) =>
             cn(
-              'flex flex-col items-center gap-0.5 px-2 font-sans text-[10px]',
+              'flex flex-col items-center gap-0.5 px-3 font-sans text-[10px]',
               isActive ? 'font-bold text-teal' : 'text-muted'
             )
           }

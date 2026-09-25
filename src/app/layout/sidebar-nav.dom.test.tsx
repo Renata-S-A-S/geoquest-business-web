@@ -5,13 +5,12 @@ import i18next from '@/test/i18n'
 import { SidebarNav } from './sidebar-nav'
 
 describe('SidebarNav', () => {
-  it('renders all 5 sections translated to Spanish (default)', () => {
+  it('renders all 4 sections translated to Spanish (default)', () => {
     render(
       <MemoryRouter>
         <SidebarNav />
       </MemoryRouter>
     )
-    expect(screen.getByText('Negocio')).toBeInTheDocument()
     expect(screen.getByText('Lugares')).toBeInTheDocument()
     expect(screen.getByText('Recompensas')).toBeInTheDocument()
     expect(screen.getByText('Validar canje')).toBeInTheDocument()
@@ -25,8 +24,8 @@ describe('SidebarNav', () => {
       </MemoryRouter>
     )
     await i18next.changeLanguage('en')
-    expect(await screen.findByText('Business')).toBeInTheDocument()
-    expect(screen.getByText('Places')).toBeInTheDocument()
+    expect(await screen.findByText('Places')).toBeInTheDocument()
+    expect(screen.getByText('Rewards')).toBeInTheDocument()
   })
 
   it('highlights the link matching the current route', () => {

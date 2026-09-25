@@ -25,7 +25,10 @@
     "description": "You'll need to sign in again to get back into the portal."
   },
   "legal": {
-    "title": "Legal",
+    "title": "Legal documents",
     "description": "The documents you accepted when registering your business."
+  },
+  "business": {
+    "title": "My business"
   }
 }

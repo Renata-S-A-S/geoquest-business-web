@@ -1,4 +1,4 @@
-import { Buildings, MapPin, Gift, QrCode, ChartBar } from '@phosphor-icons/react'
+import { MapPin, Gift, QrCode, ChartBar } from '@phosphor-icons/react'
 
 /**
  * Secciones del portal, una por cada flujo B-0X de Confluence
@@ -16,7 +16,6 @@ export const NAV_ITEMS = [
   // flujo de onboarding B-01, que ya se completó fuera del shell
   // (`/registro`, `/login`). `'onboarding'` había quedado como resto
   // huérfano de esa etapa.
-  { id: 'business', to: '/negocio', labelKey: 'nav.business', icon: Buildings },
   { id: 'places', to: '/lugares', labelKey: 'nav.places', icon: MapPin },
   { id: 'rewards', to: '/recompensas', labelKey: 'nav.rewards', icon: Gift },
   { id: 'redemptions', to: '/canjes', labelKey: 'nav.redemptions', icon: QrCode },
