@@ -38,8 +38,13 @@ function pickSubcategory(label: string) {
   fireEvent.click(screen.getByRole('option', { name: label }))
 }
 
+/**
+ * El botón dice «Guardar borrador», no «Crear lugar» (#34): el alta crea
+ * SIEMPRE un borrador, y nombrarlo así evita que el negocio crea que ya
+ * quedó publicado. La publicación es una acción aparte, en el detalle.
+ */
 function submit() {
-  fireEvent.click(screen.getByRole('button', { name: 'Crear lugar' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }))
 }
 
 /** Llena todo el formulario con datos válidos. */

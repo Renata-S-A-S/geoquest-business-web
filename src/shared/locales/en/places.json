@@ -98,7 +98,7 @@
       "radiusRange": "Radius must be between 50 and 1000 meters",
       "number": "Enter a number"
     },
-    "submit": "Create place",
+    "submit": "Save draft",
     "submitting": "Creating…",
     "cancel": "Cancel",
     "success": "Place created as a draft",
@@ -160,6 +160,21 @@
       "empty": "This place has no photos yet.",
       "publishNeedsPhoto": "At least one photo is required before it can be published.",
       "count": "{{count, number}} of 5"
+    }
+  },
+  "publish": {
+    "action": "Publish place",
+    "publishing": "Publishing…",
+    "needsPhoto": "At least one photo is required to publish.",
+    "alreadyActive": "This place is already published.",
+    "deleted": "This place is deleted and can't be published.",
+    "success": "Place published",
+    "successNotVisible": "Place published, but not visible to explorers yet: GeoQuest still needs to verify your business.",
+    "errors": {
+      "generic": "We couldn't publish the place.",
+      "needsPhoto": "It can't be published without at least one photo.",
+      "alreadyActive": "This place was already published.",
+      "deleted": "This place is deleted."
     }
   }
 }

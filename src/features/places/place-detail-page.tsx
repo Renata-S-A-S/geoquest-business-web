@@ -5,6 +5,7 @@ import { Button } from '@/shared/components/ui/button'
 import { usePlace } from '@/features/places/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { PlaceDetailView } from '@/features/places/place-detail-view'
+import { PublishPlaceAction } from '@/features/places/publish-place-action'
 
 /**
  * B-02 — Detalle de un lugar (#35). Contenedor: el fork
@@ -51,5 +52,10 @@ export function PlaceDetailPage() {
     )
   }
 
-  return <PlaceDetailView place={placeQuery.data} />
+  return (
+    <PlaceDetailView
+      place={placeQuery.data}
+      actions={<PublishPlaceAction place={placeQuery.data} />}
+    />
+  )
 }

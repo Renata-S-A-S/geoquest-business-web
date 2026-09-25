@@ -98,7 +98,7 @@
       "radiusRange": "El radio va entre 50 y 1000 metros",
       "number": "Escribí un número"
     },
-    "submit": "Crear lugar",
+    "submit": "Guardar borrador",
     "submitting": "Creando…",
     "cancel": "Cancelar",
     "success": "Lugar creado como borrador",
@@ -160,6 +160,21 @@
       "empty": "Este lugar todavía no tiene fotos.",
       "publishNeedsPhoto": "Hace falta al menos una foto para poder publicarlo.",
       "count": "{{count, number}} de 5"
+    }
+  },
+  "publish": {
+    "action": "Publicar lugar",
+    "publishing": "Publicando…",
+    "needsPhoto": "Para publicar hace falta al menos una foto.",
+    "alreadyActive": "Este lugar ya está publicado.",
+    "deleted": "Este lugar está borrado y no se puede publicar.",
+    "success": "Lugar publicado",
+    "successNotVisible": "Lugar publicado, pero todavía no visible para los exploradores: falta que GeoQuest verifique tu negocio.",
+    "errors": {
+      "generic": "No pudimos publicar el lugar.",
+      "needsPhoto": "No se puede publicar sin al menos una foto.",
+      "alreadyActive": "Este lugar ya estaba publicado.",
+      "deleted": "Este lugar está borrado."
     }
   }
 }
