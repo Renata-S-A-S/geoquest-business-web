@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
 import {
+  canEditReward,
   isRewardOutOfStock,
   type BusinessRewardStatus,
   type BusinessRewardSummary,
@@ -92,9 +93,27 @@ export function RewardDetailView({ reward, placeName, actions }: RewardDetailVie
             label={t(`list.status.${reward.status}`)}
           />
         </div>
-        <Link to="/recompensas" className="font-sans text-xs font-bold text-teal hover:underline">
-          {t('detail.backToList')}
-        </Link>
+        <div className="flex flex-col items-end gap-1">
+          {/*
+            El enlace a editar solo aparece cuando el servidor aceptaría la
+            edición (`Reward.cs:205`: Published, Exhausted o Paused). No se
+            muestra deshabilitado: un control mudo no explica nada, y el
+            contenedor de edición ya explica el motivo si alguien llega por
+            URL directa. Mismo criterio que `PublishPlaceAction`, que no
+            renderiza nada cuando la acción es imposible por estado.
+          */}
+          {canEditReward(reward) && (
+            <Link
+              to={`/recompensas/${reward.rewardId}/editar`}
+              className="font-sans text-xs font-bold text-teal hover:underline"
+            >
+              {t('detail.editCta')}
+            </Link>
+          )}
+          <Link to="/recompensas" className="font-sans text-xs font-bold text-teal hover:underline">
+            {t('detail.backToList')}
+          </Link>
+        </div>
       </div>
 
       {actions}

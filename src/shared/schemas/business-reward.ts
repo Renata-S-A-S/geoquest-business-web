@@ -156,6 +156,75 @@ export const createdBusinessRewardSchema = z.object({ rewardId: z.string().uuid(
 export type CreatedBusinessReward = z.infer<typeof createdBusinessRewardSchema>
 
 /**
+ * `PUT /portal/businesses/{businessId}/rewards/{rewardId}` → body.
+ *
+ * `EditRewardRequest` es **byte-idéntico** a `PublishRewardRequest`:
+ * mismos 7 campos, mismos tipos, mismo orden (verificado leyendo los dos
+ * records @ `ea471f4`). Por eso se define como el mismo objeto y no como una
+ * copia que pueda divergir.
+ *
+ * ⚠️⚠️ **ES UN REEMPLAZO TOTAL, Y `null` SIGNIFICA BORRAR.**
+ *
+ * `Reward.Edit` asigna sin ninguna condición (`Reward.cs:245-252`):
+ *
+ * ```csharp
+ * PlaceId = placeId;
+ * MenuItemId = menuItemId;
+ * StockTotal = stockTotal;
+ * ```
+ *
+ * O sea que **omitir `placeId` del body no lo deja como estaba: lo pone en
+ * `null` y desvincula el lugar.** El verbo `PUT` es correcto para esa
+ * semántica, pero el riesgo es silencioso: un cliente que mande un patch
+ * parcial creyendo que es `PATCH` desvincula el lugar y el ítem de menú sin
+ * avisar, y nadie se entera hasta que un explorador no encuentra la
+ * recompensa donde debería.
+ *
+ * **Consecuencia de diseño, obligatoria para cualquier consumidor:** el
+ * formulario precarga TODOS los campos y los reenvía COMPLETOS, siempre.
+ * Nunca un body parcial.
+ */
+export const updateBusinessRewardInputSchema = createBusinessRewardInputSchema
+export type UpdateBusinessRewardInput = z.infer<typeof updateBusinessRewardInputSchema>
+
+/**
+ * Estados desde los que el backend acepta editar (`Reward.cs:205`):
+ * `Published`, `Exhausted` o `Paused`. Cualquier otro → 409
+ * `Reward.NotEditable`.
+ *
+ * Se replica EXACTO, no una versión "más segura". `canPublishPlace` ya tuvo
+ * ese bug: era más estricto que el servidor y escondía una acción válida.
+ */
+export function canEditReward(reward: BusinessRewardSummary): boolean {
+  return (
+    reward.status === 'Published' || reward.status === 'Exhausted' || reward.status === 'Paused'
+  )
+}
+
+/**
+ * Unidades ya comprometidas, derivadas del cliente.
+ *
+ * ⚠️ **El backend NO expone este número.** `Reward.StockBelowCommitted` es un
+ * `Error(Code, Message)` de dos strings y `ProblemResults.ToProblem` no manda
+ * `extensions`, así que el 409 llega con un texto fijo en inglés y sin el
+ * dato. El `committed` que el dominio calcula en `Reward.cs:238` nunca se
+ * interpola en el mensaje.
+ *
+ * Para una recompensa CON tope se puede derivar del propio DTO, que es lo que
+ * hace esta función: `stockTotal - stockRemaining`.
+ *
+ * Para una recompensa SIN tope (`stockTotal === null`) que recién ahora le
+ * pone uno, el número sale de `IUserRewardRepository.CountCommittedByRewardIdAsync`
+ * del lado del servidor y **ningún endpoint lo expone**. Ahí devuelve `null` y
+ * el mensaje al usuario tiene que ser honesto en vez de inventar una cifra.
+ */
+export function committedUnits(reward: BusinessRewardSummary): number | null {
+  if (reward.stockTotal === null) return null
+
+  return reward.stockTotal - (reward.stockRemaining ?? 0)
+}
+
+/**
  * Agotamiento como cálculo del cliente, no como estado del servidor.
  *
  * `stockRemaining === null` significa stock ilimitado, no agotado — por eso

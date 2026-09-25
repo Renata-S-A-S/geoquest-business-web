@@ -137,6 +137,38 @@
       "alt": "Imagen de {{title}}",
       "empty": "Esta recompensa todavía no tiene imagen.",
       "emptyHint": "La imagen se sube después de crear la recompensa, igual que las fotos de lugar."
+    },
+    "editCta": "Editar"
+  },
+  "editForm": {
+    "title": "Editar recompensa",
+    "loading": "Cargando la recompensa…",
+    "retry": "Reintentar",
+    "submit": "Guardar cambios",
+    "submitting": "Guardando…",
+    "cancel": "Cancelar",
+    "reload": "Recargar y volver a empezar",
+    "backToDetail": "Volver al detalle",
+    "success": "Recompensa actualizada",
+    "notEditableByStatus": "Esta recompensa está {{status}}, y en ese estado el servidor no acepta cambios.",
+    "notEditableHint": "Solo se puede editar una recompensa publicada, pausada o agotada.",
+    "fields": {
+      "place": {
+        "unlinkWarning": "Ojo: si dejás este campo vacío, la recompensa se DESVINCULA del lugar y pasa a valer en todos. Guardar reemplaza todos los campos, no solo los que cambiaste."
+      },
+      "stockTotal": {
+        "hintCommitted": "Ya hay {{committed, number}} unidades comprometidas. No podés bajar el stock por debajo de ese número.",
+        "hintUncapped": "Hoy no tiene tope. Si le ponés uno, tiene que alcanzar para los canjes ya comprometidos."
+      }
+    },
+    "errors": {
+      "generic": "No pudimos guardar los cambios.",
+      "business": "No pudimos identificar tu negocio, así que no podemos guardar los cambios.",
+      "stockBelowCommitted": "No podés bajar el stock a menos de {{committed, number}}: esas unidades ya están comprometidas por canjes hechos.",
+      "stockBelowCommittedUnknown": "El stock que pusiste es menor que las unidades ya comprometidas por canjes hechos. Probá con un número más alto.",
+      "concurrency": "Alguien más guardó cambios en esta recompensa mientras la editabas. Recargá para ver cómo quedó y volvé a aplicar lo tuyo: si guardás así, pisarías ese cambio.",
+      "notEditable": "El estado de esta recompensa cambió y ya no acepta cambios. Recargá el detalle para ver cómo quedó.",
+      "businessNotActive": "Tu negocio no está activo, así que no podés editar recompensas. La recompensa está bien: lo que falta es el estado del negocio."
     }
   }
 }

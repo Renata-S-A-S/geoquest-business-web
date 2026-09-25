@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canEditReward,
+  committedUnits,
   businessRewardStatusSchema,
   businessRewardSummarySchema,
   createBusinessRewardInputSchema,
@@ -198,5 +200,45 @@ describe('publishBusinessRewardResultSchema', () => {
     expect(
       publishBusinessRewardResultSchema.parse({ status: 'Published', visibleToExplorers: true })
     ).toEqual({ status: 'Published', visibleToExplorers: true })
+  })
+})
+
+describe('canEditReward', () => {
+  /**
+   * Replica el guard del servidor EXACTO (`Reward.cs:205`). Ser más estricto
+   * que el servidor esconde acciones válidas: es el bug que ya tuvo
+   * `canPublishPlace`, así que estos tres casos positivos importan tanto como
+   * los negativos.
+   */
+  it.each(['Published', 'Exhausted', 'Paused'] as const)('permite editar en %s', (status) => {
+    expect(canEditReward({ ...SUMMARY, status })).toBe(true)
+  })
+
+  it.each(['Draft', 'Archived'] as const)('no permite editar en %s', (status) => {
+    expect(canEditReward({ ...SUMMARY, status })).toBe(false)
+  })
+})
+
+describe('committedUnits', () => {
+  it('deriva lo comprometido como total menos restante', () => {
+    expect(committedUnits({ ...SUMMARY, stockTotal: 50, stockRemaining: 42 })).toBe(8)
+  })
+
+  it('devuelve cero cuando no se comprometió nada', () => {
+    expect(committedUnits({ ...SUMMARY, stockTotal: 10, stockRemaining: 10 })).toBe(0)
+  })
+
+  it('devuelve el total cuando ya no queda stock', () => {
+    expect(committedUnits({ ...SUMMARY, stockTotal: 10, stockRemaining: 0 })).toBe(10)
+  })
+
+  /**
+   * Sin tope, lo comprometido solo existe del lado del servidor
+   * (`CountCommittedByRewardIdAsync`) y ningún endpoint lo expone. Devolver
+   * `null` en vez de `0` es lo que permite que la interfaz sea honesta en vez
+   * de afirmar que no hay nada comprometido.
+   */
+  it('devuelve null sin tope, porque el dato NO es derivable del cliente', () => {
+    expect(committedUnits({ ...SUMMARY, stockTotal: null, stockRemaining: null })).toBeNull()
   })
 })

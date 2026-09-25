@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRewards } from './api/get-rewards'
 import { getReward } from './api/get-reward'
 import { createReward, type CreateRewardFormInput } from './api/create-reward'
+import { updateReward } from './api/update-reward'
+import type { UpdateBusinessRewardInput } from '@/shared/schemas/business-reward'
 
 /**
  * Registro de query keys de la slice `rewards` — issue #36 (B-03). Mismo
@@ -95,6 +97,33 @@ export function useCreateReward(businessId: string | undefined) {
   return useMutation({
     mutationFn: (input: CreateRewardFormInput) => createReward(businessId as string, input),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.all })
+    },
+  })
+}
+
+/**
+ * `PUT /portal/businesses/{businessId}/rewards/{rewardId}` (#110).
+ *
+ * A diferencia del alta, acá SÍ se siembra la cache del detalle con la
+ * respuesta: el `PUT` devuelve el `PortalRewardResult` completo y ya
+ * actualizado, así que no hay nada que adivinar. Sembrar evita el parpadeo de
+ * volver al detalle y ver el valor viejo hasta que el refetch termine.
+ *
+ * Igual se invalida el prefijo `['rewards']` después: el listado también
+ * cambió, y una edición puede cambiar el ESTADO como efecto secundario
+ * (quitarle el tope a una `Exhausted` la devuelve a `Published` vía
+ * `SyncStockStatus`, `Reward.cs:318-326`). Sembrar solo el detalle dejaría el
+ * listado mostrando el estado anterior.
+ */
+export function useUpdateReward(businessId: string | undefined, rewardId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateBusinessRewardInput) =>
+      updateReward(businessId as string, rewardId as string, input),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(rewardKeys.detail(businessId ?? '', rewardId ?? ''), updated)
       void queryClient.invalidateQueries({ queryKey: rewardKeys.all })
     },
   })

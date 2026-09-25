@@ -137,6 +137,38 @@
       "alt": "Image of {{title}}",
       "empty": "This reward doesn't have an image yet.",
       "emptyHint": "The image is uploaded after the reward is created, same as place photos."
+    },
+    "editCta": "Edit"
+  },
+  "editForm": {
+    "title": "Edit reward",
+    "loading": "Loading the reward…",
+    "retry": "Retry",
+    "submit": "Save changes",
+    "submitting": "Saving…",
+    "cancel": "Cancel",
+    "reload": "Reload and start over",
+    "backToDetail": "Back to the reward",
+    "success": "Reward updated",
+    "notEditableByStatus": "This reward is {{status}}, and in that state the server won't accept changes.",
+    "notEditableHint": "Only a published, paused or out-of-stock reward can be edited.",
+    "fields": {
+      "place": {
+        "unlinkWarning": "Careful: leaving this empty UNLINKS the reward from the place and makes it valid at all of them. Saving replaces every field, not just the ones you changed."
+      },
+      "stockTotal": {
+        "hintCommitted": "There are already {{committed, number}} committed units. You can't lower the stock below that number.",
+        "hintUncapped": "It has no cap today. If you set one, it has to cover the redemptions already committed."
+      }
+    },
+    "errors": {
+      "generic": "We couldn't save the changes.",
+      "business": "We couldn't identify your business, so we can't save the changes.",
+      "stockBelowCommitted": "You can't lower the stock below {{committed, number}}: those units are already committed by redemptions.",
+      "stockBelowCommittedUnknown": "The stock you entered is lower than the units already committed by redemptions. Try a higher number.",
+      "concurrency": "Someone else saved changes to this reward while you were editing. Reload to see where it landed and reapply yours: saving as-is would overwrite that change.",
+      "notEditable": "This reward's status changed and it no longer accepts edits. Reload the reward to see where it landed.",
+      "businessNotActive": "Your business isn't active, so you can't edit rewards. The reward is fine: it's the business status that's blocking."
     }
   }
 }
