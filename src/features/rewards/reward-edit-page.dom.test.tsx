@@ -7,6 +7,7 @@ import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS, SEED_PLACES, SEED_REWARDS } from '@/shared/mocks/seed'
 import { useToastStore } from '@/shared/stores/toast-store'
+import { setMockBusiness } from '@/test/mock-business'
 import { RewardEditPage } from './reward-edit-page'
 
 const businessId = SEED_BUSINESS.id
@@ -292,5 +293,35 @@ describe('RewardEditPage', () => {
     renderEdit(published.rewardId)
 
     expect(await screen.findByLabelText('Título')).toBeInTheDocument()
+  })
+
+  // ---- Resolución del negocio (real-backend-readiness PR6b) ----
+
+  it('muestra un error propio, no un spinner eterno, si no puede resolver el negocio', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business/mine`, () =>
+        HttpResponse.json({ title: 'InternalError' }, { status: 500 })
+      )
+    )
+
+    renderEdit(published.rewardId)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos identificar tu negocio')
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument()
+  })
+
+  /**
+   * `useMyBusiness()` resuelve con éxito y `data === null` cuando
+   * `/business/mine` devuelve `[]` (sin negocio propio). Sin la rama
+   * dedicada, `rewardQuery` quedaría `enabled: false` para siempre y la
+   * pantalla se quedaría en «Cargando…» eternamente.
+   */
+  it('muestra el mismo error cuando el explorador no tiene negocio propio', async () => {
+    setMockBusiness('none')
+
+    renderEdit(published.rewardId)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos identificar tu negocio')
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument()
   })
 })

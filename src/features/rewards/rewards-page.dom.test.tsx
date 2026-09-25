@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS, SEED_REWARDS } from '@/shared/mocks/seed'
+import { setMockBusiness } from '@/test/mock-business'
 import { RewardsPage } from './rewards-page'
 
 const REWARDS_URL = `${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`
@@ -25,16 +26,33 @@ describe('RewardsPage', () => {
   /**
    * La rama que más fácil se rompe: el listado depende del `businessId`, así
    * que su query queda `enabled: false` mientras el negocio no resuelva. Si el
-   * contenedor no forkeara sobre la query del negocio, un `/business/me`
+   * contenedor no forkeara sobre la query del negocio, un `/business/mine`
    * caído dejaría la pantalla en «Cargando…» para siempre en vez de mostrar
    * un error con reintento.
    */
   it('muestra un error propio, no un spinner eterno, si no puede resolver el negocio', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me`, () =>
+      http.get(`${API_BASE_URL}/business/mine`, () =>
         HttpResponse.json({ title: 'InternalError' }, { status: 500 })
       )
     )
+
+    renderRewardsPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos identificar tu negocio')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  /**
+   * `useMyBusiness()` puede resolver con éxito y `data === null`
+   * (`/business/mine` devuelve `[]`, real-backend-readiness PR6b) — un caso
+   * que `useBusinessMe()` no podía representar. Sin la rama dedicada,
+   * `rewardsQuery` se quedaría `enabled: false` para siempre y la pantalla
+   * mostraría «Cargando…» eternamente en vez de un error con reintento.
+   */
+  it('muestra el mismo error, no un spinner eterno, cuando el explorador no tiene negocio propio', async () => {
+    setMockBusiness('none')
 
     renderRewardsPage()
 

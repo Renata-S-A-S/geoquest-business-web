@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { RewardForm } from '@/features/rewards/reward-form'
-import { useBusinessMe } from '@/features/business/queries'
+import { useMyBusiness } from '@/features/business/queries'
 
 /**
  * Contenedor del alta de recompensa (#38, #40, #41).
@@ -19,7 +19,7 @@ import { useBusinessMe } from '@/features/business/queries'
 export function CreateRewardPage() {
   const { t } = useTranslation('rewards')
   const [searchParams] = useSearchParams()
-  const businessQuery = useBusinessMe()
+  const businessQuery = useMyBusiness()
 
   if (businessQuery.isPending) {
     return (
@@ -29,7 +29,12 @@ export function CreateRewardPage() {
     )
   }
 
-  if (businessQuery.isError) {
+  /**
+   * `data === null` (`/business/mine` devolvió `[]`, sin negocio propio)
+   * colapsa en la misma rama de error: sin `businessId` no hay path que
+   * llamar, así que el formulario tampoco debe montarse.
+   */
+  if (businessQuery.isError || businessQuery.data === null) {
     return (
       <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6 text-center">
         {/*
@@ -52,7 +57,7 @@ export function CreateRewardPage() {
 
   return (
     <RewardForm
-      businessId={businessQuery.data.id}
+      businessId={businessQuery.data.businessId}
       defaultPlaceId={searchParams.get('lugar') ?? undefined}
     />
   )

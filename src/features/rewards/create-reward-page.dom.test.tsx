@@ -5,6 +5,7 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
+import { setMockBusiness } from '@/test/mock-business'
 import { CreateRewardPage } from './create-reward-page'
 
 function renderPage(search = '') {
@@ -25,7 +26,7 @@ function renderPage(search = '') {
  */
 describe('CreateRewardPage', () => {
   it('anuncia la carga mientras resuelve el negocio', () => {
-    server.use(http.get(`${API_BASE_URL}/business/me`, () => new Promise<never>(() => {})))
+    server.use(http.get(`${API_BASE_URL}/business/mine`, () => new Promise<never>(() => {})))
 
     renderPage()
 
@@ -39,10 +40,27 @@ describe('CreateRewardPage', () => {
    */
   it('muestra un error con reintento y NO monta el formulario si el negocio falla', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me`, () =>
+      http.get(`${API_BASE_URL}/business/mine`, () =>
         HttpResponse.json({ title: 'InternalError' }, { status: 500 })
       )
     )
+
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos identificar tu negocio')
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument()
+  })
+
+  /**
+   * `useMyBusiness()` resuelve con éxito y `data === null` cuando
+   * `/business/mine` devuelve `[]` (sin negocio propio, real-backend-readiness
+   * PR6b) — un caso que `useBusinessMe()` no podía representar. Colapsa en la
+   * misma rama de error que un fallo de red: sin `businessId` tampoco hay
+   * formulario que mostrar.
+   */
+  it('muestra el mismo error y NO monta el formulario cuando el explorador no tiene negocio propio', async () => {
+    setMockBusiness('none')
 
     renderPage()
 

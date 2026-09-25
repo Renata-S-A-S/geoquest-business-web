@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS } from '@/shared/mocks/seed'
+import { setMockBusiness } from '@/test/mock-business'
 import {
   BackendCapabilitiesProvider,
   resolveBackendCapabilities,
@@ -45,7 +46,7 @@ describe('AnalyticsPage — modo real (capability analytics=false)', () => {
         summaryRequests += 1
         return new HttpResponse(null, { status: 500 })
       }),
-      http.get(`${API_BASE_URL}/business/me`, () => {
+      http.get(`${API_BASE_URL}/business/mine`, () => {
         businessRequests += 1
         return new HttpResponse(null, { status: 500 })
       })
@@ -86,7 +87,7 @@ describe('AnalyticsPage — modo mock (capability analytics=true, comportamiento
 
   /**
    * La cascada es real: los endpoints propuestos llevan `{businessId}` en el
-   * path y el portal lo resuelve leyendo `GET /business/me`. Si esa lectura
+   * path y el portal lo resuelve leyendo `GET /business/mine`. Si esa lectura
    * falla, no hay métricas que pedir — y el mensaje tiene que decir ESO, porque
    * manda a revisar algo distinto que un fallo de analytics.
    */
@@ -95,8 +96,26 @@ describe('AnalyticsPage — modo mock (capability analytics=true, comportamiento
       // 500 con cuerpo vacío, no 401: un 401 dispara el interceptor de
       // refresh-y-reintento de `session-interceptor.ts` y el test dejaría de
       // probar el fork de error de la pantalla para probar esa otra máquina.
-      http.get(`${API_BASE_URL}/business/me`, () => new HttpResponse(null, { status: 500 }))
+      http.get(`${API_BASE_URL}/business/mine`, () => new HttpResponse(null, { status: 500 }))
     )
+
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos identificar tu negocio, así que tampoco sus métricas.'
+    )
+  })
+
+  /**
+   * `useMyBusiness()` resuelve con éxito y `data === null` cuando
+   * `/business/mine` devuelve `[]` (sin negocio propio,
+   * real-backend-readiness PR6b) — un caso que `useBusinessMe()` no podía
+   * representar. Sin la rama dedicada, `summaryQuery`/`checkInsQuery`
+   * quedarían `enabled: false` para siempre y la pantalla se quedaría en
+   * «Cargando…» eternamente.
+   */
+  it('muestra el mismo error cuando el explorador no tiene negocio propio', async () => {
+    setMockBusiness('none')
 
     renderAnalyticsPage(resolveBackendCapabilities('mock'))
 

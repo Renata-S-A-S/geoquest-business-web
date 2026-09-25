@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
-import { useBusinessMe } from '@/features/business/queries'
+import { useMyBusiness } from '@/features/business/queries'
 import { RedemptionEntryForm } from './redemption-entry-form'
 import { RedemptionPreviewView } from './redemption-preview-view'
 import { RedemptionSuccessView } from './redemption-success-view'
@@ -41,12 +41,12 @@ import type { RedemptionPreview } from '@/shared/schemas/business-redemption'
  * solo el `sub` del explorador, y `PortalAccess` valida el par contra el
  * `businessId` EXACTO de la ruta. Así que el portal tiene que mandarlo.
  *
- * Se toma de `useBusinessMe()`, que es lo que el portal YA tiene para resolver
- * su propio negocio (`business.id`). La alternativa alcanzable sería
- * `businessStaffMeSchema.businessId` de `GET /business-staff/me`, también mock y
- * también marcado como propuesta (`geoquest#182`); se elige `useBusinessMe()`
- * por ser el camino más corto y el que ya usan las otras pantallas. No se agrega
- * transporte nuevo para esto.
+ * Se toma de `useMyBusiness()` (real-backend-readiness PR6b), que lee
+ * `GET /business/mine` y expone `businessId` del primer negocio propio. La
+ * alternativa alcanzable sería `businessStaffMeSchema.businessId` de
+ * `GET /business-staff/me`, mock y ya eliminada (PR4); se elige
+ * `useMyBusiness()` por ser el contrato real y el que ya usan las otras
+ * pantallas migradas. No se agrega transporte nuevo para esto.
  *
  * ⚠️ **El portal quedó con dos formas de acotar el negocio conviviendo, y es
  * una inconsistencia real, no un descuido de este PR.** Las rutas existentes lo
@@ -56,14 +56,10 @@ import type { RedemptionPreview } from '@/shared/schemas/business-redemption'
  * Queda registrada en `Renata-S-A-S/geoquest#191` junto con el resto de las
  * divergencias de contrato; **acá solo se deja visible, no se resuelve.**
  *
- * ⚠️ Aparte: `GET /business/me` **no existe en el backend** — verificado por
- * ausencia contra `main`@fbec604. El endpoint real es `GET /business/mine`, que
- * devuelve un **arreglo** (un owner puede tener más de un negocio). Migrarlo
- * toca 5 consumidores existentes (`business-profile-page`,
- * `business-profile-edit-page`, `pending-page`, `settings-page`,
- * `patch-business-me`) y es una corrección de contrato aparte, no parte de
- * B-04. Cuando se migre, este contenedor tendrá además que elegir negocio
- * cuando haya más de uno; hoy no hay selector.
+ * ⚠️ `GET /business/mine` devuelve un **arreglo** (un owner puede tener más de
+ * un negocio); `useMyBusiness()` ya elige el primer elemento (design #1549/
+ * #1550). Cuando exista más de un negocio real, este contenedor necesitará un
+ * selector; hoy no lo tiene.
  *
  * ## Lo que NO se resuelve acá
  *
@@ -88,8 +84,8 @@ interface ActiveRedemption extends RedemptionPreview {
 
 export function RedemptionsPage() {
   const { t } = useTranslation('redemptions')
-  const businessQuery = useBusinessMe()
-  const businessId = businessQuery.data?.id
+  const businessQuery = useMyBusiness()
+  const businessId = businessQuery.data?.businessId
 
   const [preview, setPreview] = useState<ActiveRedemption | null>(null)
   const [redeemedTitle, setRedeemedTitle] = useState<string | null>(null)
@@ -105,7 +101,12 @@ export function RedemptionsPage() {
     )
   }
 
-  if (businessQuery.isError) {
+  /**
+   * `data === null` (`/business/mine` devolvió `[]`, sin negocio propio)
+   * colapsa en la misma rama de error: `getProblemDetailsMessage` cae al
+   * `fallback` porque acá no hay ningún `AxiosError` que traducir.
+   */
+  if (businessQuery.isError || businessQuery.data === null) {
     return (
       <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6 text-center">
         <p role="alert" className="font-sans text-xs text-alert">

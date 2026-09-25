@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
 import { useReward } from '@/features/rewards/queries'
-import { useBusinessMe } from '@/features/business/queries'
+import { useMyBusiness } from '@/features/business/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { RewardEditForm } from '@/features/rewards/reward-edit-form'
 import { canEditReward } from '@/shared/schemas/business-reward'
@@ -28,10 +28,23 @@ import { canEditReward } from '@/shared/schemas/business-reward'
 export function RewardEditPage() {
   const { t } = useTranslation('rewards')
   const { rewardId } = useParams<{ rewardId: string }>()
-  const businessQuery = useBusinessMe()
-  const rewardQuery = useReward(businessQuery.data?.id, rewardId)
+  const businessQuery = useMyBusiness()
+  const rewardQuery = useReward(businessQuery.data?.businessId, rewardId)
 
-  if (businessQuery.isError) {
+  if (businessQuery.isPending) {
+    return (
+      <div className="flex min-h-[240px] items-center justify-center p-4">
+        <p role="status">{t('editForm.loading')}</p>
+      </div>
+    )
+  }
+
+  /**
+   * `data === null` (`/business/mine` devolvió `[]`, sin negocio propio)
+   * colapsa en la misma rama que un error de red: sin `businessId`,
+   * `rewardQuery` quedaría `enabled: false` para siempre (spinner eterno).
+   */
+  if (businessQuery.isError || businessQuery.data === null) {
     return (
       <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6 text-center">
         <p role="alert" className="font-sans text-xs text-alert">
@@ -44,7 +57,7 @@ export function RewardEditPage() {
     )
   }
 
-  if (businessQuery.isPending || rewardQuery.isPending) {
+  if (rewardQuery.isPending) {
     return (
       <div className="flex min-h-[240px] items-center justify-center p-4">
         <p role="status">{t('editForm.loading')}</p>
@@ -98,7 +111,7 @@ export function RewardEditPage() {
 
   return (
     <RewardEditForm
-      businessId={businessQuery.data.id}
+      businessId={businessQuery.data.businessId}
       reward={reward}
       onReload={() => void rewardQuery.refetch()}
     />
