@@ -44,5 +44,14 @@ export const resources = {
   },
 } as const
 
-export const ns = ['common', 'auth', 'onboarding', 'uploads', 'business', 'settings', 'places', 'rewards'] as const
+export const ns = [
+  'common',
+  'auth',
+  'onboarding',
+  'uploads',
+  'business',
+  'settings',
+  'places',
+  'rewards',
+] as const
 export const defaultNS = 'common' as const

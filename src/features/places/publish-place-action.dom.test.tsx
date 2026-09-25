@@ -138,9 +138,7 @@ describe('PublishPlaceAction', () => {
 
     screen.getByRole('button', { name: 'Publicar lugar' }).click()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Este lugar ya estaba publicado.'
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este lugar ya estaba publicado.')
   })
 
   it('cae al mensaje genérico ante un error que no es de precondición', async () => {
