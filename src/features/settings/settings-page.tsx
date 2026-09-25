@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
 import { ThemeSwitcher } from '@/shared/components/theme-switcher'
+import { LanguageSwitcher } from '@/shared/components/language-switcher'
+import { LegalDisclosure } from '@/features/onboarding/legal-disclosure'
 import { SignOutSection } from '@/features/settings/sign-out-section'
 import { useBusinessStaffMe } from '@/features/business/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
@@ -107,9 +109,43 @@ export function SettingsPage() {
         <AccountBlock />
       </Card>
 
+      {/*
+        Idioma junto al tema: las dos son preferencias de presentación del
+        usuario, no datos del negocio. Separarlas en dos tarjetas obligaría a
+        buscar en dos lugares lo mismo.
+      */}
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('appearance.title')}</SectionTitle>
         <ThemeSwitcher />
+        <LanguageSwitcher />
+      </Card>
+
+      {/*
+        Legal. Reutiliza las claves de `onboarding` en vez de copiar el texto:
+        son los MISMOS documentos que el negocio aceptó al registrarse, y
+        duplicar copia legal garantiza que las dos versiones divergan el día
+        que llegue la redacción real (#61).
+
+        Cruzar de namespace es un olor menor; texto legal divergente no lo es.
+        Si la copia se muda a `common`, este bloque y el formulario de
+        registro la toman del mismo lugar sin cambiar nada más.
+
+        `LegalDisclosure` garantiza el aviso de no-vinculante: no hay forma de
+        renderizar un bloque legal sin él, ni olvidándose de la prop.
+      */}
+      <Card className="flex flex-col gap-3">
+        <SectionTitle>{t('legal.title')}</SectionTitle>
+        <p className="font-sans text-xs text-muted">{t('legal.description')}</p>
+        <LegalDisclosure
+          summary={t('onboarding:register.agreement.summary')}
+          warning={t('onboarding:register.agreement.warning')}
+          body={t('onboarding:register.agreement.body')}
+        />
+        <LegalDisclosure
+          summary={t('onboarding:register.terms.summary')}
+          warning={t('onboarding:register.terms.warning')}
+          body={t('onboarding:register.terms.body')}
+        />
       </Card>
 
       {/*

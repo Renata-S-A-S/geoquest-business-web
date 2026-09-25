@@ -30,5 +30,10 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "language": {
+    "label": "Language",
+    "es": "Spanish",
+    "en": "English"
   }
 }

@@ -23,5 +23,9 @@
   "session": {
     "title": "Sesión",
     "description": "Vas a tener que iniciar sesión de nuevo para volver a entrar al portal."
+  },
+  "legal": {
+    "title": "Legal",
+    "description": "Los documentos que aceptaste al registrar tu negocio."
   }
 }

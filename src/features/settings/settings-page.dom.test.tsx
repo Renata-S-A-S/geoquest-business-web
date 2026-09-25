@@ -147,3 +147,55 @@ describe('SettingsPage', () => {
     expect(useThemeStore.getState().mode).toBe('dark')
   })
 })
+
+/**
+ * Las dos secciones nuevas que pidió Derek: idioma y legal.
+ */
+describe('SettingsPage — idioma y legal', () => {
+  it('ofrece el selector de idioma, que antes no existía en ninguna pantalla', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    expect(screen.getByRole('group', { name: 'Idioma' })).toBeInTheDocument()
+  })
+
+  it('muestra el acuerdo comercial y los términos, reutilizando la copia del registro', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    expect(screen.getByText(/Leer el acuerdo comercial/)).toBeInTheDocument()
+    expect(screen.getByText(/Leer los Términos y Condiciones/)).toBeInTheDocument()
+  })
+
+  /**
+   * La garantía de #61: no hay forma de renderizar un bloque legal sin su
+   * aviso de no-vinculante. Acá se verifica que esa garantía viaja con el
+   * componente a esta pantalla nueva, no solo al formulario de registro.
+   */
+  it('cada bloque legal trae su aviso de que el texto no es vinculante', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    // `getAllByText` y no `getByText`: el aviso aparece DOS veces por bloque,
+    // en el slot de aviso y al inicio del cuerpo. Es la garantía triple que
+    // `LegalDisclosure` documenta, no una duplicación accidental — así que el
+    // test la reconoce en vez de pelearse con ella.
+    expect(
+      screen.getAllByText(/No constituye un acuerdo comercial vinculante/).length
+    ).toBeGreaterThanOrEqual(1)
+    expect(
+      screen.getAllByText(/No constituye los Términos y Condiciones vinculantes/).length
+    ).toBeGreaterThanOrEqual(1)
+  })
+
+  it('marca los textos legales como borrador pendiente', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+
+    expect(screen.getAllByText(/BORRADOR — PENDIENTE/).length).toBeGreaterThanOrEqual(2)
+  })
+})

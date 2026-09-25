@@ -23,5 +23,9 @@
   "session": {
     "title": "Session",
     "description": "You'll need to sign in again to get back into the portal."
+  },
+  "legal": {
+    "title": "Legal",
+    "description": "The documents you accepted when registering your business."
   }
 }
