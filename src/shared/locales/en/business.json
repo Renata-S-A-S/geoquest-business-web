@@ -1,22 +1,9 @@
 {
   "profile": {
-    "title": "My business",
-    "editLink": "Edit",
     "loading": "Loading your business data…",
     "retry": "Retry",
     "errors": {
       "generic": "We couldn't load your business data."
-    },
-    "sections": {
-      "identity": {
-        "title": "Public information"
-      },
-      "legal": {
-        "title": "Legal identity"
-      },
-      "platform": {
-        "title": "Platform status"
-      }
     },
     "fields": {
       "displayName": {
@@ -40,32 +27,6 @@
       },
       "isInformalBusiness": {
         "label": "Informal business"
-      },
-      "status": {
-        "label": "Status"
-      },
-      "trustStatus": {
-        "label": "Trust level"
-      },
-      "trustScore": {
-        "label": "Trust score",
-        "value": "{{score, number}}"
-      },
-      "totalRedemptions": {
-        "label": "Total redemptions"
-      },
-      "totalReports": {
-        "label": "Confirmed reports"
-      },
-      "isGoogleMapsVerified": {
-        "label": "Google Maps verification"
-      },
-      "commercialAgreementSignedAt": {
-        "label": "Commercial agreement signed",
-        "empty": "Not signed"
-      },
-      "createdAt": {
-        "label": "Business created"
       }
     },
     "boolean": {
@@ -77,52 +38,10 @@
       "Active": "Active",
       "Suspended": "Suspended"
     },
-    "trustStatusValues": {
-      "Premium": "Premium",
-      "Active": "Active",
-      "UnderReview": "Under review",
-      "Suspended": "Suspended"
-    },
-    "googleMapsVerified": {
-      "true": "Verified",
-      "false": "Not verified"
-    },
     "legalFrozenHint": "Not editable: verified against your legal document before the business was activated.",
-    "dateFormatted": "{{date, datetime}}",
     "legalToggle": {
       "show": "View legal data",
       "hide": "Hide legal data"
-    }
-  },
-  "editForm": {
-    "title": "Edit my business",
-    "fields": {
-      "displayName": {
-        "label": "Public name"
-      },
-      "category": {
-        "label": "Category",
-        "placeholder": "Choose a category"
-      },
-      "email": {
-        "label": "Contact email",
-        "hint": "The business's public contact email — different from the email you sign in with."
-      }
-    },
-    "validation": {
-      "required": "This field is required.",
-      "email": "Enter a valid email."
-    },
-    "submit": "Save changes",
-    "submitting": "Saving…",
-    "cancel": "Cancel",
-    "errors": {
-      "generic": "We couldn't save your changes.",
-      "readOnlyField": "One of the fields you tried to change can't be edited from here."
-    },
-    "notOwner": {
-      "message": "Only the business owner can edit this information.",
-      "backLink": "Back to My business"
     }
   }
 }
