@@ -59,6 +59,18 @@ export type RedemptionStatus = z.infer<typeof redemptionStatusSchema>
 const QR_TOKEN_PATTERN = /^[A-Za-z0-9+/]{43}=$/
 
 /**
+ * Misma regla de formato que `createQrTokenFormSchema`, pero como función
+ * standalone en vez de schema de Zod: la usa el escaneo con cámara
+ * (`qr-camera-scanner.ts`) para decidir, fuera de un `useForm`, si un valor
+ * recién decodificado del QR pasa el mismo criterio que el pegado manual —
+ * reutiliza `QR_TOKEN_PATTERN` en vez de repetirlo, para que las dos vías de
+ * entrada nunca puedan divergir en qué aceptan.
+ */
+export function isQrToken(candidate: string): boolean {
+  return QR_TOKEN_PATTERN.test(candidate.trim())
+}
+
+/**
  * Schema del formulario de entrada manual (#44).
  *
  * Recibe `t` porque Zod congela los mensajes al construir el schema: si se
