@@ -67,13 +67,14 @@ describe('useBusinessMe', () => {
 })
 
 describe('useMyBusiness', () => {
-  it('resuelve el primer elemento del array (escenario Active por defecto)', async () => {
-    const { Wrapper } = createWrapper()
+  it('resuelve el primer elemento y cachea el array completo bajo businessKeys.mine', async () => {
+    const { Wrapper, queryClient } = createWrapper()
 
     const { result } = renderHook(() => useMyBusiness(), { wrapper: Wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(SEED_BUSINESS_SCENARIOS.Active)
+    expect(queryClient.getQueryData(businessKeys.mine)).toEqual([SEED_BUSINESS_SCENARIOS.Active])
   })
 
   it('resuelve null cuando /business/mine devuelve [] (escenario none)', async () => {
@@ -84,14 +85,5 @@ describe('useMyBusiness', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toBeNull()
-  })
-
-  it('cachea el array completo bajo businessKeys.mine, no solo el primer elemento', async () => {
-    const { Wrapper, queryClient } = createWrapper()
-
-    const { result } = renderHook(() => useMyBusiness(), { wrapper: Wrapper })
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(queryClient.getQueryData(businessKeys.mine)).toEqual([SEED_BUSINESS_SCENARIOS.Active])
   })
 })

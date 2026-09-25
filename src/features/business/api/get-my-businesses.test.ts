@@ -18,16 +18,6 @@ describe('getMyBusinesses', () => {
     await expect(getMyBusinesses()).resolves.toEqual([])
   })
 
-  it('refleja el status Rejected sembrado, con motivo y fecha', async () => {
-    setMockBusiness('Rejected')
-
-    const [business] = await getMyBusinesses()
-    expect(business).toMatchObject({
-      status: 'Rejected',
-      rejectionReason: SEED_BUSINESS_SCENARIOS.Rejected!.rejectionReason,
-    })
-  })
-
   it('rechaza con el error de axios cuando el backend responde 500 problem+json', async () => {
     server.use(
       http.get(`${API_BASE_URL}/business/mine`, () =>

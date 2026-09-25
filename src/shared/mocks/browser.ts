@@ -1,7 +1,5 @@
 import { setupWorker } from 'msw/browser'
 import { handlers } from '@/shared/mocks/handlers'
-import { applyMockBusinessScenario } from '@/shared/mocks/db'
-import { resolveMockBusinessScenario } from '@/shared/mocks/mock-business-param'
 
 /**
  * Worker de navegador — usado en `npm run dev` y en el deploy de Vercel
@@ -10,13 +8,11 @@ import { resolveMockBusinessScenario } from '@/shared/mocks/mock-business-param'
  * todavía, así que el portal necesita poder demostrarse sin él, incluido
  * un preview público. Ver "Diferencias deliberadas" en el plan.
  *
- * `?mockBusiness=Active|Paused|Suspended|PendingVerification|Rejected|none`
- * (real-backend-readiness PR6a, design "Mock status demo") aplica el
- * escenario ANTES de que el worker arranque — así la primera petición a
- * `GET /business/mine` ya lo ve, sin depender de un reload. Sin parámetro o
- * con uno inválido, queda el escenario sembrado por defecto (`Active`).
+ * Nota (real-backend-readiness PR6a): `applyMockBusinessScenario()` /
+ * `SEED_BUSINESS_SCENARIOS` (`shared/mocks/db.ts`/`seed.ts`) ya existen para
+ * simular cada status de `GET /business/mine`, pero la demo pública vía
+ * `?mockBusiness=` queda diferida a un slice siguiente (recorte de scope
+ * para caber en el presupuesto de revisión de 400 líneas) — hoy solo
+ * `test/mock-business.ts` la usa.
  */
-const mockBusinessScenario = resolveMockBusinessScenario(window.location.search)
-if (mockBusinessScenario) applyMockBusinessScenario(mockBusinessScenario)
-
 export const worker = setupWorker(...handlers)

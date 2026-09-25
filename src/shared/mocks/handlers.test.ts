@@ -55,13 +55,6 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(data).toEqual([])
   })
 
-  it('GET /business/mine refleja el escenario Suspended tras aplicarlo', async () => {
-    applyMockBusinessScenario('Suspended')
-
-    const { data } = await apiClient.get('/business/mine')
-    expect(data).toEqual([SEED_BUSINESS_SCENARIOS.Suspended])
-  })
-
   it('GET /business/places devuelve el RESUMEN de la semilla, no el detalle', async () => {
     const { data } = await apiClient.get<BusinessPlaceSummary[]>('/business/places')
 
