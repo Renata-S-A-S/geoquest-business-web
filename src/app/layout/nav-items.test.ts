@@ -11,12 +11,7 @@ describe('NAV_ITEMS', () => {
    */
   it('tiene exactamente 4 secciones, todas bucles operativos', () => {
     expect(NAV_ITEMS).toHaveLength(4)
-    expect(NAV_ITEMS.map((i) => i.id)).toEqual([
-      'places',
-      'rewards',
-      'redemptions',
-      'analytics',
-    ])
+    expect(NAV_ITEMS.map((i) => i.id)).toEqual(['places', 'rewards', 'redemptions', 'analytics'])
   })
 
   /**

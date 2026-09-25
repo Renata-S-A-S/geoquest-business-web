@@ -174,7 +174,9 @@ export function BusinessSettingsSection() {
             </ReadOnlyField>
             {/* Sin candado: no editable por otro motivo, ver `ReadOnlyField`. */}
             <ReadOnlyField label={t('profile.fields.isInformalBusiness.label')}>
-              {t(`profile.boolean.${String(business.isInformalBusiness)}` as 'profile.boolean.true')}
+              {t(
+                `profile.boolean.${String(business.isInformalBusiness)}` as 'profile.boolean.true'
+              )}
             </ReadOnlyField>
           </div>
         )}
