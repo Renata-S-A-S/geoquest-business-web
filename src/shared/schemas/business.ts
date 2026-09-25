@@ -69,83 +69,33 @@ export const registerBusinessInputSchema = z.object({
 export type RegisterBusinessInput = z.infer<typeof registerBusinessInputSchema>
 
 /**
- * Input de `PATCH /business/me` (#72, PR3) — ver contratos-portal-b2b.md
- * §2.1.1. Todas las claves son opcionales (semántica PATCH: una clave
- * omitida significa "no tocar"); el `.refine()` rechaza un body vacío
- * porque un PATCH sin ningún campo a modificar no tiene sentido y el
- * contrato lo declara 400.
+ * Nota histórica (#72 PR4, borrado de código muerto): este archivo tenía
+ * `updateBusinessMeInputSchema`/`BUSINESS_READONLY_FIELDS` (contrato de
+ * `PATCH /business/me`) y `businessStaffMeSchema`/`BusinessStaffMe`
+ * (contrato de `GET /business-staff/me`). Ninguno de los dos endpoints
+ * existe en el backend real y sus únicos consumidores
+ * (`business-profile-form.tsx`, `business-profile-edit-page.tsx`,
+ * `can-edit-business-profile.ts`, `get-business-staff-me.ts`,
+ * `patch-business-me.ts`) se borraron en la misma PR — ver design-amendments
+ * (engram #1550) y decisions (#1546): la identidad ahora viene del JWT
+ * (`shared/lib/jwt-claims.ts`), no de este endpoint.
  *
- * Subconjunto editable confirmado por el Product Owner: `displayName`,
- * `category`, `email`. `email` acá es el CONTACTO PÚBLICO del negocio (ej.
- * `contacto@cafe70.co`), NO la credencial de acceso del `BusinessStaff`
- * que inicia sesión (esa vive en Identity, es un campo distinto, y no
- * tiene endpoint de edición propuesto en este PR) — confundirlas sería un
- * bug de seguridad, no una decisión de alcance.
- *
- * `description` NO forma parte de este schema a propósito: no existe en
- * `businessSchema`, en el contrato ni en el ERD. Si debería existir es una
- * pregunta abierta, ver `Renata-S-A-S/geoquest#182` — no se agrega acá.
- *
- * Propuesta del frontend (ADR-048-BF), sin confirmar contra el backend.
- */
-export const updateBusinessMeInputSchema = z
-  .object({
-    displayName: z.string().min(1).max(120).optional(),
-    category: z.string().min(1).optional(), // taxonomía sin confirmar — ver business-category-options.ts
-    email: z.string().min(1).email().optional(),
-  })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: 'El cuerpo no puede estar vacío: incluí al menos un campo para actualizar.',
-  })
-export type UpdateBusinessMeInput = z.infer<typeof updateBusinessMeInputSchema>
-
-/**
- * Campos de `Business` congelados para `PATCH /business/me` — ver
- * contratos-portal-b2b.md §2.1.1. Los tres primeros están protegidos por
- * RN-BIZ-01 (verificación contra el documento legal antes de activar el
- * negocio); el resto son campos que solo escribe el servidor (estado,
- * métricas derivadas, timestamps, flags de plataforma). `handlers.ts`
- * responde 409 `ReadOnlyField` si el body de un PATCH incluye alguno de
- * estos — nunca se ignoran en silencio, porque eso dejaría al cliente
- * creyendo que el cambio se aplicó.
- *
- * Propuesta del frontend (ADR-048-BF), sin confirmar contra el backend —
- * ver `Renata-S-A-S/geoquest#182`.
- */
-export const BUSINESS_READONLY_FIELDS = [
-  'legalName',
-  'legalDocumentType',
-  'legalDocumentNumber',
-  'status',
-  'trustScore',
-  'trustStatus',
-  'totalRedemptions',
-  'totalReports',
-  'isPlatformOwned',
-  'commercialAgreementSignedAt',
-  'createdAt',
-  'id',
-] as const
-
-/**
- * Rol de un `BusinessStaff` (#72, PR4) — ya definido en el backend, en
- * `src/GeoQuest.Modules.Business/Domain/BusinessStaffRole.cs`:
- * `internal enum BusinessStaffRole { Owner = 0, Manager = 1, Staff = 2 }`.
- * PascalCase, tal como lo serializa el backend — ver "Definiciones de
- * producto para #72". El registro (BA-1) siempre crea exactamente un
- * `BusinessStaff` Owner; ningún comando asigna Manager/Staff todavía
- * (gestión de staff adicional, fuera de alcance) — ver
- * `canEditBusinessProfile` en `features/business/can-edit-business-profile.ts`.
+ * `businessStaffRoleSchema`/`businessStaffSchema`/`BusinessStaff` SÍ se
+ * conservan: `SEED_BUSINESS_STAFF` (`shared/mocks/seed.ts`) sigue tipado con
+ * ellos para minar el JWT del mock login (`sub`/`email`, ver
+ * `shared/mocks/mock-jwt.ts`), aunque `role` ya no tiene ningún lector
+ * (`canEditBusinessProfile` se borró junto con el gate de edición).
  */
 export const businessStaffRoleSchema = z.enum(['Owner', 'Manager', 'Staff'])
 export type BusinessStaffRole = z.infer<typeof businessStaffRoleSchema>
 
 /**
- * `BusinessStaff` — el usuario real que opera el portal. `role` ahora usa
+ * `BusinessStaff` — el usuario real que opera el portal. `role` usa
  * `businessStaffRoleSchema`: el ERD no enumeraba los valores, pero el
- * enum del backend sí los define (ver arriba), así que ya no corresponde
- * dejarlo como `string` "para no inventar valores" — los valores no son
- * una invención del frontend.
+ * enum del backend sí los define (`BusinessStaffRole.cs`: `Owner = 0,
+ * Manager = 1, Staff = 2`), así que no corresponde dejarlo como `string`
+ * "para no inventar valores" — los valores no son una invención del
+ * frontend.
  */
 export const businessStaffSchema = z.object({
   id: z.string().uuid(),
@@ -157,23 +107,3 @@ export const businessStaffSchema = z.object({
   createdAt: z.string().datetime(),
 })
 export type BusinessStaff = z.infer<typeof businessStaffSchema>
-
-/**
- * Respuesta de `GET /business-staff/me` (#72, PR4) — ver
- * contratos-portal-b2b.md §2.1.2. Extiende `businessStaffSchema` con
- * `username`, que NO es un campo de `BusinessStaff`: vive en el mismo
- * `Identity` que usa el Explorer, enlazado vía `BusinessStaff.ExplorerId`
- * (contratos §4.1) — este endpoint es quien arma la proyección, no un
- * campo persistido en el dominio `Business`.
- *
- * ⚠️ `username` es una PROPUESTA sin confirmar: si esa proyección es
- * alcanzable para una cuenta que es solo `BusinessStaff` (sin
- * `ExplorerProfile`) es la pregunta abierta de
- * `Renata-S-A-S/geoquest#182`. Si la respuesta es negativa, esta clave se
- * quita de acá y de `/configuracion` (PR6) — es un campo menos, no un
- * rediseño del contrato.
- */
-export const businessStaffMeSchema = businessStaffSchema.extend({
-  username: z.string(),
-})
-export type BusinessStaffMe = z.infer<typeof businessStaffMeSchema>

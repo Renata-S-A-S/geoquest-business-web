@@ -1,4 +1,4 @@
-import type { Business, BusinessStaff, BusinessStaffMe } from '@/shared/schemas/business'
+import type { Business, BusinessStaff } from '@/shared/schemas/business'
 import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
 import { Category, Subcategory } from '@/shared/schemas/taxonomy'
 import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
@@ -47,27 +47,13 @@ export const SEED_BUSINESS_STAFF: BusinessStaff = {
 }
 
 /**
- * Username propuesto para `GET /business-staff/me` (#72, PR4) — no existe
- * en `BusinessStaff` (`businessStaffSchema`), porque vive en el mismo
- * `Identity` que usa el Explorer, enlazado vía `ExplorerId` (contratos
- * §4.1). Si esa proyección es alcanzable para una cuenta que es SOLO
- * BusinessStaff (sin `ExplorerProfile`) es una pregunta abierta — ver
- * `Renata-S-A-S/geoquest#182`. Semilla de demo, no un dato confirmado.
+ * Username semilla usado por el mock login (`POST /auth/login`,
+ * `handlers.ts`) para minar un JWT con claims de identidad (#72 PR2, ver
+ * `shared/mocks/mock-jwt.ts`). `GET /business-staff/me` (que originaba este
+ * username) se borró en #72 PR4: la identidad ahora viene decodificada del
+ * JWT, no de un endpoint aparte.
  */
 export const SEED_BUSINESS_STAFF_USERNAME = 'maria_cafe70'
-
-/**
- * Vista combinada que sirve `GET /business-staff/me`: el `BusinessStaff`
- * semilla + el `username` propuesto de Identity. No se modela como parte
- * de `MockDb` (ver db.ts) porque `username` no es un campo del dominio
- * `BusinessStaff` — es una proyección que el handler arma en el momento,
- * igual que lo haría un backend real al resolver el `Identity` del
- * bearer token.
- */
-export const SEED_BUSINESS_STAFF_ME: BusinessStaffMe = {
-  ...SEED_BUSINESS_STAFF,
-  username: SEED_BUSINESS_STAFF_USERNAME,
-}
 
 /**
  * Lugares semilla con la forma REAL de `BusinessPlaceDetailResult`. El mock

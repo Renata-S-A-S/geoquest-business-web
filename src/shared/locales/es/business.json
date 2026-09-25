@@ -1,22 +1,9 @@
 {
   "profile": {
-    "title": "Mi negocio",
-    "editLink": "Editar",
     "loading": "Cargando los datos de tu negocio…",
     "retry": "Reintentar",
     "errors": {
       "generic": "No pudimos cargar los datos de tu negocio."
-    },
-    "sections": {
-      "identity": {
-        "title": "Información pública"
-      },
-      "legal": {
-        "title": "Identidad legal"
-      },
-      "platform": {
-        "title": "Estado en la plataforma"
-      }
     },
     "fields": {
       "displayName": {
@@ -40,32 +27,6 @@
       },
       "isInformalBusiness": {
         "label": "Negocio informal"
-      },
-      "status": {
-        "label": "Estado"
-      },
-      "trustStatus": {
-        "label": "Nivel de confianza"
-      },
-      "trustScore": {
-        "label": "Puntaje de confianza",
-        "value": "{{score, number}}"
-      },
-      "totalRedemptions": {
-        "label": "Canjes totales"
-      },
-      "totalReports": {
-        "label": "Reportes confirmados"
-      },
-      "isGoogleMapsVerified": {
-        "label": "Verificación en Google Maps"
-      },
-      "commercialAgreementSignedAt": {
-        "label": "Acuerdo comercial firmado",
-        "empty": "Sin firmar"
-      },
-      "createdAt": {
-        "label": "Negocio creado"
       }
     },
     "boolean": {
@@ -77,52 +38,10 @@
       "Active": "Activo",
       "Suspended": "Suspendido"
     },
-    "trustStatusValues": {
-      "Premium": "Premium",
-      "Active": "Activo",
-      "UnderReview": "En revisión",
-      "Suspended": "Suspendido"
-    },
-    "googleMapsVerified": {
-      "true": "Verificado",
-      "false": "No verificado"
-    },
     "legalFrozenHint": "No editable: se verificó contra tu documento legal antes de activar el negocio.",
-    "dateFormatted": "{{date, datetime}}",
     "legalToggle": {
       "show": "Ver datos legales",
       "hide": "Ocultar datos legales"
-    }
-  },
-  "editForm": {
-    "title": "Editar mi negocio",
-    "fields": {
-      "displayName": {
-        "label": "Nombre público"
-      },
-      "category": {
-        "label": "Categoría",
-        "placeholder": "Elegí una categoría"
-      },
-      "email": {
-        "label": "Correo de contacto",
-        "hint": "Correo de contacto público del negocio — distinto del correo con el que iniciás sesión."
-      }
-    },
-    "validation": {
-      "required": "Este campo es obligatorio.",
-      "email": "Ingresá un correo válido."
-    },
-    "submit": "Guardar cambios",
-    "submitting": "Guardando…",
-    "cancel": "Cancelar",
-    "errors": {
-      "generic": "No pudimos guardar los cambios.",
-      "readOnlyField": "Uno de los campos que intentaste cambiar no se puede editar desde acá."
-    },
-    "notOwner": {
-      "message": "Solo el dueño del negocio puede editar estos datos.",
-      "backLink": "Volver a Mi negocio"
     }
   }
 }
