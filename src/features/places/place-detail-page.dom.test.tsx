@@ -90,32 +90,22 @@ describe('PlaceDetailPage', () => {
   })
 
   /**
-   * Se enuncia la REGLA, no los números. RN-GAM-02/03 y RN-GAM-10
-   * (verificado en Confluence): un check-in en un `BusinessVenue` da 0 XP
-   * siempre y GeoPoints fijados por la plataforma.
+   * **Sin bloque de recompensas.** Un `BusinessVenue` otorga 0 XP
+   * (RN-GAM-02/03) y GeoPoints fijados por la plataforma (RN-GAM-10): el
+   * negocio no elige ninguno, así que contárselo no le habilita ninguna
+   * decisión. Se probó enunciando la regla y se retiró por eso.
    *
-   * Los valores que el backend devuelve hoy (50/50) contradicen esa regla,
-   * porque crea el lugar como `TouristSite`. Mostrarlos le diría al negocio
-   * que su local otorga 50 XP, que es falso por regla.
+   * Los valores siguen viajando en el payload de creación — eso se verifica
+   * en `api/create-place.test.ts`, no acá.
    */
-  it('enuncia la regla de recompensas en vez de mostrar los números del backend', async () => {
+  it('NO muestra ningún bloque de recompensas ni sus valores', async () => {
     renderDetail(ACTIVE.placeId)
 
-    expect(await screen.findByText('Qué gana un explorador acá')).toBeInTheDocument()
-    expect(screen.getByText(/No otorga XP/)).toBeInTheDocument()
-    expect(screen.getByText(/Vos no definís estos valores/)).toBeInTheDocument()
-  })
+    await screen.findByText(ACTIVE.description)
 
-  it('NO muestra los valores numéricos que el backend devuelve, que contradicen la regla', async () => {
-    renderDetail(ACTIVE.placeId)
-
-    await screen.findByText('Qué gana un explorador acá')
-
-    // La semilla trae 60/60; el backend real devolvería 50/50. Ninguno de los
-    // dos debe aparecer: la regla dice 0 XP y ~12 GeoPoints.
-    expect(screen.queryByText(String(ACTIVE.xpReward))).not.toBeInTheDocument()
-    expect(screen.queryByText('XP por check-in')).not.toBeInTheDocument()
-    expect(screen.queryByText('GeoPoints por check-in')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Qué gana un explorador/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/XP/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/GeoPoints/)).not.toBeInTheDocument()
   })
 
   it('traduce el estado del lugar en vez de mostrar el literal del enum', async () => {

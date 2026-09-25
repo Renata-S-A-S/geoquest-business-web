@@ -4,7 +4,10 @@ import { server } from '@/test/msw-server'
 import { createPlace, type CreatePlaceFormInput } from './create-place'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { Category, Subcategory } from '@/shared/schemas/taxonomy'
-import { MIN_GEO_POINTS_REWARD, MIN_XP_REWARD } from '@/shared/schemas/business-place'
+import {
+  BUSINESS_VENUE_GEO_POINTS_REWARD,
+  BUSINESS_VENUE_XP_REWARD,
+} from '@/shared/schemas/business-place'
 
 const INPUT: CreatePlaceFormInput = {
   name: 'Café de la 70 — Sede Estadio',
@@ -25,13 +28,19 @@ describe('createPlace', () => {
   })
 
   /**
-   * El caso central de este archivo. El formulario NO pide las recompensas
-   * —ADR-041/043 y RN-GAM-10: el negocio no configura los puntos, y el
-   * contrato pide eliminar el campo— pero el backend las EXIGE con mínimo
-   * 50. El transporte es donde se absorbe esa contradicción, así que hay que
-   * verificar que efectivamente las agrega.
+   * El caso central de este archivo.
+   *
+   * RN-GAM-02/03: un `BusinessVenue` otorga **0 XP siempre** —"consumir no es
+   * explorar"— y RN-GAM-10 fija sus GeoPoints en 12 desde la plataforma. El
+   * negocio no elige ninguno, así que el formulario no los pide y el
+   * transporte los completa con los valores de la regla.
+   *
+   * ⚠️ El backend real rechazará estos valores con 400 hasta que se corrija
+   * (exige mínimo 50 porque crea `TouristSite`). Se mandan igual los
+   * correctos: preferimos un 400 visible y una issue abierta antes que datos
+   * que contradicen la regla en silencio. Ver geoquest#191.
    */
-  it('completa las recompensas con el mínimo aceptado, sin pedirlas al formulario', async () => {
+  it('completa las recompensas con los valores de la REGLA: 0 XP y 12 GeoPoints', async () => {
     let received: Record<string, unknown> | undefined
     server.use(
       http.post(`${API_BASE_URL}/business/places`, async ({ request }) => {
@@ -43,9 +52,13 @@ describe('createPlace', () => {
     await createPlace(INPUT)
 
     expect(received).toMatchObject({
-      xpReward: MIN_XP_REWARD,
-      geoPointsReward: MIN_GEO_POINTS_REWARD,
+      xpReward: BUSINESS_VENUE_XP_REWARD,
+      geoPointsReward: BUSINESS_VENUE_GEO_POINTS_REWARD,
     })
+    // Explícito, para que el número quede a la vista de quien lea el test:
+    // cero XP no es "el mínimo", es la regla.
+    expect(received?.xpReward).toBe(0)
+    expect(received?.geoPointsReward).toBe(12)
   })
 
   it('no permite que el formulario sobrescriba las recompensas', () => {

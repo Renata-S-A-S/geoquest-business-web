@@ -47,17 +47,14 @@ export interface PlaceDetailViewProps {
 /**
  * Detalle de un lugar (#35). Presentacional: recibe el lugar ya resuelto.
  *
- * ⚠️ **Nota sobre los números de recompensa.** #35 espera `xpReward: 0` y
- * `geoPointsReward: 12` según ADR-041/043. El backend desplegado guarda lo
- * que el portal manda, y el portal manda el mínimo que ese backend exige
- * (50/50) porque crea el lugar como `TouristSite` — ver el comentario largo
- * en `api/create-place.ts`.
+ * **Sin bloque de recompensas a propósito.** Un `BusinessVenue` otorga 0 XP
+ * (RN-GAM-02/03) y GeoPoints fijados por la plataforma (RN-GAM-10): el
+ * negocio no elige ninguno de los dos, así que un recuadro contándoselo no
+ * le habilita ninguna decisión. Se probó enunciar la regla y se retiró por
+ * eso mismo — informar sobre algo incontrolable es ruido, no transparencia.
  *
- * Así que esta pantalla muestra los valores REALES, no los del ADR. Lo que
- * sí se cumple es lo que el criterio de aceptación protege de verdad: que
- * el negocio entienda que **no los eligió él**. Eso es cierto hoy y va a
- * seguir siendo cierto cuando el backend los fije. La discrepancia numérica
- * está pedida en `Renata-S-A-S/geoquest#191`.
+ * Los valores viajan igual en el payload de creación, con los números de la
+ * regla; ver `api/create-place.ts`.
  */
 export function PlaceDetailView({ place, actions }: PlaceDetailViewProps) {
   const { t } = useTranslation('places')
@@ -139,31 +136,6 @@ export function PlaceDetailView({ place, actions }: PlaceDetailViewProps) {
             meters: place.checkInRadiusMeters,
           })}
         />
-      </Card>
-
-      {/*
-       * La REGLA, no los números.
-       *
-       * RN-GAM-02/03 y RN-GAM-10 (verificado en Confluence, 24 sep 2026):
-       * un check-in en un `BusinessVenue` otorga **0 XP siempre** —«consumir
-       * no es explorar»— y una cantidad de GeoPoints **fijada por la
-       * plataforma** (25% del baseline, ~12), nunca elegida por el negocio.
-       *
-       * ⚠️ Los valores que el backend DEVUELVE hoy no son esos: guarda lo que
-       * el portal manda, y el portal manda el mínimo que ese backend exige
-       * (50/50) porque crea el lugar como `TouristSite` en vez de
-       * `BusinessVenue`. Mostrar `place.xpReward` y `place.geoPointsReward`
-       * le diría al negocio que su local da 50 XP, que es falso por regla.
-       *
-       * Así que se enuncia la regla, que es correcta con el backend actual y
-       * con el corregido. Los números vuelven cuando el backend los fije
-       * bien — ver `Renata-S-A-S/geoquest#191`.
-       */}
-      <Card className="flex flex-col gap-2">
-        <SectionTitle>{t('detail.rewards.title')}</SectionTitle>
-        <p className="font-sans text-sm text-ink">{t('detail.rewards.geoPoints')}</p>
-        <p className="font-sans text-sm text-ink">{t('detail.rewards.noXp')}</p>
-        <p className="font-sans text-xs text-muted">{t('detail.rewards.notConfigurable')}</p>
       </Card>
 
       <Card className="flex flex-col gap-3">

@@ -155,13 +155,7 @@
       "next": "Foto siguiente"
     },
     "mapUnavailable": "El mapa no está disponible todavía. Estas son las coordenadas exactas del lugar.",
-    "mapLoading": "Cargando el mapa…",
-    "rewards": {
-      "title": "Qué gana un explorador acá",
-      "geoPoints": "Un check-in en tu local otorga **GeoPoints**, en una cantidad que fija GeoQuest — la misma para todos los negocios de la red.",
-      "noXp": "No otorga XP. El XP se gana solo explorando sitios turísticos: consumir no es explorar.",
-      "notConfigurable": "Vos no definís estos valores. El racional es que ningún negocio pueda competir por visitas subiendo el número, porque esos GeoPoints se canjean en toda la red."
-    }
+    "mapLoading": "Cargando el mapa…"
   },
   "publish": {
     "action": "Publicar lugar",
