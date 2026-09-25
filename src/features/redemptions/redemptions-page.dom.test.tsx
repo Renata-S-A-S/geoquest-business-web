@@ -4,7 +4,6 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
-import { readDb, writeDb } from '@/shared/mocks/db'
 import {
   SEED_EXPIRED_QR_TOKEN,
   SEED_FAILED_QR_TOKEN,
@@ -365,16 +364,14 @@ describe('RedemptionsPage', () => {
 
   /**
    * Spec `business-gateway`, escenario "Paused blocks redemption scan"
-   * (real-backend-readiness PR6b): el mock replica `requireActive: true`
+   * (real-backend-readiness PR6b/PR6c): el mock replica `requireActive: true`
    * (`LookupRedemptionByQrTokenQueryHandler.cs:39`) end-to-end, desde el MSW
-   * handler hasta la copia que ve el mostrador. `db.business` (contrato
-   * LEGACY) solo modela `Pending|Active|Suspended`, así que `Suspended` es el
-   * estado no-Active disponible acá — mismo gate que bloquearía `Paused`.
+   * handler hasta la copia que ve el mostrador. `denyUnlessActive` lee ahora
+   * `db.myBusiness` (PR6c), así que `Paused` — el estado real, ya no la
+   * aproximación con `Suspended` del contrato legado — bloquea igual.
    */
-  it('bloquea la búsqueda del canje con el negocio Suspended y explica por qué', async () => {
-    const db = readDb()
-    db.business.status = 'Suspended'
-    writeDb(db)
+  it('bloquea la búsqueda del canje con el negocio Paused y explica por qué', async () => {
+    setMockBusiness('Paused')
 
     renderPage()
     await pasteToken(SEED_PURCHASED_QR_TOKEN)

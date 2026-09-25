@@ -23,7 +23,11 @@ import {
   updateBusinessRewardInputSchema,
   type BusinessRewardSummary,
 } from '@/shared/schemas/business-reward'
-import { registerBusinessInputSchema, type Business } from '@/shared/schemas/business'
+import {
+  registerBusinessInputSchema,
+  type Business,
+  type MyBusiness,
+} from '@/shared/schemas/business'
 import { loginInputSchema, type AuthTokens } from '@/shared/schemas/auth'
 import { analyticsDateSchema, analyticsGranularitySchema } from '@/shared/schemas/analytics'
 import { buildMockAnalyticsSummary, buildMockCheckInSeries } from '@/shared/mocks/analytics.mock'
@@ -110,12 +114,17 @@ interface PortalProblem {
  * ⚠️ **Anti-enumeración**: un `businessId` desconocido y el de otro dueño
  * devuelven EL MISMO 403, nunca un 404. Por eso el mock no distingue los dos
  * casos — y por eso la interfaz nunca debe decir «negocio no encontrado».
+ *
+ * Lee `db.myBusiness` (real-backend-readiness PR6c) — antes leía el
+ * `db.business` legado, que quedaba desincronizado del negocio que la UI
+ * real ya mostraba vía `GET /business/mine` desde PR6a. Sin negocio propio
+ * (`null`), nadie es dueño: el mismo 403 anti-enumeración aplica.
  */
 function denyUnlessOwner(
-  db: { business: { id: string } },
+  db: { myBusiness: { businessId: string } | null },
   businessId: string | readonly string[] | undefined
 ): StrictResponse<PortalProblem> | undefined {
-  if (businessId === db.business.id) return undefined
+  if (db.myBusiness && businessId === db.myBusiness.businessId) return undefined
 
   return HttpResponse.json(
     {
@@ -131,12 +140,13 @@ function denyUnlessOwner(
  * `requireActive: true` en las cinco ESCRITURAS (crear, editar, pausar,
  * republicar, imagen) y `false` en las tres LECTURAS (listado, detalle,
  * historial). O sea que un negocio pausado o suspendido puede leer sus
- * recompensas pero no tocarlas.
+ * recompensas pero no tocarlas. Lee `db.myBusiness` — ver nota de
+ * `denyUnlessOwner`.
  */
 function denyUnlessActive(db: {
-  business: { status: string }
+  myBusiness: { status: string } | null
 }): StrictResponse<PortalProblem> | undefined {
-  if (db.business.status === 'Active') return undefined
+  if (db.myBusiness?.status === 'Active') return undefined
 
   return HttpResponse.json(
     {
@@ -146,6 +156,15 @@ function denyUnlessActive(db: {
     },
     { status: 403 }
   )
+}
+
+/**
+ * Tras pasar `denyUnlessOwner`/`denyUnlessActive`, `db.myBusiness` ya no
+ * puede ser `null` — ambas guardas lo rechazan antes de llegar acá. Evita
+ * repetir el `as MyBusiness` en cada call-site que necesita `businessId`.
+ */
+function requireMyBusiness(db: { myBusiness: MyBusiness | null }): MyBusiness {
+  return db.myBusiness as MyBusiness
 }
 
 /** 404 `RewardPortal.RewardNotFound`, el código real del backend. */
@@ -163,6 +182,14 @@ function rewardNotFound(
 }
 
 export const handlers = [
+  /**
+   * `GET /business/me` — contrato LEGADO (issue #27), 3 estados. Sigue
+   * activo hasta que `business-settings-section.tsx`/`pending-page.tsx`
+   * migren a `GET /business/mine` (real-backend-readiness PR6c, próximo
+   * lote de esta misma PR — ver apply-progress). Ya NO es la fuente que
+   * leen las guardas de escritura/canje: eso se unificó a `db.myBusiness`
+   * en este lote (ítem mandatorio de la review de PR6b).
+   */
   http.get(`${API_BASE_URL}/business/me`, () => {
     const { business } = readDb()
     return HttpResponse.json(business)
@@ -170,10 +197,10 @@ export const handlers = [
 
   /**
    * `GET /business/mine` — contrato REAL (real-backend-readiness PR6a),
-   * confirmado contra `MyBusinessResult.cs` en `origin/main`. A diferencia
-   * de `/business/me` (arriba), SIEMPRE responde un array: `[myBusiness]`
-   * cuando el explorador de sesión es dueño de un negocio, `[]` cuando no
-   * (`db.myBusiness === null`, escenario `none` de `SEED_BUSINESS_SCENARIOS`).
+   * confirmado contra `MyBusinessResult.cs` en `origin/main`. SIEMPRE
+   * responde un array: `[myBusiness]` cuando el explorador de sesión es
+   * dueño de un negocio, `[]` cuando no (`db.myBusiness === null`, escenario
+   * `none` de `SEED_BUSINESS_SCENARIOS`).
    */
   http.get(`${API_BASE_URL}/business/mine`, () => {
     const { myBusiness } = readDb()
@@ -195,20 +222,23 @@ export const handlers = [
     // son input-only, gates de envío: se destructuran afuera de
     // `businessInput` antes de spread, porque TypeScript NO hace
     // excess-property-check sobre un spread — dejarlos en `parsed.data` los
-    // filtraría al `Business` persistido.
+    // filtraría al `Business` de la respuesta.
     const {
       commercialAgreementAccepted: _commercialAgreementAccepted,
       termsAccepted: _termsAccepted,
       ...businessInput
     } = parsed.data
     // Sin valor confirmado para trustScore/trustStatus/etc. de un negocio
-    // recién registrado (ningún ERD/RN lo define) — defaults mock-only,
-    // el backend real decide esto. `db.business` es un solo objeto (sin
-    // multi-tenant en el mock todavía), así que este POST lo reemplaza
-    // entero — simplificación del mock, no una decisión de producto.
+    // recién registrado (ningún ERD/RN lo define) — defaults mock-only, el
+    // backend real decide esto.
     // `now` sella `commercialAgreementSignedAt` y `createdAt` con el mismo
     // instante para que ambos coincidan sin desfase intra-request.
     const now = new Date().toISOString()
+    // Respuesta del POST — forma `Business` legada (issue #21), la que
+    // `register-business.ts` sigue parseando hasta que PR10 migre el
+    // registro al contrato real (`myBusinessSchema`). Se persiste en
+    // `db.business` (transicional: ver JSDoc de `MockDb.business`) para que
+    // `GET /business/me` siga reflejándolo mientras esa lectura no migre.
     const newBusiness: Business = {
       ...businessInput,
       id: crypto.randomUUID(),
@@ -229,7 +259,27 @@ export const handlers = [
       commercialAgreementSignedAt: now,
       createdAt: now,
     }
+
+    // Fuente de autorización (real-backend-readiness PR6c, ítem mandatorio
+    // de la review de PR6b): un negocio recién registrado tiene que existir
+    // en `db.myBusiness` — la ÚNICA fuente que leen `denyUnlessOwner`/
+    // `denyUnlessActive` y `GET /business/mine` — o quedaría "registrado"
+    // sin poder pasar ninguna guarda de escritura. `PendingVerification`
+    // porque el registro es mock-only (capability real=false): todavía no
+    // hay documento legal cargado.
+    const newMyBusiness: MyBusiness = {
+      businessId: newBusiness.id,
+      name: newBusiness.displayName,
+      status: 'PendingVerification',
+      rejectionReason: null,
+      rejectedAtUtc: null,
+      hasLegalDocument: false,
+      legalDocumentWaived: false,
+      logoUrl: null,
+      hasVerificationVideo: false,
+    }
     db.business = newBusiness
+    db.myBusiness = newMyBusiness
     writeDb(db)
 
     return HttpResponse.json(newBusiness, { status: 201 })
@@ -377,7 +427,7 @@ export const handlers = [
 
     return HttpResponse.json({
       status: place.status,
-      visibleToExplorers: db.business.status === 'Active',
+      visibleToExplorers: db.myBusiness?.status === 'Active',
     })
   }),
 
@@ -461,7 +511,7 @@ export const handlers = [
       const newReward: BusinessRewardSummary = {
         ...parsed.data,
         rewardId: crypto.randomUUID(),
-        businessId: db.business.id,
+        businessId: requireMyBusiness(db).businessId,
         status: 'Draft',
         stockRemaining: parsed.data.stockTotal,
         imageUrl: null,
@@ -819,7 +869,7 @@ export const handlers = [
     `${API_BASE_URL}/portal/businesses/:businessId/analytics/summary`,
     ({ params, request }) => {
       const db = readDb()
-      if (params.businessId !== db.business.id) {
+      if (params.businessId !== db.myBusiness?.businessId) {
         return analyticsBusinessNotFound(params.businessId)
       }
 
@@ -844,7 +894,7 @@ export const handlers = [
     `${API_BASE_URL}/portal/businesses/:businessId/analytics/check-ins`,
     ({ params, request }) => {
       const db = readDb()
-      if (params.businessId !== db.business.id) {
+      if (params.businessId !== db.myBusiness?.businessId) {
         return analyticsBusinessNotFound(params.businessId)
       }
 
