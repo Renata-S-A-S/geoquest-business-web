@@ -6,6 +6,7 @@ import { ThemeSwitcher } from '@/shared/components/theme-switcher'
 import { LanguageSwitcher } from '@/shared/components/language-switcher'
 import { LegalDisclosure } from '@/features/onboarding/legal-disclosure'
 import { SignOutSection } from '@/features/settings/sign-out-section'
+import { BusinessSettingsSection } from '@/features/business/business-settings-section'
 import { useBusinessStaffMe } from '@/features/business/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 
@@ -103,6 +104,22 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col gap-4 p-4">
       <h1 className="font-display text-lg font-bold text-ink">{t('title')}</h1>
+
+      {/*
+        «Mi negocio» va PRIMERO, por delante del bloque de cuenta que antes
+        abría la pantalla. Es el único reordenamiento deliberado: `/negocio`
+        era un destino de primer nivel, y meterlo en tercera o cuarta posición
+        se leería como una degradación sobre otra degradación — exactamente la
+        sensación de «acá sacaron algo» que la fusión quiere evitar.
+
+        Además deja arriba, sin scroll, el contenido de mayor consecuencia:
+        el estado del negocio y, cuando exista el dato, el banner de
+        verificación.
+      */}
+      <Card className="flex flex-col gap-3">
+        <SectionTitle>{t('business.title')}</SectionTitle>
+        <BusinessSettingsSection />
+      </Card>
 
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('user.title')}</SectionTitle>

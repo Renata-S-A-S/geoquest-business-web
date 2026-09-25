@@ -4,8 +4,6 @@ import { ProtectedRoute } from './protected-route'
 import { LoginPage } from '@/features/auth/login-page'
 import { RegisterPage } from '@/features/onboarding/register-page'
 import { PendingStatusPage } from '@/features/onboarding/pending-page'
-import { BusinessProfilePage } from '@/features/business/business-profile-page'
-import { BusinessProfileEditPage } from '@/features/business/business-profile-edit-page'
 import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { CreatePlacePage } from '@/features/places/create-place-page'
@@ -57,30 +55,22 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { path: '/', element: <Navigate to="/analytics" replace /> },
-          {
-            path: '/negocio',
-            element: (
-              <FeatureErrorBoundary featureName="Negocio">
-                <BusinessProfilePage />
-              </FeatureErrorBoundary>
-            ),
-          },
-          {
-            /*
-             * `/negocio/editar` (#72, PR5) — hermana de `/negocio`, no un
-             * modo dentro de la misma página (mismo criterio que
-             * `/registro`/`/registro/pendiente`): le da a `navigate` un
-             * destino real tras guardar y mantiene el fork
-             * pending/error/no-Owner/form de `BusinessProfileEditPage`
-             * simple, en un solo lugar (decisión D4).
-             */
-            path: '/negocio/editar',
-            element: (
-              <FeatureErrorBoundary featureName="Negocio">
-                <BusinessProfileEditPage />
-              </FeatureErrorBoundary>
-            ),
-          },
+          /*
+           * `/negocio` y `/negocio/editar` SE QUITARON (24 sep 2026, análisis
+           * de UX + decisión de Derek). Su contenido vive ahora como la
+           * primera sección de `/configuracion`.
+           *
+           * El motivo: de los 18 campos que mostraba, 3 eran editables —y su
+           * `PATCH /business/me` no existe en el backend—, 4 son identidad
+           * legal congelada por RN-BIZ-01, y el resto eran métricas. Datos de
+           * referencia con un formulario roto encima no ganan una pestaña; las
+           * pestañas son para bucles operativos.
+           *
+           * `BusinessProfileForm` y `BusinessProfileEditPage` quedan en el
+           * árbol SIN ruta a propósito: están completos y testeados. El día
+           * que el `PATCH` exista se vuelven a enlazar y esto se revierte sin
+           * rediseñar nada. Ver `Renata-S-A-S/geoquest#191`.
+           */
           {
             /*
              * `/configuracion` (#72, PR6) — pantalla de cuenta a nivel de

@@ -24,12 +24,40 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('heading', { name: 'Configuración' })).toBeInTheDocument()
   })
 
-  it('muestra el indicador de carga del bloque de cuenta mientras la query está pendiente', async () => {
+  /**
+   * `findAllByRole` y no `findByRole`: desde la fusión de `/negocio` la
+   * pantalla tiene DOS bloques que cargan por separado, el del negocio y el de
+   * la cuenta. Que sean dos indicadores y no uno es la conducta buscada — cada
+   * bloque degrada solo, así que una falla en uno no tumba al otro.
+   */
+  it('muestra el indicador de carga del bloque de cuenta mientras su query está pendiente', async () => {
     server.use(http.get(`${API_BASE_URL}/business-staff/me`, () => new Promise(() => {})))
 
     renderSettingsPage()
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Cargando los datos de tu cuenta…')
+    const loaders = await screen.findAllByRole('status')
+    expect(loaders.map((node) => node.textContent)).toContain('Cargando los datos de tu cuenta…')
+  })
+
+  /**
+   * La contracara: el bloque del negocio falla y el de la cuenta sigue
+   * mostrando sus datos. Este caso fija la independencia entre las dos
+   * consultas, que antes de la fusión no podía existir porque vivían en
+   * pantallas distintas.
+   */
+  it('una falla en el bloque de negocio no tumba el bloque de cuenta', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business/me`, () =>
+        HttpResponse.json({ title: 'InternalError' }, { status: 500 })
+      )
+    )
+
+    renderSettingsPage()
+
+    // El bloque de cuenta resuelve igual.
+    expect(await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
+    // Y el de negocio muestra su propio error, acotado a su sección.
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 
   it('muestra el error inline con reintento cuando la query falla, sin renderizar los datos', async () => {
