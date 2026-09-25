@@ -202,6 +202,50 @@ export function canEditReward(reward: BusinessRewardSummary): boolean {
 }
 
 /**
+ * Estados desde los que el backend acepta PAUSAR (`Reward.cs:268-282`):
+ * `Published` o `Exhausted` → `Paused`.
+ *
+ * Una `Exhausted` **sí** se puede pausar, y no es un detalle menor: es el caso
+ * en que el negocio quiere dejar de mostrar una recompensa que ya no puede
+ * entregar. Excluirla sería más estricto que el servidor.
+ */
+export function canPauseReward(reward: BusinessRewardSummary): boolean {
+  return reward.status === 'Published' || reward.status === 'Exhausted'
+}
+
+/**
+ * Estados desde los que el backend acepta REPUBLICAR (`Reward.cs:291-300`):
+ * solo `Paused`. Cualquier otro → 409 `Reward.NotPaused`.
+ */
+export function canRepublishReward(reward: BusinessRewardSummary): boolean {
+  return reward.status === 'Paused'
+}
+
+/**
+ * Si republicar esta recompensa la va a dejar **agotada** en vez de publicada.
+ *
+ * `Reward.Republish` (`Reward.cs:298`) decide así:
+ *
+ * ```csharp
+ * Status = StockTotal is not null && StockRemaining <= 0
+ *     ? RewardStatus.Exhausted
+ *     : RewardStatus.Published;
+ * ```
+ *
+ * O sea que republicar una recompensa sin stock **no la deja publicada**. Si
+ * la interfaz dijera "republicada" y el badge mostrara "Agotada", el negocio
+ * pensaría que algo falló. Este predicado existe para poder anticiparlo ANTES
+ * de la acción y para elegir el mensaje correcto DESPUÉS.
+ *
+ * Ojo con el `StockTotal is not null`: una recompensa **sin tope** nunca cae
+ * en `Exhausted`, aunque `stockRemaining` sea `null`. Tratar `null` como cero
+ * acá haría prometer un agotamiento imposible.
+ */
+export function republishWillExhaust(reward: BusinessRewardSummary): boolean {
+  return reward.stockTotal !== null && (reward.stockRemaining ?? 0) <= 0
+}
+
+/**
  * Unidades ya comprometidas, derivadas del cliente.
  *
  * ⚠️ **El backend NO expone este número.** `Reward.StockBelowCommitted` es un

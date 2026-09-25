@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   canEditReward,
+  canPauseReward,
+  canRepublishReward,
   committedUnits,
+  republishWillExhaust,
   businessRewardStatusSchema,
   businessRewardSummarySchema,
   createBusinessRewardInputSchema,
@@ -240,5 +243,47 @@ describe('committedUnits', () => {
    */
   it('devuelve null sin tope, porque el dato NO es derivable del cliente', () => {
     expect(committedUnits({ ...SUMMARY, stockTotal: null, stockRemaining: null })).toBeNull()
+  })
+})
+
+describe('canPauseReward', () => {
+  it.each(['Published', 'Exhausted'] as const)('permite pausar en %s', (status) => {
+    expect(canPauseReward({ ...SUMMARY, status })).toBe(true)
+  })
+
+  it.each(['Draft', 'Paused', 'Archived'] as const)('no permite pausar en %s', (status) => {
+    expect(canPauseReward({ ...SUMMARY, status })).toBe(false)
+  })
+})
+
+describe('canRepublishReward', () => {
+  it('permite republicar solo en Paused', () => {
+    expect(canRepublishReward({ ...SUMMARY, status: 'Paused' })).toBe(true)
+  })
+
+  it.each(['Draft', 'Published', 'Archived', 'Exhausted'] as const)(
+    'no permite republicar en %s',
+    (status) => {
+      expect(canRepublishReward({ ...SUMMARY, status })).toBe(false)
+    }
+  )
+})
+
+describe('republishWillExhaust', () => {
+  it('anticipa el agotamiento cuando hay tope y no queda stock', () => {
+    expect(republishWillExhaust({ ...SUMMARY, stockTotal: 50, stockRemaining: 0 })).toBe(true)
+  })
+
+  it('no lo anticipa cuando queda stock', () => {
+    expect(republishWillExhaust({ ...SUMMARY, stockTotal: 50, stockRemaining: 1 })).toBe(false)
+  })
+
+  /**
+   * El guard del dominio es `StockTotal is not null && StockRemaining <= 0`, así
+   * que una recompensa SIN TOPE nunca cae en `Exhausted`. Tratar `null` como
+   * cero acá prometería un agotamiento imposible.
+   */
+  it('NUNCA lo anticipa sin tope, aunque stockRemaining sea null', () => {
+    expect(republishWillExhaust({ ...SUMMARY, stockTotal: null, stockRemaining: null })).toBe(false)
   })
 })

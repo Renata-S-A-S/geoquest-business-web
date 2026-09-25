@@ -13,7 +13,10 @@ import {
 import { isValidTaxonomy } from '@/shared/schemas/taxonomy'
 import {
   canEditReward,
+  canPauseReward,
   canPublishReward,
+  canRepublishReward,
+  republishWillExhaust,
   committedUnits,
   createBusinessRewardInputSchema,
   updateBusinessRewardInputSchema,
@@ -623,6 +626,92 @@ export const handlers = [
       writeDb(db)
 
       return HttpResponse.json(reward)
+    }
+  ),
+
+  /**
+   * `POST /portal/businesses/{businessId}/rewards/{rewardId}/pause` — #111.
+   *
+   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:31`). **204 sin body**, igual que
+   * el backend: no devuelve la recompensa, así que el portal tiene que releer.
+   * Devolver el objeto acá haría que el portal pareciera funcionar en
+   * desarrollo y se rompiera contra el backend real.
+   *
+   * `Reward.cs:268-282`: `Published`/`Exhausted` → `Paused`.
+   */
+  http.post(
+    `${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId/pause`,
+    ({ params }) => {
+      const db = readDb()
+      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
+      if (denied) return denied
+
+      const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+      if (!reward) return rewardNotFound(params.rewardId)
+
+      if (reward.status === 'Paused') {
+        return HttpResponse.json(
+          {
+            title: 'Reward.AlreadyPaused',
+            detail: 'This Reward is already Paused.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (!canPauseReward(reward)) {
+        return HttpResponse.json(
+          {
+            title: 'Reward.InvalidStatusTransition',
+            detail: `Cannot transition Reward from '${reward.status}' to 'Paused'.`,
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      reward.status = 'Paused'
+      writeDb(db)
+
+      return new HttpResponse(null, { status: 204 })
+    }
+  ),
+
+  /**
+   * `POST /portal/businesses/{businessId}/rewards/{rewardId}/republish` — #111.
+   *
+   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:32`). **204 sin body.**
+   *
+   * ⚠️ El estado resultante NO es deducible del verbo: republicar sin stock
+   * deja `Exhausted`, no `Published` (`Reward.cs:298`). El mock replica esa
+   * decisión tal cual, porque es la que hace que el portal necesite releer.
+   */
+  http.post(
+    `${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId/republish`,
+    ({ params }) => {
+      const db = readDb()
+      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
+      if (denied) return denied
+
+      const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+      if (!reward) return rewardNotFound(params.rewardId)
+
+      if (!canRepublishReward(reward)) {
+        return HttpResponse.json(
+          {
+            title: 'Reward.NotPaused',
+            detail: 'Only a Paused Reward can be republished.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      reward.status = republishWillExhaust(reward) ? 'Exhausted' : 'Published'
+      writeDb(db)
+
+      return new HttpResponse(null, { status: 204 })
     }
   ),
 
