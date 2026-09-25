@@ -23,6 +23,53 @@ import {
   type Business,
 } from '@/shared/schemas/business'
 import { loginInputSchema, type AuthTokens } from '@/shared/schemas/auth'
+import { analyticsDateSchema, analyticsGranularitySchema } from '@/shared/schemas/analytics'
+import { buildMockAnalyticsSummary, buildMockCheckInSeries } from '@/shared/mocks/analytics.mock'
+import type { AnalyticsRange } from '@/shared/lib/analytics-range'
+
+/**
+ * Lee y valida `from`/`to` del query string de los endpoints propuestos de
+ * analytics (`Renata-S-A-S/geoquest#205`). Devuelve `null` si falta alguno o si
+ * no son fechas `YYYY-MM-DD`, para que el handler responda 400 en vez de
+ * agregar sobre un rango inventado.
+ *
+ * `to < from` también cae acá: un rango invertido produciría una serie vacía y
+ * el negocio la leería como «no hubo visitas».
+ */
+function readAnalyticsRange(url: string): AnalyticsRange | null {
+  const params = new URL(url).searchParams
+  const from = params.get('from')
+  const to = params.get('to')
+
+  if (!analyticsDateSchema.safeParse(from).success) return null
+  if (!analyticsDateSchema.safeParse(to).success) return null
+  if ((to as string) < (from as string)) return null
+
+  return { from: from as string, to: to as string }
+}
+
+function analyticsMissingRange() {
+  return HttpResponse.json(
+    {
+      title: 'Analytics.InvalidRange',
+      detail:
+        "Query parameters 'from' and 'to' are required and must be YYYY-MM-DD, with from <= to.",
+      status: 400,
+    },
+    { status: 400 }
+  )
+}
+
+function analyticsBusinessNotFound(businessId: unknown) {
+  return HttpResponse.json(
+    {
+      title: 'Analytics.BusinessNotFound',
+      detail: `No Business exists with Id '${String(businessId)}' for the current session.`,
+      status: 404,
+    },
+    { status: 404 }
+  )
+}
 
 /**
  * Handlers compartidos entre el navegador (`browser.ts`, `npm run dev` y el
@@ -411,6 +458,78 @@ export const handlers = [
 
     return HttpResponse.json({ status: reward.status, visibleToExplorers: true })
   }),
+
+  /**
+   * `GET /portal/businesses/{businessId}/analytics/summary?from=&to=` — B-05.
+   *
+   * ⚠️⚠️ **ENDPOINT PROPUESTO. NO EXISTE NINGÚN ANALYTICS EN EL BACKEND.**
+   * Ver `Renata-S-A-S/geoquest#205`. Confluence lista B-05 como «sin definir» y
+   * `contratos-portal-b2b.md` §2.6 dice «Sin propuesta de shape todavía». Este
+   * handler es ficción DELIBERADA y ETIQUETADA: sirve para construir la
+   * pantalla contra una forma concreta, no para simular que el dato existe.
+   *
+   * Los agregados NO están hardcodeados: `analytics.mock.ts` sintetiza filas
+   * con la forma de `CheckIn` y de `UserReward` y las agrega como lo haría el
+   * backend, contra los lugares y recompensas que ya viven en `MockDb`. Así el
+   * desglose por lugar y el valor entregado son consistentes con el resto del
+   * mock en vez de ser números sueltos que se contradicen con `/business/places`.
+   *
+   * El 404 por `businessId` ajeno es real, no decorativo: el mock es
+   * single-tenant, así que cualquier id que no sea el del negocio de la sesión
+   * es exactamente el caso que un backend debería rechazar (RN-REW-06 aplica el
+   * mismo criterio para canjes).
+   */
+  http.get(
+    `${API_BASE_URL}/portal/businesses/:businessId/analytics/summary`,
+    ({ params, request }) => {
+      const db = readDb()
+      if (params.businessId !== db.business.id) {
+        return analyticsBusinessNotFound(params.businessId)
+      }
+
+      const range = readAnalyticsRange(request.url)
+      if (!range) return analyticsMissingRange()
+
+      return HttpResponse.json(buildMockAnalyticsSummary(range, db.places, db.rewards))
+    }
+  ),
+
+  /**
+   * `GET /portal/businesses/{businessId}/analytics/check-ins?from=&to=&granularity=day`
+   *
+   * ⚠️⚠️ **ENDPOINT PROPUESTO.** Ver `Renata-S-A-S/geoquest#205` y la nota del
+   * handler de arriba.
+   *
+   * Rechaza cualquier `granularity` que no sea `'day'` con 400 en vez de
+   * degradar en silencio al día: un cliente que pida `week` y reciba días
+   * dibujaría una serie equivocada sin que nada falle.
+   */
+  http.get(
+    `${API_BASE_URL}/portal/businesses/:businessId/analytics/check-ins`,
+    ({ params, request }) => {
+      const db = readDb()
+      if (params.businessId !== db.business.id) {
+        return analyticsBusinessNotFound(params.businessId)
+      }
+
+      const range = readAnalyticsRange(request.url)
+      if (!range) return analyticsMissingRange()
+
+      const granularity = new URL(request.url).searchParams.get('granularity') ?? 'day'
+      if (!analyticsGranularitySchema.safeParse(granularity).success) {
+        return HttpResponse.json(
+          {
+            title: 'Analytics.UnsupportedGranularity',
+            detail: `Granularity '${granularity}' is not supported. Only 'day' is.`,
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      return HttpResponse.json(buildMockCheckInSeries(range, db.places))
+    }
+  ),
 
   http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {
     const body = await request.json()

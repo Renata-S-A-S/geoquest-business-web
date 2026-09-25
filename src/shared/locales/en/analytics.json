@@ -1,0 +1,70 @@
+{
+  "title": "Analytics",
+  "loading": "Loading your metrics…",
+  "retry": "Retry",
+  "refreshing": "Updating…",
+  "errors": {
+    "generic": "We couldn't load your metrics.",
+    "business": "We couldn't identify your business, so we couldn't load its metrics either."
+  },
+  "proposal": {
+    "notice": "These metrics come from a mock: the backend has no analytics endpoints yet. The contract proposal lives in {{issue}}."
+  },
+  "period": {
+    "label": "Period",
+    "range": "From {{from}} to {{to}}",
+    "options": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days"
+    }
+  },
+  "delta": {
+    "up": "Up {{percent}} % versus the previous period",
+    "down": "Down {{percent}} % versus the previous period",
+    "flat": "Unchanged versus the previous period",
+    "none": "No previous period to compare against"
+  },
+  "metrics": {
+    "checkIns": {
+      "label": "Check-ins",
+      "hint": "Validated visits to your places."
+    },
+    "uniqueVisitors": {
+      "label": "Unique visitors",
+      "hint": "Distinct explorers who checked in."
+    },
+    "redemptions": {
+      "label": "Redemptions",
+      "hint": "Rewards your staff validated."
+    },
+    "estimatedValue": {
+      "label": "Value delivered",
+      "hint": "Sum of the estimated value of redeemed rewards.",
+      "value": "$ {{value, number}} COP"
+    },
+    "rating": {
+      "label": "Average rating",
+      "hint": "Average experience rating left by explorers.",
+      "value": "{{rating}} out of 5",
+      "empty": "No ratings yet"
+    }
+  },
+  "series": {
+    "title": "Check-ins per day",
+    "columns": {
+      "date": "Day",
+      "checkIns": "Check-ins"
+    },
+    "empty": "No check-ins in this period yet."
+  },
+  "places": {
+    "title": "By place",
+    "columns": {
+      "name": "Place",
+      "checkIns": "Check-ins",
+      "uniqueVisitors": "Unique visitors"
+    },
+    "empty": "You don't have any places yet. Create one to start measuring visits."
+  }
+}
