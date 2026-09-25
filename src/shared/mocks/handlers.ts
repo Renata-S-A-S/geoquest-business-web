@@ -26,6 +26,7 @@ import { loginInputSchema, type AuthTokens } from '@/shared/schemas/auth'
 import { analyticsDateSchema, analyticsGranularitySchema } from '@/shared/schemas/analytics'
 import { buildMockAnalyticsSummary, buildMockCheckInSeries } from '@/shared/mocks/analytics.mock'
 import type { AnalyticsRange } from '@/shared/lib/analytics-range'
+import { scanRedemptionInputSchema } from '@/shared/schemas/business-redemption'
 
 /**
  * Lee y valida `from`/`to` del query string de los endpoints propuestos de
@@ -561,4 +562,168 @@ export const handlers = [
     }
     return HttpResponse.json(tokens, { status: 200 })
   }),
+
+  /**
+   * `GET /portal/businesses/:businessId/redemptions/by-qr-token/:qrToken`
+   * — paso 1 de B-04 (#44, #45).
+   *
+   * ⚠️ **DIVERGENCIA DELIBERADA: este endpoint no existe en el backend.** Es
+   * la Opción A de `Renata-S-A-S/geoquest#202`, verificada por ausencia contra
+   * `main`@fbec604. Sin él, B-04 no se puede construir: el QR trae solo el
+   * token y el escaneo exige `userRewardId` + token.
+   *
+   * Decisión del mock: el lookup devuelve **los mismos códigos de error que el
+   * escaneo** (vencido, ya canjeado, de otro negocio). Podría devolver el
+   * estado y dejar que la previsualización lo interprete, pero avisar acá le
+   * ahorra al staff confirmar un canje que iba a fallar igual — y el canje es
+   * irreversible, así que conviene fallar antes y no después.
+   *
+   * El 404 está sobrecargado igual que en el backend real: "no existe" y "es
+   * de otro negocio" comparten código, para no permitir enumeración.
+   */
+  http.get(
+    `${API_BASE_URL}/portal/businesses/:businessId/redemptions/by-qr-token/:qrToken`,
+    ({ params }) => {
+      const db = readDb()
+      const qrToken = decodeURIComponent(String(params.qrToken))
+      const userReward = db.userRewards.find((candidate) => candidate.qrToken === qrToken)
+
+      if (!userReward || userReward.businessId !== params.businessId) {
+        return HttpResponse.json(
+          {
+            title: 'ScanRedemptionQrCommand.RewardNotFound',
+            detail: 'No UserReward matches the supplied QR token.',
+            status: 404,
+          },
+          { status: 404 }
+        )
+      }
+
+      if (userReward.redeemedAtUtc !== null) {
+        return HttpResponse.json(
+          {
+            title: 'UserReward.InvalidStatusTransition',
+            detail: 'The UserReward has already been redeemed.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      // 400, no 409 — el backend no lista `QrExpired` en `StatusCodeForScan` y
+      // cae al `_ => 400`. Sus propios comentarios dicen 409 y están mal
+      // (`geoquest#206`); el mock copia el comportamiento, no el comentario.
+      if (new Date(userReward.qrExpiresAtUtc).getTime() < Date.now()) {
+        return HttpResponse.json(
+          {
+            title: 'ScanRedemptionQrCommand.QrExpired',
+            detail: 'The QR token has expired.',
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      // Solo los campos del contrato propuesto: ni `qrToken` ni `businessId`
+      // ni `redeemedAtUtc`, que son de bookkeeping del mock.
+      return HttpResponse.json({
+        userRewardId: userReward.userRewardId,
+        rewardId: userReward.rewardId,
+        rewardTitle: userReward.rewardTitle,
+        explorerId: userReward.explorerId,
+        origin: userReward.origin,
+        geoPointsCostSnapshot: userReward.geoPointsCostSnapshot,
+        estimatedValueCopSnapshot: userReward.estimatedValueCopSnapshot,
+        qrExpiresAtUtc: userReward.qrExpiresAtUtc,
+      })
+    }
+  ),
+
+  /**
+   * `POST /portal/businesses/:businessId/redemptions/scan` — paso 2 de B-04
+   * (#46). **Este endpoint SÍ existe** (`RedemptionEndpoints.cs`).
+   *
+   * Devuelve **204 sin cuerpo**, que es lo que hace el backend real y lo que
+   * obliga a que el estado post-canje (#48) se arme con los datos que ya
+   * trajo la previsualización.
+   *
+   * ⚠️ Es el primer handler del repo que responde 204: todos los demás
+   * devuelven un JSON. No "completar" la respuesta con un cuerpo por
+   * simetría — el 204 es el contrato.
+   *
+   * No se modela el 401 (claim `sub` ausente): el interceptor de sesión
+   * siempre manda el token, así que no hay forma de llegar a ese caso desde
+   * el portal.
+   */
+  http.post(
+    `${API_BASE_URL}/portal/businesses/:businessId/redemptions/scan`,
+    async ({ request, params }) => {
+      const parsed = scanRedemptionInputSchema.safeParse(await request.json())
+
+      if (!parsed.success) {
+        return HttpResponse.json(
+          {
+            title: 'Validation.Failed',
+            detail: parsed.error.issues[0]?.message,
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      const db = readDb()
+      const userReward = db.userRewards.find(
+        (candidate) => candidate.userRewardId === parsed.data.userRewardId
+      )
+
+      if (!userReward || userReward.businessId !== params.businessId) {
+        return HttpResponse.json(
+          {
+            title: 'ScanRedemptionQrCommand.RewardNotFound',
+            detail: 'No UserReward exists with the supplied id.',
+            status: 404,
+          },
+          { status: 404 }
+        )
+      }
+
+      if (userReward.qrToken !== parsed.data.qrToken) {
+        return HttpResponse.json(
+          {
+            title: 'ScanRedemptionQrCommand.InvalidQrToken',
+            detail: 'The supplied QR token does not match the UserReward.',
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      if (userReward.redeemedAtUtc !== null) {
+        return HttpResponse.json(
+          {
+            title: 'UserReward.InvalidStatusTransition',
+            detail: 'The UserReward has already been redeemed.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (new Date(userReward.qrExpiresAtUtc).getTime() < Date.now()) {
+        return HttpResponse.json(
+          {
+            title: 'ScanRedemptionQrCommand.QrExpired',
+            detail: 'The QR token has expired.',
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      userReward.redeemedAtUtc = new Date().toISOString()
+      writeDb(db)
+
+      return new HttpResponse(null, { status: 204 })
+    }
+  ),
 ]

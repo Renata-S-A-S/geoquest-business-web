@@ -145,3 +145,105 @@ export const SEED_REWARDS: BusinessRewardSummary[] = [
     imageUrl: null,
   },
 ]
+
+/**
+ * Canjes semilla para B-04. Tienen la forma del lookup por token (Opción A de
+ * `Renata-S-A-S/geoquest#202`) más los campos que el mock necesita para decidir
+ * los errores: el token en claro, el negocio dueño y si ya se canjeó.
+ *
+ * ⚠️ El backend guarda `QrTokenHash` (SHA-256 hex del token), **nunca el token
+ * en claro**. El mock guarda el claro porque no tiene con qué hashear de forma
+ * equivalente y porque nada de esto es un secreto real. No copiar ese campo a
+ * ningún schema de contrato.
+ *
+ * Cuatro casos sembrados a propósito: los dos `origin` (que es lo que #47
+ * necesita demostrar) más los dos estados que hacen fallar un canje — uno ya
+ * canjeado y uno vencido. Sin ellos, los dos errores más importantes del flujo
+ * no tendrían cómo probarse.
+ *
+ * Los tokens tienen la forma real (44 caracteres base64 terminados en `=`) y
+ * evitan `+` y `/` a propósito, para que los tests no queden atados al bug de
+ * encoding de path que documenta `get-redemption-by-qr-token.ts`.
+ */
+export const SEED_PURCHASED_QR_TOKEN = `Pur${'A'.repeat(40)}=`
+export const SEED_PRIZE_QR_TOKEN = `Pri${'B'.repeat(40)}=`
+export const SEED_REDEEMED_QR_TOKEN = `Red${'C'.repeat(40)}=`
+export const SEED_EXPIRED_QR_TOKEN = `Exp${'D'.repeat(40)}=`
+
+export interface MockUserReward {
+  userRewardId: string
+  rewardId: string
+  rewardTitle: string
+  explorerId: string
+  origin: 'Purchased' | 'Prize'
+  geoPointsCostSnapshot: number
+  estimatedValueCopSnapshot: number
+  qrExpiresAtUtc: string
+  /** Solo del mock — el backend guarda el hash. Ver el comentario de arriba. */
+  qrToken: string
+  businessId: string
+  redeemedAtUtc: string | null
+}
+
+/** Fechas fijas y lejanas para que ningún test dependa del reloj. */
+const FAR_FUTURE = '2099-01-01T00:00:00Z'
+const LONG_PAST = '2020-01-01T00:00:00Z'
+
+export const SEED_USER_REWARDS: MockUserReward[] = [
+  {
+    userRewardId: '00000000-0000-0000-0000-000000000030',
+    rewardId: SEED_REWARDS[0].rewardId,
+    rewardTitle: SEED_REWARDS[0].title,
+    explorerId: '00000000-0000-0000-0000-0000000000a1',
+    origin: 'Purchased',
+    geoPointsCostSnapshot: 100,
+    estimatedValueCopSnapshot: 15000,
+    qrExpiresAtUtc: FAR_FUTURE,
+    qrToken: SEED_PURCHASED_QR_TOKEN,
+    businessId: SEED_BUSINESS.id,
+    redeemedAtUtc: null,
+  },
+  // `Prize` con costo 0 — RN-REW-10: no descontó saldo. Es el caso que #47
+  // necesita para que el staff no lea ese 0 como un dato roto.
+  {
+    userRewardId: '00000000-0000-0000-0000-000000000031',
+    rewardId: SEED_REWARDS[1].rewardId,
+    rewardTitle: SEED_REWARDS[1].title,
+    explorerId: '00000000-0000-0000-0000-0000000000a2',
+    origin: 'Prize',
+    geoPointsCostSnapshot: 0,
+    estimatedValueCopSnapshot: 12000,
+    qrExpiresAtUtc: FAR_FUTURE,
+    qrToken: SEED_PRIZE_QR_TOKEN,
+    businessId: SEED_BUSINESS.id,
+    redeemedAtUtc: null,
+  },
+  // Ya canjeado: reintentarlo devuelve 409 `UserReward.InvalidStatusTransition`.
+  {
+    userRewardId: '00000000-0000-0000-0000-000000000032',
+    rewardId: SEED_REWARDS[0].rewardId,
+    rewardTitle: SEED_REWARDS[0].title,
+    explorerId: '00000000-0000-0000-0000-0000000000a3',
+    origin: 'Purchased',
+    geoPointsCostSnapshot: 100,
+    estimatedValueCopSnapshot: 15000,
+    qrExpiresAtUtc: FAR_FUTURE,
+    qrToken: SEED_REDEEMED_QR_TOKEN,
+    businessId: SEED_BUSINESS.id,
+    redeemedAtUtc: '2026-09-01T12:00:00Z',
+  },
+  // Vencido: 400 `ScanRedemptionQrCommand.QrExpired`, no 409 — ver geoquest#206.
+  {
+    userRewardId: '00000000-0000-0000-0000-000000000033',
+    rewardId: SEED_REWARDS[0].rewardId,
+    rewardTitle: SEED_REWARDS[0].title,
+    explorerId: '00000000-0000-0000-0000-0000000000a4',
+    origin: 'Purchased',
+    geoPointsCostSnapshot: 100,
+    estimatedValueCopSnapshot: 15000,
+    qrExpiresAtUtc: LONG_PAST,
+    qrToken: SEED_EXPIRED_QR_TOKEN,
+    businessId: SEED_BUSINESS.id,
+    redeemedAtUtc: null,
+  },
+]

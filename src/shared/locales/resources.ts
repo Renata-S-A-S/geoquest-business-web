@@ -16,6 +16,8 @@ import esRewards from './es/rewards.json'
 import enRewards from './en/rewards.json'
 import esAnalytics from './es/analytics.json'
 import enAnalytics from './en/analytics.json'
+import esRedemptions from './es/redemptions.json'
+import enRedemptions from './en/redemptions.json'
 
 /**
  * Bundle de recursos + registro de namespaces, compartido por el init real
@@ -34,6 +36,7 @@ export const resources = {
     places: esPlaces,
     rewards: esRewards,
     analytics: esAnalytics,
+    redemptions: esRedemptions,
   },
   en: {
     common: enCommon,
@@ -45,6 +48,7 @@ export const resources = {
     places: enPlaces,
     rewards: enRewards,
     analytics: enAnalytics,
+    redemptions: enRedemptions,
   },
 } as const
 
@@ -58,5 +62,6 @@ export const ns = [
   'places',
   'rewards',
   'analytics',
+  'redemptions',
 ] as const
 export const defaultNS = 'common' as const

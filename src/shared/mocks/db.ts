@@ -1,5 +1,12 @@
 import { createMockStorage, type MockStorage } from '@/shared/mocks/storage'
-import { SEED_BUSINESS, SEED_BUSINESS_STAFF, SEED_PLACES, SEED_REWARDS } from '@/shared/mocks/seed'
+import {
+  SEED_BUSINESS,
+  SEED_BUSINESS_STAFF,
+  SEED_PLACES,
+  SEED_REWARDS,
+  SEED_USER_REWARDS,
+  type MockUserReward,
+} from '@/shared/mocks/seed'
 import type { Business, BusinessStaff } from '@/shared/schemas/business'
 import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
 import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
@@ -11,6 +18,8 @@ interface MockDb {
   businessStaff: BusinessStaff
   places: BusinessPlaceDetail[]
   rewards: BusinessRewardSummary[]
+  /** Canjes de B-04. Los muta el handler de escaneo al confirmar. */
+  userRewards: MockUserReward[]
 }
 
 /**
@@ -32,6 +41,7 @@ function seedDb(): MockDb {
     businessStaff: SEED_BUSINESS_STAFF,
     places: SEED_PLACES,
     rewards: SEED_REWARDS,
+    userRewards: SEED_USER_REWARDS,
   })
 }
 
