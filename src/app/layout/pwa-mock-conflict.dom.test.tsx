@@ -23,17 +23,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  * app.
  */
 
-// `USE_MOCKS` se expone como getter para poder variarlo por caso: `AppShell`
-// lo lee al renderizar, no al importar, así que el getter alcanza y evita
+// `BACKEND_MODE` se expone como getter para poder variarlo por caso:
+// `AppShell` lo lee al renderizar (real-backend-readiness PR1 lo migró de
+// `USE_MOCKS` crudo a esta costura), así que el getter alcanza y evita
 // re-importar el módulo entre tests.
-let useMocksValue = true
+let backendMode: 'mock' | 'real' = 'mock'
 
-vi.mock('@/shared/lib/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/shared/lib/env')>()
+vi.mock('@/shared/lib/backend-capabilities', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/lib/backend-capabilities')>()
   return {
     ...actual,
-    get USE_MOCKS() {
-      return useMocksValue
+    get BACKEND_MODE() {
+      return backendMode
     },
   }
 })
@@ -65,7 +66,7 @@ function renderShell() {
 
 describe('AppShell — conflicto de service workers (#86)', () => {
   beforeEach(() => {
-    useMocksValue = true
+    backendMode = 'mock'
   })
 
   it('NO monta el prompt de PWA cuando los mocks están activos', () => {
@@ -78,7 +79,7 @@ describe('AppShell — conflicto de service workers (#86)', () => {
     // El día que exista el backend real los mocks se apagan y la PWA debe
     // seguir funcionando: esta mitad evita que el arreglo de #86 la deje
     // desactivada para siempre.
-    useMocksValue = false
+    backendMode = 'real'
     renderShell()
 
     expect(screen.getByText('Hay una versión nueva disponible')).toBeInTheDocument()

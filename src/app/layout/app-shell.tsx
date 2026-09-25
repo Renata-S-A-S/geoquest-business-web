@@ -3,7 +3,7 @@ import { SidebarNav } from './sidebar-nav'
 import { BottomNav } from './bottom-nav'
 import { MobileTopBar } from './mobile-top-bar'
 import { PwaUpdatePrompt } from '@/app/components/pwa-update-prompt'
-import { USE_MOCKS } from '@/shared/lib/env'
+import { BACKEND_MODE } from '@/shared/lib/backend-capabilities'
 
 /**
  * Shell del portal, mobile-first: `BottomNav` por debajo de 1024px,
@@ -43,7 +43,7 @@ export function AppShell() {
         </main>
         <BottomNav />
       </div>
-      {!USE_MOCKS && <PwaUpdatePrompt />}
+      {BACKEND_MODE === 'real' && <PwaUpdatePrompt />}
     </div>
   )
 }
