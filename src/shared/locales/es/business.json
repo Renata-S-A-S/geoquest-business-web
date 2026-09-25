@@ -3,45 +3,16 @@
     "loading": "Cargando los datos de tu negocio…",
     "retry": "Reintentar",
     "errors": {
-      "generic": "No pudimos cargar los datos de tu negocio."
-    },
-    "fields": {
-      "displayName": {
-        "label": "Nombre público"
-      },
-      "category": {
-        "label": "Categoría"
-      },
-      "email": {
-        "label": "Correo de contacto",
-        "hint": "Correo de contacto público del negocio — distinto del correo con el que iniciás sesión."
-      },
-      "legalName": {
-        "label": "Nombre legal"
-      },
-      "legalDocumentType": {
-        "label": "Tipo de documento"
-      },
-      "legalDocumentNumber": {
-        "label": "Número de documento"
-      },
-      "isInformalBusiness": {
-        "label": "Negocio informal"
-      }
-    },
-    "boolean": {
-      "true": "Sí",
-      "false": "No"
+      "generic": "No pudimos cargar los datos de tu negocio.",
+      "noBusiness": "No encontramos un negocio asociado a tu cuenta."
     },
     "status": {
-      "Pending": "En verificación",
       "Active": "Activo",
-      "Suspended": "Suspendido"
+      "Paused": "En pausa",
+      "Suspended": "Suspendido",
+      "PendingVerification": "En verificación",
+      "Rejected": "No aprobado"
     },
-    "legalFrozenHint": "No editable: se verificó contra tu documento legal antes de activar el negocio.",
-    "legalToggle": {
-      "show": "Ver datos legales",
-      "hide": "Ocultar datos legales"
-    }
+    "rejectedAt": "Rechazado el {{date}}"
   }
 }

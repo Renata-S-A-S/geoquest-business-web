@@ -3,45 +3,16 @@
     "loading": "Loading your business data…",
     "retry": "Retry",
     "errors": {
-      "generic": "We couldn't load your business data."
-    },
-    "fields": {
-      "displayName": {
-        "label": "Public name"
-      },
-      "category": {
-        "label": "Category"
-      },
-      "email": {
-        "label": "Contact email",
-        "hint": "The business's public contact email — different from the email you sign in with."
-      },
-      "legalName": {
-        "label": "Legal name"
-      },
-      "legalDocumentType": {
-        "label": "Document type"
-      },
-      "legalDocumentNumber": {
-        "label": "Document number"
-      },
-      "isInformalBusiness": {
-        "label": "Informal business"
-      }
-    },
-    "boolean": {
-      "true": "Yes",
-      "false": "No"
+      "generic": "We couldn't load your business data.",
+      "noBusiness": "We couldn't find a business linked to your account."
     },
     "status": {
-      "Pending": "Under review",
       "Active": "Active",
-      "Suspended": "Suspended"
+      "Paused": "Paused",
+      "Suspended": "Suspended",
+      "PendingVerification": "Under review",
+      "Rejected": "Not approved"
     },
-    "legalFrozenHint": "Not editable: verified against your legal document before the business was activated.",
-    "legalToggle": {
-      "show": "View legal data",
-      "hide": "Hide legal data"
-    }
+    "rejectedAt": "Rejected on {{date}}"
   }
 }
