@@ -20,10 +20,7 @@ describe('LanguageSwitcher', () => {
   it('marca el idioma activo con aria-pressed', () => {
     render(<LanguageSwitcher />)
 
-    expect(screen.getByRole('button', { name: 'Español' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    expect(screen.getByRole('button', { name: 'Español' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Inglés' })).toHaveAttribute('aria-pressed', 'false')
   })
 
@@ -39,10 +36,7 @@ describe('LanguageSwitcher', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Inglés' }))
 
     expect(await screen.findByRole('group', { name: 'Language' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('agrupa las opciones con un nombre accesible', () => {
