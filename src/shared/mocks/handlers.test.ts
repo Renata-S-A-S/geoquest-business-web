@@ -1,8 +1,9 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
-import { readDb, resetDb, writeDb } from '@/shared/mocks/db'
+import { applyMockBusinessScenario, readDb, resetDb, writeDb } from '@/shared/mocks/db'
 import {
   SEED_BUSINESS,
+  SEED_BUSINESS_SCENARIOS,
   SEED_BUSINESS_STAFF,
   SEED_BUSINESS_STAFF_USERNAME,
   SEED_PLACES,
@@ -40,6 +41,25 @@ describe('mock handlers — round-trip de persistencia', () => {
   it('GET /business/me devuelve el negocio semilla', async () => {
     const { data } = await apiClient.get('/business/me')
     expect(data).toMatchObject({ displayName: 'Café de la 70' })
+  })
+
+  it('GET /business/mine devuelve [myBusiness] con el escenario Active por defecto', async () => {
+    const { data } = await apiClient.get('/business/mine')
+    expect(data).toEqual([SEED_BUSINESS_SCENARIOS.Active])
+  })
+
+  it('GET /business/mine devuelve [] tras aplicar el escenario none', async () => {
+    applyMockBusinessScenario('none')
+
+    const { data } = await apiClient.get('/business/mine')
+    expect(data).toEqual([])
+  })
+
+  it('GET /business/mine refleja el escenario Suspended tras aplicarlo', async () => {
+    applyMockBusinessScenario('Suspended')
+
+    const { data } = await apiClient.get('/business/mine')
+    expect(data).toEqual([SEED_BUSINESS_SCENARIOS.Suspended])
   })
 
   it('GET /business/places devuelve el RESUMEN de la semilla, no el detalle', async () => {
