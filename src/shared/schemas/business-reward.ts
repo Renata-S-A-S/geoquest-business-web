@@ -19,35 +19,68 @@ import { z } from 'zod'
  * Acá se modela SOLO lo que el backend tiene. Agregar un campo a este
  * archivo sin verificarlo contra `Modules.Rewards` es repetir el problema
  * que esta migración está deshaciendo.
+ *
+ * ---
+ *
+ * ⚠️ **EL PORTAL MEZCLA HOY DOS CONVENCIONES DE RESOLUCIÓN DE NEGOCIO, y es
+ * transitorio.**
+ *
+ * - Las rutas VIEJAS resuelven el negocio **desde la sesión**: el cliente no
+ *   manda ningún id (`GET /business/me`, `GET /business/places`, …).
+ * - Las rutas NUEVAS de recompensas lo llevan **en el path**:
+ *   `/portal/businesses/{businessId}/rewards…`.
+ *
+ * Las dos convivirán hasta que el portal migre a `GET /business/mine`, que
+ * es lo que el backend realmente expone (un **array** de negocios, porque un
+ * dueño puede tener más de uno). Hasta entonces el `businessId` se resuelve
+ * del único negocio que el portal conoce, `useBusinessMe().data.id`.
+ *
+ * Seguimiento: `Renata-S-A-S/geoquest#191` (auditoría del contrato) y
+ * `Renata-S-A-S/geoquest#203` (bootstrap del `businessId`).
  */
 
 /**
- * `RewardStatus` del backend. Son `Draft | Published | Paused | Archived`.
+ * `RewardStatus` del backend: `Draft | Published | Paused | Archived |
+ * Exhausted`. Verificado en `Domain/RewardStatus.cs` contra backend `main`
+ * @ `ea471f4`.
  *
- * El portal usaba `['Draft','Active','Paused','Exhausted']`: `Active` es en
- * realidad `Published`, `Archived` no estaba contemplado, y **`Exhausted`
- * no existe como estado** — el agotamiento se lee de `stockRemaining`, no
- * de una transición. Mostrar "agotada" sigue siendo válido en la interfaz,
- * pero es un cálculo del cliente, no un valor del servidor.
+ * **`Exhausted` SÍ existe como estado del servidor**, al revés de lo que
+ * decía este archivo. Llegó con los PRs #195–#201 junto a la máquina de
+ * estados de stock: `SyncStockStatus()` mueve `Published` ⇄ `Exhausted`
+ * según el stock restante, y republicar una recompensa sin stock la deja
+ * `Exhausted` en vez de `Published`.
+ *
+ * El cálculo del cliente (`isRewardOutOfStock`) NO se retira: sigue
+ * sirviendo para una recompensa `Published` cuyo stock llegó a cero sin que
+ * el servidor haya sincronizado todavía. Lo que cambia es que ahora el
+ * estado agotado también puede venir dicho por el servidor.
  */
-export const businessRewardStatusSchema = z.enum(['Draft', 'Published', 'Paused', 'Archived'])
+export const businessRewardStatusSchema = z.enum([
+  'Draft',
+  'Published',
+  'Paused',
+  'Archived',
+  'Exhausted',
+])
 export type BusinessRewardStatus = z.infer<typeof businessRewardStatusSchema>
 
 /**
- * Fila del listado de recompensas del negocio.
+ * `PortalRewardResult` — la MISMA forma para el listado y para el detalle.
  *
- * ⚠️ **El path es una propuesta; la forma no.** Los campos salen del
- * dominio real (`Reward.cs`), pero hoy **no existe ningún endpoint que
- * liste las recompensas de un negocio**: el único listado es
- * `GET /rewards`, que es anónimo y **global** — devolvería el catálogo de
- * la competencia. La propuesta registrada en `geoquest#191` es
- * `GET /portal/rewards` autenticado y filtrado por el negocio del
- * llamador.
+ * ✅ **Ya no es una propuesta: el endpoint existe y está verificado.** Los
+ * PRs #195–#201 del backend (24 sep 2026) agregaron el listado por negocio
+ * y el detalle, y ambos devuelven este mismo DTO. Verificado leyendo
+ * `Contracts/PortalRewardResult.cs` contra backend `main` @ `ea471f4`.
  *
- * `status`, `stockTotal` y `stockRemaining` existen en el dominio pero no
- * en `RewardSummaryResult` (que es el DTO del browse del explorador). Un
- * listado del portal los necesita, igual que `BusinessPlaceSummaryResult`
- * incluye `status`.
+ * Que el listado y el detalle compartan forma es del backend, no una
+ * simplificación nuestra: no hay un `PortalRewardDetailResult` aparte. Por
+ * eso no se declara un segundo schema de detalle — duplicarlo solo abriría
+ * la puerta a que los dos se desincronicen.
+ *
+ * ⚠️ **Sin timestamps.** `Reward` no tiene `CreatedAtUtc` ni
+ * `UpdatedAtUtc` (confirmado leyendo la clase completa; el propio
+ * `Reward.cs:346-348` lo dice), así que ninguna pantalla puede mostrar
+ * "creada el…" ni ordenar por fecha. El orden del servidor es por título.
  */
 export const businessRewardSummarySchema = z.object({
   rewardId: z.string().uuid(),
@@ -63,13 +96,23 @@ export const businessRewardSummarySchema = z.object({
   /** Opcional en el backend: una recompensa puede no estar atada a un lugar. */
   placeId: z.string().uuid().nullable(),
   menuItemId: z.string().uuid().nullable(),
-  /** `null` hasta la primera subida vía `PUT /portal/rewards/{id}/image`. */
+  /**
+   * `null` hasta la primera subida vía
+   * `PUT /portal/businesses/{businessId}/rewards/{rewardId}/image`.
+   */
   imageUrl: z.string().nullable(),
 })
 export type BusinessRewardSummary = z.infer<typeof businessRewardSummarySchema>
 
 /**
- * `POST /portal/rewards` → body. Copia exacta de `PublishRewardRequest`.
+ * `POST /portal/businesses/{businessId}/rewards` → body. Copia exacta de
+ * `PublishRewardRequest` (verificado byte a byte en
+ * `Api/Requests/PublishRewardRequest.cs` @ `ea471f4`).
+ *
+ * ⚠️ Ojo con el ORDEN de los campos si alguien escribe un mapper a mano: el
+ * request lleva `MenuItemId` ANTES de `PlaceId`, y `PortalRewardResult` los
+ * lleva al revés. Acá no importa porque viajan por nombre en JSON, pero es
+ * una trampa real del contrato.
  *
  * **Decisión de producto (Derek, 24 sep 2026): la recompensa se crea como
  * `Draft` y se publica en un paso aparte**, manteniendo el flujo B-03.
@@ -86,7 +129,8 @@ export type BusinessRewardSummary = z.infer<typeof businessRewardSummarySchema>
  * cuando el endpoint exista, solo cambia el transporte.
  *
  * La imagen no viaja acá: se sube después con
- * `PUT /portal/rewards/{id}/image`, mismo patrón que las fotos de lugar.
+ * `PUT /portal/businesses/{businessId}/rewards/{rewardId}/image`, mismo
+ * patrón que las fotos de lugar.
  */
 export const createBusinessRewardInputSchema = z.object({
   title: z.string().min(1),
@@ -99,7 +143,15 @@ export const createBusinessRewardInputSchema = z.object({
 })
 export type CreateBusinessRewardInput = z.infer<typeof createBusinessRewardInputSchema>
 
-/** `POST /portal/rewards` → 201. Devuelve solo el id, como el de lugares. */
+/**
+ * `POST /portal/businesses/{businessId}/rewards` → 201. Devuelve solo el id,
+ * como el de lugares.
+ *
+ * ⚠️ La respuesta trae un header `Location: /rewards/{id}` que apunta a la
+ * ruta VIEJA sin scope, que **no es un GET de una recompensa** (el browse
+ * anónimo es una lista). No seguirlo: para leer la recompensa recién creada
+ * va `GET /portal/businesses/{businessId}/rewards/{rewardId}`.
+ */
 export const createdBusinessRewardSchema = z.object({ rewardId: z.string().uuid() })
 export type CreatedBusinessReward = z.infer<typeof createdBusinessRewardSchema>
 
@@ -115,7 +167,18 @@ export function isRewardOutOfStock(reward: BusinessRewardSummary): boolean {
 }
 
 /**
- * `POST /portal/rewards/{id}/publish` → 200.
+ * `POST /portal/businesses/{businessId}/rewards/{rewardId}/publish` → 200.
+ *
+ * ⚠️ **Este endpoint NO EXISTE en el backend, y es el único de recompensas
+ * que sigue siendo ficción.** Verificado @ `ea471f4`: no hay ninguna ruta
+ * `/publish`, porque `POST .../rewards` ya crea la recompensa directamente
+ * en `Published` (el handler se llama `PublishAsync`). El camino de borrador
+ * es una decisión de producto de Derek (24 sep 2026) que el backend todavía
+ * no implementó: `RewardStatus.Draft` existe y se persiste, pero ningún
+ * comando lo produce.
+ *
+ * Se mantiene tal cual para no revertir esa decisión de producto desde una
+ * tarea de transporte. Queda registrado en `geoquest#191`.
  *
  * Espejo de `PublishBusinessPlaceResult`: el backend de lugares ya devuelve
  * `{ status, visibleToExplorers }` en su publicación, y no hay motivo para

@@ -5,7 +5,8 @@
     "loading": "Cargando tus recompensas…",
     "retry": "Reintentar",
     "errors": {
-      "generic": "No pudimos cargar tus recompensas."
+      "generic": "No pudimos cargar tus recompensas.",
+      "business": "No pudimos identificar tu negocio, así que tampoco pudimos cargar sus recompensas."
     },
     "columns": {
       "title": "Recompensa",
@@ -23,7 +24,8 @@
       "Draft": "Borrador",
       "Published": "Publicada",
       "Paused": "Pausada",
-      "Archived": "Archivada"
+      "Archived": "Archivada",
+      "Exhausted": "Agotada"
     },
     "empty": {
       "title": "Todavía no hay ninguna recompensa",
@@ -78,7 +80,10 @@
       "description": "El tipo de recompensa, la clasificación General/Special, la vigencia y los términos propios no se pueden configurar todavía: el backend no tiene esos campos. Están pedidos y llegan después."
     },
     "errors": {
-      "generic": "No pudimos crear la recompensa."
-    }
+      "generic": "No pudimos crear la recompensa.",
+      "business": "No pudimos identificar tu negocio, así que no podemos crear la recompensa."
+    },
+    "loading": "Cargando los datos de tu negocio…",
+    "retry": "Reintentar"
   }
 }

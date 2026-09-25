@@ -5,8 +5,10 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
-import { SEED_REWARDS } from '@/shared/mocks/seed'
+import { SEED_BUSINESS, SEED_REWARDS } from '@/shared/mocks/seed'
 import { RewardsPage } from './rewards-page'
+
+const REWARDS_URL = `${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`
 
 function renderRewardsPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -20,8 +22,29 @@ function renderRewardsPage() {
 }
 
 describe('RewardsPage', () => {
+  /**
+   * La rama que más fácil se rompe: el listado depende del `businessId`, así
+   * que su query queda `enabled: false` mientras el negocio no resuelva. Si el
+   * contenedor no forkeara sobre la query del negocio, un `/business/me`
+   * caído dejaría la pantalla en «Cargando…» para siempre en vez de mostrar
+   * un error con reintento.
+   */
+  it('muestra un error propio, no un spinner eterno, si no puede resolver el negocio', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business/me`, () =>
+        HttpResponse.json({ title: 'InternalError' }, { status: 500 })
+      )
+    )
+
+    renderRewardsPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos identificar tu negocio')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
   it('muestra el estado de carga mientras la consulta está pendiente', async () => {
-    server.use(http.get(`${API_BASE_URL}/portal/rewards`, () => new Promise<never>(() => {})))
+    server.use(http.get(REWARDS_URL, () => new Promise<never>(() => {})))
 
     renderRewardsPage()
 
@@ -76,9 +99,7 @@ describe('RewardsPage', () => {
 
   it('muestra «Agotada» solo cuando el restante llegó a cero, sin tocar el badge de estado', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () =>
-        HttpResponse.json([{ ...SEED_REWARDS[0], stockRemaining: 0 }])
-      )
+      http.get(REWARDS_URL, () => HttpResponse.json([{ ...SEED_REWARDS[0], stockRemaining: 0 }]))
     )
 
     renderRewardsPage()
@@ -90,7 +111,7 @@ describe('RewardsPage', () => {
   })
 
   it('muestra el estado vacío con el CTA de crear cuando el negocio no tiene recompensas', async () => {
-    server.use(http.get(`${API_BASE_URL}/portal/rewards`, () => HttpResponse.json([])))
+    server.use(http.get(REWARDS_URL, () => HttpResponse.json([])))
 
     renderRewardsPage()
 
@@ -113,7 +134,7 @@ describe('RewardsPage', () => {
   it('muestra el error y permite reintentar cuando el backend falla', async () => {
     let callCount = 0
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () => {
+      http.get(REWARDS_URL, () => {
         callCount += 1
         return HttpResponse.json(
           { title: 'InternalError', detail: 'No pudimos consultar las recompensas' },

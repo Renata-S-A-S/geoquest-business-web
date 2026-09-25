@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, type StrictResponse } from 'msw'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
@@ -82,6 +82,81 @@ function analyticsBusinessNotFound(businessId: unknown) {
  * real del 25% del baseline de plataforma (ADR-041/043) vive en el backend,
  * no se reimplementa acá.
  */
+/** `problem+json` tal como lo arma `ProblemResults.ToProblem` del backend. */
+interface PortalProblem {
+  title: string
+  detail: string
+  status: number
+}
+
+/**
+ * Guardas del portal de recompensas, replicadas de `PortalAccess.AuthorizeAsync`
+ * (`Application/Abstractions/PortalAccess.cs:18-39`) contra backend `main` @
+ * `ea471f4`. Se replican EXACTAS, no en una versión «más segura»: una guarda
+ * del cliente más estricta que la del servidor esconde funcionalidad válida,
+ * que es el bug que tuvo `canPublishPlace`.
+ */
+
+/**
+ * El gate real es por DUEÑO, no por membresía: compara
+ * `businessRef.OwnerExplorerId !== explorerId` y devuelve 403
+ * `RewardPortal.NotBusinessOwner`.
+ *
+ * ⚠️ **Anti-enumeración**: un `businessId` desconocido y el de otro dueño
+ * devuelven EL MISMO 403, nunca un 404. Por eso el mock no distingue los dos
+ * casos — y por eso la interfaz nunca debe decir «negocio no encontrado».
+ */
+function denyUnlessOwner(
+  db: { business: { id: string } },
+  businessId: string | readonly string[] | undefined
+): StrictResponse<PortalProblem> | undefined {
+  if (businessId === db.business.id) return undefined
+
+  return HttpResponse.json(
+    {
+      title: 'RewardPortal.NotBusinessOwner',
+      detail: 'The authenticated explorer does not own this Business.',
+      status: 403,
+    },
+    { status: 403 }
+  )
+}
+
+/**
+ * `requireActive: true` en las cinco ESCRITURAS (crear, editar, pausar,
+ * republicar, imagen) y `false` en las tres LECTURAS (listado, detalle,
+ * historial). O sea que un negocio pausado o suspendido puede leer sus
+ * recompensas pero no tocarlas.
+ */
+function denyUnlessActive(db: {
+  business: { status: string }
+}): StrictResponse<PortalProblem> | undefined {
+  if (db.business.status === 'Active') return undefined
+
+  return HttpResponse.json(
+    {
+      title: 'RewardPortal.BusinessNotActive',
+      detail: 'Only an Active Business can perform this action.',
+      status: 403,
+    },
+    { status: 403 }
+  )
+}
+
+/** 404 `RewardPortal.RewardNotFound`, el código real del backend. */
+function rewardNotFound(
+  rewardId: string | readonly string[] | undefined
+): StrictResponse<PortalProblem> {
+  return HttpResponse.json(
+    {
+      title: 'RewardPortal.RewardNotFound',
+      detail: `No Reward exists with Id '${String(rewardId)}'.`,
+      status: 404,
+    },
+    { status: 404 }
+  )
+}
+
 export const handlers = [
   http.get(`${API_BASE_URL}/business/me`, () => {
     const { business } = readDb()
@@ -362,103 +437,126 @@ export const handlers = [
   }),
 
   /**
-   * `GET /portal/rewards` — listado de las recompensas DEL NEGOCIO.
+   * `GET /portal/businesses/{businessId}/rewards` — listado de las
+   * recompensas DEL NEGOCIO.
    *
-   * ⚠️ El path es una propuesta (`geoquest#191`); la forma no. Hoy el
-   * único listado que existe es `GET /rewards`, **anónimo y global**: usarlo
-   * para «mis recompensas» mostraría el catálogo de la competencia sin que
-   * nada falle. Por eso el mock NO lo sirve en esa ruta — servirlo
-   * legitimaria el error.
+   * ✅ Ruta REAL, verificada en `Api/PortalRewardsEndpoints.cs:26-27` contra
+   * backend `main` @ `ea471f4`. La ruta vieja `GET /portal/rewards` **fue
+   * eliminada** por los PRs #195–#201 sin alias, así que el mock tampoco la
+   * sirve: mantenerla viva escondería que el portal llamaba a un endpoint
+   * inexistente.
+   *
+   * Tampoco se sirve en `GET /rewards`, que es el browse **anónimo y
+   * global**: servirlo para «mis recompensas» legitimaría mostrar el
+   * catálogo de la competencia.
+   *
+   * `requireActive: false` en el backend para las lecturas, así que un
+   * negocio pausado o suspendido SÍ puede leer su listado.
    */
-  http.get(`${API_BASE_URL}/portal/rewards`, () => {
-    const { rewards } = readDb()
-    return HttpResponse.json(rewards)
+  http.get(`${API_BASE_URL}/portal/businesses/:businessId/rewards`, ({ params }) => {
+    const db = readDb()
+    const denied = denyUnlessOwner(db, params.businessId)
+    if (denied) return denied
+
+    return HttpResponse.json(db.rewards)
   }),
 
   /**
-   * `POST /portal/rewards` — crea la recompensa en **`Draft`**.
+   * `POST /portal/businesses/{businessId}/rewards` — crea la recompensa en
+   * **`Draft`**.
    *
-   * Decisión de producto (Derek, 24 sep 2026): se mantiene el flujo B-03,
-   * borrador primero y publicación aparte. El backend hoy crea directo en
-   * `Published`, pero `Draft` ya existe como estado persistido y su propio
-   * docstring lo declara diferido, no descartado. Divergencia deliberada,
-   * registrada en `geoquest#191`.
+   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:26,29`). El ESTADO resultante es
+   * la divergencia deliberada: el backend crea directo en `Published` (su
+   * handler se llama `PublishAsync`), pero la decisión de producto de Derek
+   * (24 sep 2026) mantiene el flujo B-03 con borrador previo. `Draft` ya
+   * existe como estado persistido. Registrada en `geoquest#191`.
    *
-   * Sin imagen: se sube después con `PUT /portal/rewards/{id}/image`.
+   * `requireActive: true` en el backend para toda escritura, de ahí el 403
+   * `RewardPortal.BusinessNotActive` cuando el negocio no está `Active`.
+   *
+   * Sin imagen: se sube después con
+   * `PUT /portal/businesses/{businessId}/rewards/{rewardId}/image`.
    */
-  http.post(`${API_BASE_URL}/portal/rewards`, async ({ request }) => {
-    const body = await request.json()
-    const parsed = createBusinessRewardInputSchema.safeParse(body)
-    if (!parsed.success) {
-      return HttpResponse.json(
-        { title: 'Validation.Failed', detail: parsed.error.issues[0]?.message, status: 400 },
-        { status: 400 }
-      )
-    }
+  http.post(
+    `${API_BASE_URL}/portal/businesses/:businessId/rewards`,
+    async ({ params, request }) => {
+      const db = readDb()
+      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
+      if (denied) return denied
 
-    const db = readDb()
-    const newReward: BusinessRewardSummary = {
-      ...parsed.data,
-      rewardId: crypto.randomUUID(),
-      businessId: db.business.id,
-      status: 'Draft',
-      stockRemaining: parsed.data.stockTotal,
-      imageUrl: null,
-    }
-    db.rewards.push(newReward)
-    writeDb(db)
+      const body = await request.json()
+      const parsed = createBusinessRewardInputSchema.safeParse(body)
+      if (!parsed.success) {
+        return HttpResponse.json(
+          { title: 'Validation.Failed', detail: parsed.error.issues[0]?.message, status: 400 },
+          { status: 400 }
+        )
+      }
 
-    return HttpResponse.json({ rewardId: newReward.rewardId }, { status: 201 })
-  }),
+      const newReward: BusinessRewardSummary = {
+        ...parsed.data,
+        rewardId: crypto.randomUUID(),
+        businessId: db.business.id,
+        status: 'Draft',
+        stockRemaining: parsed.data.stockTotal,
+        imageUrl: null,
+      }
+      db.rewards.push(newReward)
+      writeDb(db)
+
+      return HttpResponse.json({ rewardId: newReward.rewardId }, { status: 201 })
+    }
+  ),
 
   /**
-   * `POST /portal/rewards/{id}/publish` — la transición que hoy falta en
-   * el backend. Espejo de `POST /business/places/{id}/publish`, incluida la
-   * precondición: así como un lugar no se publica sin al menos una foto,
-   * una recompensa no se publica sin imagen. Ver `canPublishReward`.
+   * `POST /portal/businesses/{businessId}/rewards/{rewardId}/publish` — la
+   * transición que **sigue faltando** en el backend.
+   *
+   * ⚠️ Es el único endpoint de recompensas que continúa siendo ficción:
+   * verificado @ `ea471f4`, no existe ninguna ruta `/publish`. Espejo de
+   * `POST /business/places/{id}/publish`, incluida la precondición: así como
+   * un lugar no se publica sin al menos una foto, una recompensa no se
+   * publica sin imagen. Ver `canPublishReward`.
    */
-  http.post(`${API_BASE_URL}/portal/rewards/:rewardId/publish`, ({ params }) => {
-    const db = readDb()
-    const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+  http.post(
+    `${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId/publish`,
+    ({ params }) => {
+      const db = readDb()
+      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
+      if (denied) return denied
 
-    if (!reward) {
-      return HttpResponse.json(
-        {
-          title: 'PublishRewardCommand.NotFound',
-          detail: `No Reward exists with Id '${String(params.rewardId)}'.`,
-          status: 404,
-        },
-        { status: 404 }
-      )
+      const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+
+      if (!reward) return rewardNotFound(params.rewardId)
+
+      if (reward.status === 'Published') {
+        return HttpResponse.json(
+          {
+            title: 'Reward.AlreadyPublished',
+            detail: 'The Reward is already published.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (!canPublishReward(reward)) {
+        return HttpResponse.json(
+          {
+            title: 'Reward.PublishRequiresImage',
+            detail: 'A Reward cannot be published without an image.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      reward.status = 'Published'
+      writeDb(db)
+
+      return HttpResponse.json({ status: reward.status, visibleToExplorers: true })
     }
-
-    if (reward.status === 'Published') {
-      return HttpResponse.json(
-        {
-          title: 'Reward.AlreadyPublished',
-          detail: 'The Reward is already published.',
-          status: 409,
-        },
-        { status: 409 }
-      )
-    }
-
-    if (!canPublishReward(reward)) {
-      return HttpResponse.json(
-        {
-          title: 'Reward.PublishRequiresImage',
-          detail: 'A Reward cannot be published without an image.',
-          status: 409,
-        },
-        { status: 409 }
-      )
-    }
-
-    reward.status = 'Published'
-    writeDb(db)
-
-    return HttpResponse.json({ status: reward.status, visibleToExplorers: true })
-  }),
+  ),
 
   /**
    * `GET /portal/businesses/{businessId}/analytics/summary?from=&to=` — B-05.

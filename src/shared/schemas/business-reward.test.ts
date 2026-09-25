@@ -26,18 +26,36 @@ const SUMMARY: BusinessRewardSummary = {
 }
 
 describe('businessRewardStatusSchema', () => {
-  it('usa los cuatro estados reales del backend', () => {
-    expect(businessRewardStatusSchema.options).toEqual(['Draft', 'Published', 'Paused', 'Archived'])
+  it('usa los cinco estados reales del backend', () => {
+    expect(businessRewardStatusSchema.options).toEqual([
+      'Draft',
+      'Published',
+      'Paused',
+      'Archived',
+      'Exhausted',
+    ])
   })
 
   /**
-   * El portal usaba `Active` y `Exhausted`. `Active` es en realidad
-   * `Published`, y `Exhausted` NO es un estado: el agotamiento se lee de
-   * `stockRemaining`. Parsear una respuesta real con el enum viejo fallaba.
+   * `Exhausted` SÍ es un estado del servidor, y este test decía lo contrario.
+   *
+   * Llegó con los PRs #195–#201 junto a la máquina de estados de stock
+   * (`Domain/RewardStatus.cs:26` @ `ea471f4`): `SyncStockStatus()` mueve
+   * `Published` ⇄ `Exhausted`, y republicar sin stock deja `Exhausted`. Con
+   * el enum de cuatro valores, parsear una recompensa agotada real fallaba
+   * la lista entera — el mismo tipo de bug que esta familia de tests fue
+   * escrita para evitar, solo que al revés.
    */
-  it('rechaza los valores inventados por el portal', () => {
+  it('acepta Exhausted, que es un estado real desde los PRs #195–#201', () => {
+    expect(businessRewardStatusSchema.safeParse('Exhausted').success).toBe(true)
+  })
+
+  /**
+   * `Active` sigue siendo inventado: el portal lo usaba donde el backend dice
+   * `Published`.
+   */
+  it('rechaza Active, que el portal inventó en lugar de Published', () => {
     expect(businessRewardStatusSchema.safeParse('Active').success).toBe(false)
-    expect(businessRewardStatusSchema.safeParse('Exhausted').success).toBe(false)
   })
 })
 

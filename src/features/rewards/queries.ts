@@ -1,46 +1,58 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRewards } from './api/get-rewards'
-import { createReward } from './api/create-reward'
+import { createReward, type CreateRewardFormInput } from './api/create-reward'
 
 /**
  * Registro de query keys de la slice `rewards` — issue #36 (B-03). Mismo
  * criterio que `businessKeys` (#72) y `placeKeys` (#29): las keys viven en
  * un solo lugar para que invalidar no se desincronice de leer.
  *
- * `list` no comparte prefijo con `businessKeys` ni con `placeKeys`. La key
- * describe qué hay en la cache, no de qué URL vino: si compartiera raíz con
- * el negocio, invalidar el perfil arrastraría las recompensas sin que nadie
- * lo haya pedido.
+ * **El `businessId` es parte de la key, no un detalle del transporte.** Ahora
+ * que las rutas lo llevan en el path, dos negocios distintos devuelven
+ * listados distintos para la misma pantalla; sin el id en la key, cambiar de
+ * negocio serviría la cache del anterior. Un dueño con más de un negocio es
+ * un caso real: `GET /business/mine` del backend devuelve un array
+ * justamente por eso.
+ *
+ * `list` y `detail` comparten la raíz `['rewards', businessId]` A PROPÓSITO,
+ * igual que `placeKeys`: después de pausar o republicar hay que invalidar el
+ * prefijo para que el cambio alcance al detalle Y al listado, no solo a la
+ * pantalla en la que se hizo clic.
+ *
+ * No comparte prefijo con `businessKeys` ni con `placeKeys`: la key describe
+ * qué hay en la cache, no de qué URL vino.
  */
 export const rewardKeys = {
-  list: ['rewards', 'list'] as const,
+  /** Prefijo de invalidación: alcanza el listado y todos los detalles. */
+  all: ['rewards'] as const,
+  list: (businessId: string) => ['rewards', businessId, 'list'] as const,
 }
 
 /**
- * `GET /portal/rewards` (#36) — recompensas del negocio.
+ * `GET /portal/businesses/{businessId}/rewards` (#36).
+ *
+ * Recibe el `businessId` en vez de resolverlo adentro, igual que
+ * `usePlace(placeId)`: así la dependencia queda visible en el contenedor, que
+ * es quien tiene que decidir qué mostrar mientras el negocio carga o si su
+ * lectura falla. Un hook que lo resolviera solo dejaría la query en
+ * `isPending` para siempre cuando `GET /business/me` falla — un spinner
+ * eterno sin error a la vista.
  *
  * `staleTime: 30_000`, igual que `usePlaces()` y `useBusinessMe()`:
  * amortigua refetches automáticos por foco de pestaña sin tocar el refresh
  * manual (`refetch()` ignora `staleTime`).
- *
- * Si una pantalla necesita otra frescura, se le pasa un override de
- * opciones a este hook — nunca bifurcar la key, o la invalidación deja de
- * alcanzar esa pantalla en silencio.
- *
- * La mutación de publicación (`POST /portal/rewards/{id}/publish`) NO vive
- * acá todavía: el mock ya la soporta, pero llega con su primer consumidor
- * real. La de creación sí está, abajo, con `RewardForm` (#38/#40/#41).
  */
-export function useRewards() {
+export function useRewards(businessId: string | undefined) {
   return useQuery({
-    queryKey: rewardKeys.list,
-    queryFn: getRewards,
+    queryKey: rewardKeys.list(businessId ?? ''),
+    queryFn: () => getRewards(businessId as string),
+    enabled: Boolean(businessId),
     staleTime: 30_000,
   })
 }
 
 /**
- * `POST /portal/rewards` (#38, #40, #41) — mutación del formulario.
+ * `POST /portal/businesses/{businessId}/rewards` (#38, #40, #41).
  *
  * Invalida en vez de sembrar la cache, por el mismo motivo que
  * `useCreatePlace`: el `POST` devuelve solo `{ rewardId }`, así que armar la
@@ -48,16 +60,20 @@ export function useRewards() {
  * stock restante — y esa fila inventada quedaría en pantalla hasta el
  * próximo refetch.
  *
+ * Invalida el prefijo `['rewards']` y no solo la lista del negocio actual:
+ * es una escritura, y el costo de un refetch de más es menor que el de una
+ * pantalla mostrando datos viejos.
+ *
  * Nunca optimista: el servidor puede rechazar con 400, y una lista que ya
  * mostró la recompensa tendría que quitarla.
  */
-export function useCreateReward() {
+export function useCreateReward(businessId: string | undefined) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: createReward,
+    mutationFn: (input: CreateRewardFormInput) => createReward(businessId as string, input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: rewardKeys.list })
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.all })
     },
   })
 }
