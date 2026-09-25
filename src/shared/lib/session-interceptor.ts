@@ -18,6 +18,18 @@ declare module 'axios' {
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
+export interface SessionInterceptorOptions {
+  /**
+   * Se dispara justo ANTES de `port.signOut()`, cuando el refresh tras un
+   * 401 falla (spec "session-expiry", #1547) — el redirect a `/login` lo
+   * hace `ProtectedRoute` reaccionando a `isAuthenticated`, no este módulo.
+   * Callback inyectado (no un import directo del store de toasts acá) para
+   * que este archivo siga probando el flujo completo con un `SessionPort`
+   * falso en memoria, sin mockear el store (decisión de diseño #1549).
+   */
+  onSessionExpired?: () => void
+}
+
 let refreshPromise: Promise<string> | null = null
 
 /** Seam de test: limpia el estado de refresh en vuelo entre casos. */
@@ -41,7 +53,8 @@ function ensureRefresh(port: SessionPort): Promise<string> {
  */
 export function installSessionInterceptors(
   client: AxiosInstance,
-  port: SessionPort = defaultSessionPort
+  port: SessionPort = defaultSessionPort,
+  options: SessionInterceptorOptions = {}
 ): void {
   client.interceptors.request.use((config) => {
     if ((config as RetriableConfig).skipSessionAuth) return config
@@ -69,9 +82,13 @@ export function installSessionInterceptors(
       try {
         token = await ensureRefresh(port)
       } catch {
-        // Orden: signOut primero, clear después — mismo criterio que
-        // geoquest-web (evita que un observer todavía "autenticado" repueble
-        // la cache antes de que el estado desautenticado surta efecto).
+        // Orden: toast primero (avisa MIENTRAS la sesión todavía está viva),
+        // signOut después, clear al final — mismo criterio que geoquest-web
+        // para signOut/clear (evita que un observer todavía "autenticado"
+        // repueble la cache antes de que el estado desautenticado surta
+        // efecto), extendido para que el toast no compita con el re-render
+        // del redirect que dispara `ProtectedRoute` al ver `signOut()`.
+        options.onSessionExpired?.()
         port.signOut()
         queryClient.clear()
         throw error
