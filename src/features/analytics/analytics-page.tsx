@@ -1,15 +1,51 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
+import { ActionLink } from '@/shared/components/ui/action-link'
+import { StatusBadge } from '@/shared/components/ui/status-badge'
 import { useBusinessMe } from '@/features/business/queries'
 import { useAnalyticsCheckIns, useAnalyticsSummary } from '@/features/analytics/queries'
 import { AnalyticsView } from '@/features/analytics/analytics-view'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
+import { useBackendCapabilities } from '@/shared/lib/backend-capabilities'
 import {
   DEFAULT_ANALYTICS_PERIOD_DAYS,
   resolveAnalyticsRange,
   type AnalyticsPeriodDays,
 } from '@/shared/lib/analytics-range'
+
+/**
+ * Landing "Próximamente" — real-backend-readiness, design-amendments (engram
+ * #1550, punto 1): analytics NO se borra (a diferencia del design original,
+ * que sacaba el dashboard entero, ~2300 líneas). El dashboard, su API, sus
+ * mocks y sus tests quedan intactos para cuando `Renata-S-A-S/geoquest#205`
+ * exista — acá solo se lo oculta detrás de `capabilities.analytics`.
+ *
+ * Presentational y sin queries propias a propósito: el gate de
+ * `AnalyticsPage` corta ANTES de montar `useBusinessMe()`/`useAnalyticsSummary()`/
+ * `useAnalyticsCheckIns()`, así que ningún fetch de analytics ni de negocio
+ * se dispara en modo real (spec `analytics-landing`, escenario "Visit
+ * landing" — "no analytics fetch occurs").
+ */
+function AnalyticsComingSoon() {
+  const { t } = useTranslation('analytics')
+
+  return (
+    <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 p-6 text-center">
+      <StatusBadge
+        status="comingSoon"
+        variantMap={{ comingSoon: 'neutral' }}
+        label={t('comingSoon.badge')}
+      />
+      <h1 className="font-display text-lg font-bold text-ink">{t('comingSoon.title')}</h1>
+      <p className="max-w-sm font-sans text-sm text-muted">{t('comingSoon.description')}</p>
+      <div className="flex items-center gap-4">
+        <ActionLink to="/lugares">{t('comingSoon.links.places')}</ActionLink>
+        <ActionLink to="/recompensas">{t('comingSoon.links.rewards')}</ActionLink>
+      </div>
+    </div>
+  )
+}
 
 /**
  * B-05 — Dashboard de analytics del negocio. Reemplaza el `RoutePlaceholder`
@@ -44,8 +80,16 @@ import {
  * pudimos identificar tu negocio» y «no pudimos cargar tus métricas» mandan a
  * revisar cosas distintas, y colapsarlos en un genérico haría que el negocio
  * reintentara lo que no falló.
+ *
+ * Extraído a un componente separado (`AnalyticsDashboard`) en vez de un
+ * `if` temprano dentro de `AnalyticsPage` (real-backend-readiness PR5): un
+ * early return ANTES de `useState`/`useBusinessMe`/etc. violaría las reglas
+ * de hooks (cantidad de hooks distinta entre el render "Próximamente" y el
+ * render del dashboard). Montar un componente hijo distinto según la
+ * capacidad sí es válido — React nunca intenta reconciliar los hooks de un
+ * componente con los del otro.
  */
-export function AnalyticsPage() {
+function AnalyticsDashboard() {
   const { t } = useTranslation('analytics')
   const [period, setPeriod] = useState<AnalyticsPeriodDays>(DEFAULT_ANALYTICS_PERIOD_DAYS)
 
@@ -116,4 +160,20 @@ export function AnalyticsPage() {
       isRefreshing={summaryQuery.isPlaceholderData || checkInsQuery.isPlaceholderData}
     />
   )
+}
+
+/**
+ * Punto de entrada de la ruta `/analytics` — gatea entre el "Próximamente"
+ * (real-backend-readiness PR5, `capabilities.analytics === false`) y el
+ * dashboard mock existente, que queda intacto (design-amendments #1550: la
+ * analítica NO se borra, solo se oculta detrás de la capacidad).
+ */
+export function AnalyticsPage() {
+  const capabilities = useBackendCapabilities()
+
+  if (!capabilities.analytics) {
+    return <AnalyticsComingSoon />
+  }
+
+  return <AnalyticsDashboard />
 }

@@ -1,34 +1,83 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router-dom'
 import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS } from '@/shared/mocks/seed'
+import {
+  BackendCapabilitiesProvider,
+  resolveBackendCapabilities,
+  type BackendCapabilities,
+} from '@/shared/lib/backend-capabilities'
 import { AnalyticsPage } from './analytics-page'
 
 const ANALYTICS_BASE = `${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/analytics`
 
-function renderAnalyticsPage() {
+function renderAnalyticsPage(capabilities?: BackendCapabilities) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <QueryClientProvider client={queryClient}>
-      <AnalyticsPage />
-    </QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <BackendCapabilitiesProvider value={capabilities}>
+          <AnalyticsPage />
+        </BackendCapabilitiesProvider>
+      </QueryClientProvider>
+    </MemoryRouter>
   )
 }
 
-describe('AnalyticsPage', () => {
+/**
+ * Real mode (`capabilities.analytics === false`, #1550): el dashboard entero
+ * — cascada de negocio + resumen + serie — se reemplaza por una tarjeta
+ * "Próximamente" ANTES de disparar cualquier query. `real-backend-readiness`
+ * #1550 amienda el design original (que borraba analytics por completo): el
+ * dashboard, su API, sus mocks y sus tests se conservan intactos para cuando
+ * `Renata-S-A-S/geoquest#205` exista — solo se oculta detrás de la capacidad.
+ */
+describe('AnalyticsPage — modo real (capability analytics=false)', () => {
+  it('muestra la tarjeta "Próximamente" con links a Lugares/Recompensas, sin pedir ninguna métrica', async () => {
+    let summaryRequests = 0
+    let businessRequests = 0
+    server.use(
+      http.get(`${ANALYTICS_BASE}/summary`, () => {
+        summaryRequests += 1
+        return new HttpResponse(null, { status: 500 })
+      }),
+      http.get(`${API_BASE_URL}/business/me`, () => {
+        businessRequests += 1
+        return new HttpResponse(null, { status: 500 })
+      })
+    )
+
+    renderAnalyticsPage(resolveBackendCapabilities('real'))
+
+    expect(await screen.findByText('Muy pronto')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Lugares' })).toHaveAttribute('href', '/lugares')
+    expect(screen.getByRole('link', { name: 'Recompensas' })).toHaveAttribute(
+      'href',
+      '/recompensas'
+    )
+    expect(screen.queryByRole('heading', { name: 'Analytics', level: 1 })).not.toBeInTheDocument()
+
+    // Nada de negocio ni de métricas: el gate corta ANTES del primer request.
+    expect(summaryRequests).toBe(0)
+    expect(businessRequests).toBe(0)
+  })
+})
+
+describe('AnalyticsPage — modo mock (capability analytics=true, comportamiento sin cambios)', () => {
   it('muestra el estado de carga mientras el resumen está pendiente', async () => {
     server.use(http.get(`${ANALYTICS_BASE}/summary`, () => new Promise<never>(() => {})))
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Cargando tus métricas…')
   })
 
   it('renderiza el dashboard contra los handlers MSW reales cuando todo resuelve', async () => {
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
 
     expect(await screen.findByRole('heading', { name: 'Analytics', level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('note')).toHaveTextContent('Renata-S-A-S/geoquest#205')
@@ -49,7 +98,7 @@ describe('AnalyticsPage', () => {
       http.get(`${API_BASE_URL}/business/me`, () => new HttpResponse(null, { status: 500 }))
     )
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No pudimos identificar tu negocio, así que tampoco sus métricas.'
@@ -59,7 +108,7 @@ describe('AnalyticsPage', () => {
   it('muestra el error de métricas con un botón de reintento cuando el resumen falla', async () => {
     server.use(http.get(`${ANALYTICS_BASE}/summary`, () => new HttpResponse(null, { status: 500 })))
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar tus métricas.')
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
@@ -70,7 +119,7 @@ describe('AnalyticsPage', () => {
       http.get(`${ANALYTICS_BASE}/check-ins`, () => new HttpResponse(null, { status: 500 }))
     )
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar tus métricas.')
   })
@@ -89,7 +138,7 @@ describe('AnalyticsPage', () => {
       )
     )
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'El rango pedido excede los 90 días permitidos.'
@@ -105,7 +154,7 @@ describe('AnalyticsPage', () => {
       })
     )
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
     await screen.findByRole('alert')
     expect(summaryRequests).toBe(1)
 
@@ -129,7 +178,7 @@ describe('AnalyticsPage', () => {
       })
     )
 
-    renderAnalyticsPage()
+    renderAnalyticsPage(resolveBackendCapabilities('mock'))
     await screen.findByRole('combobox', { name: 'Período' })
     await waitFor(() => expect(requestedRanges).toHaveLength(1))
 
