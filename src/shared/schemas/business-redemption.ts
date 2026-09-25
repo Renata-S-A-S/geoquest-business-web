@@ -1,27 +1,15 @@
 import { z } from 'zod'
 
 /**
- * Contrato REAL de canjes del portal (B-04), copiado de los DTOs del backend
- * desplegado (`GeoQuest.Modules.Rewards`, `main`@fbec604). Reemplaza al
- * `user-reward.ts` propuesto, que se borra en este mismo PR: modelaba un
- * `UserReward` completo que el portal nunca recibe.
+ * Contrato REAL de canjes del portal (B-04), verificado punta a punta contra
+ * el backend (`GeoQuest.Modules.Rewards`, `main`@e0f0e9a, PR #210):
+ * `RedemptionEndpoints.cs`, `Contracts/RedemptionLookupResult.cs` y
+ * `Api/Requests/{Lookup,ScanRedemptionQr}Request.cs`.
  *
- * ⚠️ **Este flujo está BLOQUEADO a nivel contrato y no es culpa del portal.**
- * Verificado punta a punta:
- *
- * 1. La app del explorador (`GeoQuestFront`,
- *    `src/features/rewards/qr-code-panel.tsx`) mete en el QR **solo** el
- *    token: `value={qrToken}`.
- * 2. El token es opaco — `Convert.ToBase64String(RandomNumberGenerator
- *    .GetBytes(32))`. El `userRewardId` **no** se puede derivar de él.
- * 3. Pero el endpoint de escaneo exige los dos:
- *    `ScanRedemptionQrRequest(Guid UserRewardId, string QrToken)`.
- * 4. **No existe ningún endpoint que mapee un token a su `userRewardId`.**
- *
- * Registrado en `Renata-S-A-S/geoquest#202`, que propone tres opciones. Acá
- * se construye asumiendo la **Opción A**: un lookup por token que devuelve
- * lo suficiente para previsualizar antes de confirmar. Es la única que
- * satisface los criterios de aceptación de #45.
+ * Reemplaza al lookup mockeado por `GET .../by-qr-token/{qrToken}` (Opción A
+ * de `Renata-S-A-S/geoquest#202`, nunca llegó a existir así): el endpoint
+ * real es `POST .../redemptions/lookup` con body `{ qrToken }`, resuelto por
+ * hash igual que el escaneo (redemption-scan-by-token, PR 2/3).
  *
  * Agregar un campo a este archivo sin verificarlo contra `Modules.Rewards`
  * es repetir el problema que la migración de `places`/`rewards` deshizo.
@@ -40,6 +28,21 @@ import { z } from 'zod'
  */
 export const redemptionOriginSchema = z.enum(['Purchased', 'Prize'])
 export type RedemptionOrigin = z.infer<typeof redemptionOriginSchema>
+
+/**
+ * `Status` EFECTIVO del lookup (`RedemptionTokenResolution.EffectiveStatus`):
+ * degrada `Earned` a `Expired` cuando el QR ya venció, aunque el estado
+ * persistido siga siendo `Earned` hasta que corra el sweep (GR-3). Solo
+ * `Earned` es redimible — el resto siempre viene con `isRedeemable: false`.
+ */
+export const redemptionStatusSchema = z.enum([
+  'Earned',
+  'Redeemed',
+  'Expired',
+  'PendingReservation',
+  'Failed',
+])
+export type RedemptionStatus = z.infer<typeof redemptionStatusSchema>
 
 /**
  * Token del QR: `Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))`.
@@ -88,84 +91,115 @@ export function createQrTokenFormSchema(t: (key: string) => string) {
 export type QrTokenFormValues = z.output<ReturnType<typeof createQrTokenFormSchema>>
 
 /**
- * `GET /portal/businesses/{businessId}/redemptions/by-qr-token/{qrToken}`
- * → 200.
+ * Body de `POST /portal/businesses/{businessId}/redemptions/lookup`
+ * (`LookupRedemptionRequest`) — el token es el único campo, igual que el del
+ * escaneo.
+ */
+export const lookupRedemptionInputSchema = z.object({
+  qrToken: z.string().min(1),
+})
+export type LookupRedemptionInput = z.infer<typeof lookupRedemptionInputSchema>
+
+/**
+ * Respuesta de `POST .../redemptions/lookup` → 200 (`RedemptionLookupResult`).
+ * Preview de solo lectura, nunca muta el `UserReward`. Nunca hay 409/410 en
+ * este endpoint: un token ya canjeado o vencido igual devuelve 200 con
+ * `isRedeemable: false` — `status` explica por qué.
  *
- * ⚠️ **DIVERGENCIA DELIBERADA: este endpoint NO EXISTE.** Es la Opción A de
- * `Renata-S-A-S/geoquest#202`, mockeada acá para que B-04 se pueda construir
- * y revisar. No es un descuido ni una suposición: es la pieza que falta,
- * registrada upstream. Cuando exista, cambia el transporte y nada más.
+ * `explorerUsername` es `null` cuando el `ExplorerRef` todavía no se proyectó
+ * para ese explorador (decision #1473) — la pantalla cae al `explorerId`.
+ * `qrExpiresAtUtc` puede ser `null` (por ejemplo, sobre un canje ya resuelto)
+ * y hay que mostrarlo sin romper.
  *
- * La forma es conservadora: son los campos que `PortalRedemptionResult` ya
- * expone (existen en el dominio y el backend ya los sabe serializar) más
- * `qrExpiresAtUtc`, que el explorador ya recibe al generar el QR. No se
- * inventa ni un campo que el backend no tenga en algún DTO.
- *
- * `explorerId` es un Guid y **nada más**. No hay nombre ni foto del
- * explorador en ningún endpoint del backend, así que el criterio de
- * aceptación de #45 que pide «nombre/foto del explorador» **no se puede
- * cumplir** y no se finge: la pantalla dice explícitamente que el portal no
- * identifica a la persona.
+ * `estimatedValueCopSnapshot`, que este archivo llegó a declarar, **no existe
+ * en `RedemptionLookupResult`** — se borra en vez de inventarlo.
  */
 export const redemptionPreviewSchema = z.object({
   userRewardId: z.string().uuid(),
   rewardId: z.string().uuid(),
   rewardTitle: z.string(),
-  /** Guid crudo. No hay nombre ni foto en el backend — ver el comentario de arriba. */
-  explorerId: z.string().uuid(),
+  rewardDescription: z.string(),
+  status: redemptionStatusSchema,
+  isRedeemable: z.boolean(),
+  qrExpiresAtUtc: z.string().nullable(),
   origin: redemptionOriginSchema,
   /** Costo congelado al ganar la recompensa. `0` cuando `origin === 'Prize'` (RN-REW-10). */
   geoPointsCostSnapshot: z.number().int().nonnegative(),
-  estimatedValueCopSnapshot: z.number().nonnegative(),
-  /** Ventana de 30 min desde la generación (RN-REW-04). */
-  qrExpiresAtUtc: z.string(),
+  explorerId: z.string().uuid(),
+  explorerUsername: z.string().nullable(),
 })
 export type RedemptionPreview = z.infer<typeof redemptionPreviewSchema>
 
 /**
- * `POST /portal/businesses/{businessId}/redemptions/scan` → **204 No Content**.
- *
- * Copia exacta de `ScanRedemptionQrRequest`. **Existe de verdad.**
+ * Por qué un preview con `isRedeemable: false` no se puede confirmar, para
+ * elegir el copy correcto (spec "Successful preview" / decisiones de #44–48).
+ * `Earned` es el único estado redimible y devuelve `null` — no debería
+ * llamarse con `isRedeemable: true`.
+ */
+export type RedemptionNotRedeemableReason = 'redeemed' | 'expired' | 'notRedeemable'
+
+export function redemptionNotRedeemableReason(
+  status: RedemptionStatus
+): RedemptionNotRedeemableReason | null {
+  switch (status) {
+    case 'Redeemed':
+      return 'redeemed'
+    case 'Expired':
+      return 'expired'
+    case 'PendingReservation':
+    case 'Failed':
+      return 'notRedeemable'
+    case 'Earned':
+      return null
+  }
+}
+
+/**
+ * Body de `POST /portal/businesses/{businessId}/redemptions/scan`
+ * (`ScanRedemptionQrRequest`) → **204 No Content**. `userRewardId` ya NO es
+ * parte del contrato (redemption-scan-by-token, PR 2): el token es la única
+ * clave de resolución.
  *
  * Devuelve 204, no la entidad actualizada — por eso el estado post-canje
  * (#48) se arma con lo que ya tenía la previsualización más la hora local, y
- * no con una respuesta del servidor. El issue #48 espera un `UserReward` con
- * `status: 'Redeemed'`, `redeemedAt` y `redeemedByStaffId`; nada de eso
- * llega, y `redeemedByStaffId` tampoco sería mostrable (sería un Guid, y no
- * hay endpoint de identidad de staff — `geoquest#203`).
+ * no con una respuesta del servidor.
  */
 export const scanRedemptionInputSchema = z.object({
-  userRewardId: z.string().uuid(),
   qrToken: z.string().min(1),
 })
 export type ScanRedemptionInput = z.infer<typeof scanRedemptionInputSchema>
 
 /**
- * Códigos de error de `title` (RFC7807) que el escaneo puede devolver, con su
- * HTTP real verificado contra `main`@fbec604.
+ * Códigos de error de `title` (RFC7807) que lookup y scan pueden devolver,
+ * verificados contra `RedemptionEndpoints.cs` (`main`@e0f0e9a, PR #210).
  *
  * Se traducen **directo** desde el código, nunca vía
  * `getProblemDetailsMessage`: ese helper resuelve `detail ?? title ??
  * fallback`, así que el `detail` del backend le ganaría a la copia del portal
  * (BL-006: el backend ignora `Accept-Language`).
  *
- * ⚠️ `QrExpired` es **400**, no 409. Los comentarios del propio backend dicen
- * 409 y están equivocados — registrado en `Renata-S-A-S/geoquest#206`. Acá no
- * se discrimina por status justamente por eso: se mapea por `title`, que es
- * estable.
+ * Los códigos `ScanRedemptionQrCommand.*` (RewardNotFound / InvalidQrToken /
+ * QrExpired) **ya no existen** — el comando se reemplazó por resolución por
+ * token. `RedemptionToken.OtherBusiness` es nuevo: desde la decision #1473 el
+ * token de 256 bits no es enumerable, así que "es de otro negocio" devuelve
+ * su propio 403 en vez de esconderse detrás del 404 anti-enumeration que
+ * aplicaba a `userRewardId` (amendment #1452).
  *
- * `UserReward.InvalidStatusTransition` (409) es lo que devuelve un QR ya
- * escaneado o reintentado. Es el error más importante del flujo: el canje es
- * de un solo uso e irreversible, así que "ya fue canjeado" tiene que leerse
- * distinto de "el código no sirve".
+ * 429 (límite de 30 req/min compartido por lookup y scan, por staff) **no se
+ * mapea acá**: se detecta por status HTTP, no por `title` — el cuerpo de un
+ * 429 no es confiable (puede ser un `ProblemDetails` genérico "Too Many
+ * Requests"). Ver `redemptionErrorMessage`.
  */
 export const REDEMPTION_ERROR_KEYS = {
-  'ScanRedemptionQrCommand.RewardNotFound': 'notFound',
-  'ScanRedemptionQrCommand.InvalidQrToken': 'invalidToken',
-  'ScanRedemptionQrCommand.QrExpired': 'expired',
-  'UserReward.InvalidStatusTransition': 'alreadyRedeemed',
+  'RedemptionToken.NotFound': 'notFound',
   'RewardPortal.NotBusinessOwner': 'notOwner',
   'RewardPortal.BusinessNotActive': 'businessNotActive',
+  'RedemptionToken.OtherBusiness': 'otherBusiness',
+  'RedemptionToken.AlreadyRedeemed': 'alreadyRedeemed',
+  'RedemptionToken.NotRedeemable': 'notRedeemable',
+  'RedemptionToken.Expired': 'expired',
+  'UserReward.InvalidStatusTransition': 'invalidTransition',
+  'UserReward.ConcurrencyConflict': 'concurrencyConflict',
 } as const satisfies Record<string, string>
 
 export type RedemptionErrorKey = (typeof REDEMPTION_ERROR_KEYS)[keyof typeof REDEMPTION_ERROR_KEYS]

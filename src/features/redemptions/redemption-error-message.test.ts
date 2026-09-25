@@ -17,12 +17,15 @@ function problemError(status: number, data: unknown): AxiosError {
 
 describe('redemptionErrorMessage', () => {
   it.each([
-    ['ScanRedemptionQrCommand.RewardNotFound', 404, 'errors.notFound'],
-    ['ScanRedemptionQrCommand.InvalidQrToken', 400, 'errors.invalidToken'],
-    ['ScanRedemptionQrCommand.QrExpired', 400, 'errors.expired'],
-    ['UserReward.InvalidStatusTransition', 409, 'errors.alreadyRedeemed'],
+    ['RedemptionToken.NotFound', 404, 'errors.notFound'],
     ['RewardPortal.NotBusinessOwner', 403, 'errors.notOwner'],
     ['RewardPortal.BusinessNotActive', 403, 'errors.businessNotActive'],
+    ['RedemptionToken.OtherBusiness', 403, 'errors.otherBusiness'],
+    ['RedemptionToken.AlreadyRedeemed', 409, 'errors.alreadyRedeemed'],
+    ['RedemptionToken.NotRedeemable', 409, 'errors.notRedeemable'],
+    ['RedemptionToken.Expired', 410, 'errors.expired'],
+    ['UserReward.InvalidStatusTransition', 409, 'errors.invalidTransition'],
+    ['UserReward.ConcurrencyConflict', 409, 'errors.concurrencyConflict'],
   ])('traduce %s a %s', (title, status, expected) => {
     expect(redemptionErrorMessage(problemError(status, { title }), t)).toBe(expected)
   })
@@ -34,8 +37,8 @@ describe('redemptionErrorMessage', () => {
    */
   it('ignora el `detail` del backend y usa la copia traducida', () => {
     const error = problemError(409, {
-      title: 'UserReward.InvalidStatusTransition',
-      detail: 'The UserReward has already been redeemed.',
+      title: 'RedemptionToken.AlreadyRedeemed',
+      detail: 'The redemption token was already redeemed.',
     })
 
     expect(redemptionErrorMessage(error, t)).toBe('errors.alreadyRedeemed')
@@ -57,5 +60,26 @@ describe('redemptionErrorMessage', () => {
 
   it('cae al genérico cuando no hay respuesta (error de red)', () => {
     expect(redemptionErrorMessage(new AxiosError('Network Error'), t)).toBe('errors.generic')
+  })
+
+  /**
+   * El límite de 30 req/min es compartido por lookup y escaneo (design D8).
+   * El cuerpo de un 429 no es confiable, así que la detección es por status,
+   * nunca por `title`.
+   */
+  it('detecta un 429 por status, sin mirar el title', () => {
+    expect(redemptionErrorMessage(problemError(429, { title: 'Too Many Requests' }), t)).toBe(
+      'errors.rateLimited'
+    )
+  })
+
+  it('detecta un 429 aunque el cuerpo no traiga ningún title conocido', () => {
+    expect(redemptionErrorMessage(problemError(429, {}), t)).toBe('errors.rateLimited')
+  })
+
+  it('un title de dominio conocido no gana contra un 429', () => {
+    expect(
+      redemptionErrorMessage(problemError(429, { title: 'RedemptionToken.AlreadyRedeemed' }), t)
+    ).toBe('errors.rateLimited')
   })
 })

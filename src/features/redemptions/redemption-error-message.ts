@@ -18,12 +18,16 @@ import { redemptionErrorKey } from '@/shared/schemas/business-redemption'
  * mensaje genérico en vez de mostrar el texto del backend: preferimos decir
  * poco y en el idioma correcto antes que mucho en el equivocado.
  *
- * Tampoco se discrimina por status HTTP: `QrExpired` y `InvalidQrToken`
- * comparten el 400 y significan cosas distintas para el staff, así que el
- * status no alcanza para elegir el mensaje.
+ * La única excepción es **429**: lookup y escaneo comparten un balde de 30
+ * requests/minuto por staff (design D8), y su cuerpo NO es confiable — puede
+ * ser un `ProblemDetails` genérico de título «Too Many Requests» en vez de un
+ * código propio del dominio. Por eso se detecta por status HTTP, antes de
+ * mirar el `title`, y no se agrega a `REDEMPTION_ERROR_KEYS`.
  */
 export function redemptionErrorMessage(error: unknown, t: TFunction<'redemptions'>): string {
   if (!axios.isAxiosError(error)) return t('errors.generic')
+
+  if (error.response?.status === 429) return t('errors.rateLimited')
 
   const parsed = problemDetailsSchema.safeParse(error.response?.data)
   if (!parsed.success) return t('errors.generic')
