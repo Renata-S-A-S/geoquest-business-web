@@ -4,23 +4,29 @@ import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
 import { Modal } from '@/shared/components/ui/modal'
 import { RedemptionOriginCallout } from './redemption-origin-callout'
-import type { RedemptionPreview } from '@/shared/schemas/business-redemption'
+import {
+  redemptionNotRedeemableReason,
+  type RedemptionPreview,
+} from '@/shared/schemas/business-redemption'
 
 /**
  * Previsualización antes de confirmar (#45) + confirmación con modal (#46).
  *
  * ⚠️ **El criterio de aceptación de #45 pide «nombre/foto del explorador» y eso
- * NO SE PUEDE CUMPLIR.** El backend no expone nombre ni foto en ningún
- * endpoint de canje: `PortalRedemptionResult` trae un `ExplorerId` crudo y nada
- * más, y no hay endpoint de identidad de explorador para el portal. Antes que
- * inventar un nombre o dejar un hueco sin explicar, la pantalla dice en voz
- * alta que no identifica a la persona y por qué eso no rompe el flujo: lo que
- * autoriza el canje es tener un token válido de un solo uso y 30 minutos de
- * vida (RN-REW-04), no el parecido de una cara.
+ * NO SE PUEDE CUMPLIR del todo.** El backend expone `explorerUsername`, pero
+ * puede venir `null` cuando el `ExplorerRef` todavía no se proyectó para ese
+ * explorador (decision #1473) — ahí se cae al `explorerId` crudo. Nunca hay
+ * foto en ningún endpoint de canje.
  *
  * Lo que sí se muestra es todo lo que el staff necesita para decidir: qué
  * entregar, si se pagó con saldo o fue premio (#47), cuánto costó y hasta
  * cuándo vale el código.
+ *
+ * ⚠️ **El backend, no la fecha del cliente, decide si el código sigue vigente.**
+ * `status`/`isRedeemable` ya vienen resueltos por `RedemptionTokenResolution`
+ * (degrada `Earned` a `Expired` cuando el QR venció, GR-3) — la vista no
+ * recalcula nada comparando `qrExpiresAtUtc` contra `Date.now()`, porque el
+ * reloj del navegador del staff no es la autoridad.
  */
 
 export interface RedemptionPreviewViewProps {
@@ -42,8 +48,8 @@ export function RedemptionPreviewView({
   const { t } = useTranslation('redemptions')
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const expiresAt = new Date(preview.qrExpiresAtUtc)
-  const isExpired = expiresAt.getTime() < Date.now()
+  const notRedeemableReason = redemptionNotRedeemableReason(preview.status)
+  const explorerDisplay = preview.explorerUsername ?? preview.explorerId
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,6 +64,7 @@ export function RedemptionPreviewView({
         <div className="flex flex-col gap-0.5">
           <span className="font-sans text-xs text-muted">{t('preview.reward')}</span>
           <span className="font-display text-base font-bold text-ink">{preview.rewardTitle}</span>
+          <p className="font-sans text-xs text-muted">{preview.rewardDescription}</p>
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-3">
@@ -67,36 +74,40 @@ export function RedemptionPreviewView({
               {t('preview.costPoints', { points: preview.geoPointsCostSnapshot })}
             </span>
           </div>
-
-          <div className="flex flex-col gap-0.5">
-            <span className="font-sans text-xs text-muted">{t('preview.value')}</span>
-            <span className="font-sans text-sm font-bold text-ink">
-              {t('preview.valueCop', { value: preview.estimatedValueCopSnapshot })}
-            </span>
-          </div>
         </div>
 
         {/*
-          El explorador se muestra como lo que es —un identificador— con la
-          advertencia al lado. `font-mono` para que quede claro que es un dato
-          técnico y no el nombre de nadie.
+          El explorador se muestra por `explorerUsername` cuando el backend lo
+          proyectó; si no, cae al identificador crudo con la advertencia al
+          lado. `font-mono` en el fallback para que quede claro que ahí es un
+          dato técnico y no un nombre de usuario.
         */}
         <div className="flex flex-col gap-0.5">
           <span className="font-sans text-xs text-muted">{t('preview.explorer.label')}</span>
-          <span className="font-mono text-xs text-ink">{preview.explorerId}</span>
-          <p className="font-sans text-xs text-muted">{t('preview.explorer.note')}</p>
+          <span
+            className={
+              preview.explorerUsername === null
+                ? 'font-mono text-xs text-ink'
+                : 'font-sans text-sm font-bold text-ink'
+            }
+          >
+            {explorerDisplay}
+          </span>
+          {preview.explorerUsername === null && (
+            <p className="font-sans text-xs text-muted">{t('preview.explorer.note')}</p>
+          )}
         </div>
       </Card>
 
-      {isExpired ? (
+      {notRedeemableReason !== null ? (
         <p role="alert" className="font-sans text-xs text-alert">
-          {t('preview.expired')}
+          {t(`preview.status.${notRedeemableReason}`)}
         </p>
-      ) : (
+      ) : preview.qrExpiresAtUtc !== null ? (
         <p className="font-sans text-xs text-muted">
-          {t('preview.expires', { time: expiresAt.toLocaleTimeString() })}
+          {t('preview.expires', { time: new Date(preview.qrExpiresAtUtc).toLocaleTimeString() })}
         </p>
-      )}
+      ) : null}
 
       {errorMessage !== null && (
         <p role="alert" className="font-sans text-xs text-alert">
@@ -106,17 +117,15 @@ export function RedemptionPreviewView({
 
       <div className="flex flex-wrap gap-2">
         {/*
-          Deshabilitado si el código ya venció: el backend lo rechazaría con
-          400 igual, y hacer que el staff descubra eso recién después de
-          apretar "confirmar" delante del cliente es peor que no ofrecerlo.
+          El backend ya decidió si el código es redimible (`isRedeemable`):
+          si no lo es, no se ofrece el botón — no tiene sentido dejar que el
+          staff dispare un escaneo que el servidor va a rechazar seguro.
         */}
-        <Button
-          variant="primary"
-          disabled={isConfirming || isExpired}
-          onClick={() => setIsModalOpen(true)}
-        >
-          {t('preview.confirm')}
-        </Button>
+        {preview.isRedeemable && (
+          <Button variant="primary" disabled={isConfirming} onClick={() => setIsModalOpen(true)}>
+            {t('preview.confirm')}
+          </Button>
+        )}
         <Button variant="secondary" disabled={isConfirming} onClick={onRestart}>
           {t('preview.restart')}
         </Button>

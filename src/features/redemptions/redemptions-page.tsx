@@ -20,15 +20,19 @@ import type { RedemptionPreview } from '@/shared/schemas/business-redemption'
  *
  * ## Por qué el flujo tiene dos pasos y no uno
  *
- * No es una preferencia de UX, es lo que el contrato obliga. El QR trae **solo**
- * un token opaco (`value={qrToken}` en el panel del explorador) y el escaneo
- * exige `{ userRewardId, qrToken }`. No hay forma de derivar el id del token, y
- * **no existe endpoint que los relacione** (`Renata-S-A-S/geoquest#202`). Así
- * que primero se busca (lookup, mockeado, Opción A de #202) y después se
- * confirma (escaneo, real).
+ * No es una preferencia de UX, es lo que el contrato pide. El QR trae **solo**
+ * un token opaco (`value={qrToken}` en el panel del explorador), y aunque el
+ * escaneo real ya resuelve por token (redemption-scan-by-token, PR 2) igual
+ * conviene previsualizar antes: el canje es irreversible y de un solo uso, así
+ * que fallar antes (código vencido, ya canjeado, de otro negocio) es mejor que
+ * fallar después de que el staff ya le dijo al cliente que sí. Primero se
+ * busca (`POST .../redemptions/lookup`, real, verificado contra
+ * `RedemptionEndpoints.cs`, `main`@e0f0e9a, PR #210) y después se confirma
+ * (`POST .../redemptions/scan`, real).
  *
  * Que además eso sea justo lo que #45 pedía —previsualizar antes de una acción
- * irreversible— es una coincidencia afortunada, no el motivo del diseño.
+ * irreversible— es coherente con el diseño del propio backend, no una excusa
+ * del portal.
  *
  * ## Cómo se resuelve el `businessId`
  *
@@ -73,10 +77,10 @@ import type { RedemptionPreview } from '@/shared/schemas/business-redemption'
 /**
  * Lo que devolvió el lookup **más el token que el staff pegó**.
  *
- * El token tiene que sobrevivir al paso 1: el escaneo lo exige de nuevo junto
- * con el `userRewardId`, y el servidor no lo devuelve nunca (guarda solo el
- * hash SHA-256). Si no se retuviera acá, confirmar obligaría a pedirle al staff
- * que pegue el mismo código dos veces.
+ * El token tiene que sobrevivir al paso 1: el escaneo lo vuelve a exigir (es
+ * su única clave de resolución), y el servidor no lo devuelve nunca en el
+ * preview (guarda solo el hash SHA-256). Si no se retuviera acá, confirmar
+ * obligaría a pedirle al staff que pegue el mismo código dos veces.
  */
 interface ActiveRedemption extends RedemptionPreview {
   qrToken: string
@@ -144,7 +148,7 @@ export function RedemptionsPage() {
           onRestart={restart}
           onConfirm={() =>
             scan.mutate(
-              { userRewardId: preview.userRewardId, qrToken: preview.qrToken },
+              { qrToken: preview.qrToken },
               {
                 // El título se guarda ANTES de limpiar la previsualización: el
                 // 204 no devuelve nada, así que es la única fuente que queda

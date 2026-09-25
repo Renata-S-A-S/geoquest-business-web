@@ -166,14 +166,24 @@ Auth: BusinessStaff bearer, misma sesión que el resto de §1.
 
 ### 2.4 UserReward — validar canje (B-04)
 
-| Verbo  | Path                                  | Body                                    | Response                                                                                                                            | Fuente         |
-| ------ | ------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| `GET`  | `/user-rewards/by-qr-token/{qrToken}` | —                                       | `UserReward` (con datos del explorador embebidos: nombre, foto — shape exacto sin definir, detalle de implementación no bloqueante) | B-04 pasos 2–3 |
-| `POST` | `/user-rewards/{id}/redeem`           | `RedeemUserRewardInput` (`{ qrToken }`) | `UserReward` (status `Redeemed`)                                                                                                    | B-04 paso 4    |
+**Contrato REAL, verificado punta a punta** contra `GeoQuest.Modules.Rewards` (`main`@e0f0e9a, PR #210, redemption-scan-by-token): `RedemptionEndpoints.cs`, `Contracts/RedemptionLookupResult.cs` y `Api/Requests/{Lookup,ScanRedemptionQr}Request.cs`. Ya no es una propuesta.
 
-RN-REW-04: el QR es válido 30 min desde su generación, un solo uso, token firmado server-side — **el portal nunca genera el token, solo lo valida**. RN-REW-06: solo `BusinessStaff` del negocio dueño de la `Reward` puede validar — el backend debe rechazar si `businessId` no coincide, no confiar en que el frontend no lo intente.
+| Verbo  | Path                                                 | Body          | Response                                   | Fuente        |
+| ------ | ---------------------------------------------------- | ------------- | ------------------------------------------ | ------------- |
+| `POST` | `/portal/businesses/{businessId}/redemptions/lookup` | `{ qrToken }` | `RedemptionLookupResult` (ver abajo) — 200 | B-04 paso 2–3 |
+| `POST` | `/portal/businesses/{businessId}/redemptions/scan`   | `{ qrToken }` | 204 sin cuerpo                             | B-04 paso 4   |
 
-`origin: Purchased | Granted` (ADR-045, RN-REW-10) determina si el canje descuenta `geoPointsCost` — **el portal debe mostrar esta distinción en B-04**, no solo el monto, para que el staff entienda por qué una `UserReward` "otorgada" no resta saldo.
+`RedemptionLookupResult`: `userRewardId`, `rewardId`, `rewardTitle`, `rewardDescription`, `status` (`Earned \| Redeemed \| Expired \| PendingReservation \| Failed` — estado EFECTIVO, degrada `Earned` a `Expired` cuando el QR ya venció aunque el estado persistido siga siendo `Earned` hasta el sweep, GR-3), `isRedeemable` (`boolean`), `qrExpiresAtUtc` (`string | null`), `origin` (`Purchased | Prize`), `geoPointsCostSnapshot` (`int`), `explorerId` (`Guid`), `explorerUsername` (`string | null` — `null` cuando el `ExplorerRef` todavía no se proyectó para ese explorador, decision #1473).
+
+El lookup **nunca devuelve 409/410**: un token ya canjeado, vencido o en cualquier otro estado no redimible responde 200 con `isRedeemable: false` y `status` explicando por qué. Errores de lookup: 404 `RedemptionToken.NotFound`; 403 `RewardPortal.NotBusinessOwner` \| `RewardPortal.BusinessNotActive` \| `RedemptionToken.OtherBusiness`.
+
+Errores de escaneo: los mismos tres 403 de arriba, más 404 `RedemptionToken.NotFound`; 409 `RedemptionToken.AlreadyRedeemed` \| `RedemptionToken.NotRedeemable` \| `UserReward.InvalidStatusTransition` \| `UserReward.ConcurrencyConflict`; 410 `RedemptionToken.Expired`. `RedemptionToken.OtherBusiness` es 403, no el 404 anti-enumeration que aplicaba a `userRewardId` (amendment #1452): el token es de 256 bits y no es enumerable (decision #1473), así que "es de otro negocio" tiene su propio código.
+
+**Rate limit**: lookup y escaneo comparten un ÚNICO balde de 30 requests/minuto por staff (ventana fija de 1 minuto, design D8) — un canje real es un lookup seguido de un escaneo, así que ambas rutas cuentan contra el mismo cupo. Rechazo: HTTP 429, sin header `Retry-After`; el cuerpo puede ser un `ProblemDetails` genérico y no es confiable — el portal detecta el límite por status, no por `title`.
+
+RN-REW-04: el QR es válido 30 min desde su generación, un solo uso, token firmado server-side — **el portal nunca genera el token, solo lo valida**. RN-REW-06: solo `BusinessStaff` del negocio dueño de la `Reward` puede validar — el backend rechaza si `businessId` no coincide, no confía en que el frontend no lo intente.
+
+`origin: Purchased | Prize` (ADR-045, RN-REW-10) determina si el canje descuenta `geoPointsCost` — **el portal muestra esta distinción en B-04**, no solo el monto, para que el staff entienda por qué una `UserReward` de origen `Prize` no resta saldo. ⚠️ RN-REW-10 y ADR-045 dicen `Granted`; el enum real del backend es `Prize`. El código sigue el valor real.
 
 ### 2.5 Commission — se expone en el portal, confirmado por Derek
 

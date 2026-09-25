@@ -21,13 +21,15 @@
     "reward": "Reward to hand over",
     "cost": "Cost to the explorer",
     "costPoints": "{{points, number}} GeoPoints",
-    "value": "Estimated value",
-    "valueCop": "$ {{value, number}} COP",
     "expires": "Code expires at {{time}}",
-    "expired": "This code has expired. Ask the customer to generate a new one in their app.",
+    "status": {
+      "redeemed": "This code was already redeemed. There is no need to hand over the reward again.",
+      "expired": "This code has expired. Ask the customer to generate a new one in their app.",
+      "notRedeemable": "This redemption is not in a state that can be validated right now."
+    },
     "explorer": {
       "label": "Explorer",
-      "note": "The portal cannot show you the customer's name or photo: the backend only returns this identifier. Whoever holds a valid code is who can redeem."
+      "note": "The backend has not projected this explorer's username yet: we show their identifier instead of a name."
     },
     "confirm": "Confirm redemption",
     "restart": "Use another code"
@@ -56,11 +58,15 @@
   },
   "errors": {
     "notFound": "We could not find any reward with this code.",
-    "invalidToken": "This code is not valid. Check that you pasted all of it.",
-    "expired": "This code has expired. QR codes last 30 minutes: ask the customer to generate a new one.",
-    "alreadyRedeemed": "This code was already redeemed. Do not hand the reward over again.",
     "notOwner": "This reward does not belong to your business, so you cannot validate it.",
     "businessNotActive": "Your business is not active, so you cannot validate redemptions right now.",
+    "otherBusiness": "This code does not belong to your business.",
+    "alreadyRedeemed": "This code was already redeemed. Do not hand the reward over again.",
+    "notRedeemable": "This code is not in a state that can be validated.",
+    "expired": "This code has expired. QR codes last 30 minutes: ask the customer to generate a new one.",
+    "invalidTransition": "This redemption's state changed and can no longer be confirmed this way. Look it up again.",
+    "concurrencyConflict": "Someone else was already processing this redemption. Look it up again before retrying.",
+    "rateLimited": "You made too many validations in a row. Wait about a minute and try again.",
     "generic": "We could not confirm the redemption. Please try again."
   }
 }
