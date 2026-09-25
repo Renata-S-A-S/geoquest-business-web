@@ -165,9 +165,7 @@ export function RewardForm({ defaultPlaceId }: RewardFormProps) {
             placeholder={t('createForm.fields.description.placeholder')}
             {...register('description')}
           />
-          <p className="font-sans text-xs text-muted">
-            {t('createForm.fields.description.hint')}
-          </p>
+          <p className="font-sans text-xs text-muted">{t('createForm.fields.description.hint')}</p>
         </FormField>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -249,9 +247,7 @@ export function RewardForm({ defaultPlaceId }: RewardFormProps) {
             placeholder={t('createForm.fields.stockTotal.placeholder')}
             {...register('stockTotal', { valueAsNumber: true })}
           />
-          <p className="font-sans text-xs text-muted">
-            {t('createForm.fields.stockTotal.hint')}
-          </p>
+          <p className="font-sans text-xs text-muted">{t('createForm.fields.stockTotal.hint')}</p>
         </FormField>
 
         {/*
@@ -264,9 +260,7 @@ export function RewardForm({ defaultPlaceId }: RewardFormProps) {
           <span className="font-sans text-xs font-bold text-ink">
             {t('createForm.unavailable.title')}
           </span>
-          <p className="font-sans text-xs text-muted">
-            {t('createForm.unavailable.description')}
-          </p>
+          <p className="font-sans text-xs text-muted">{t('createForm.unavailable.description')}</p>
         </Card>
 
         <p className="font-sans text-xs text-muted">{t('createForm.draftNote')}</p>

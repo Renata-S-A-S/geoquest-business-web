@@ -386,7 +386,11 @@ export const handlers = [
 
     if (reward.status === 'Published') {
       return HttpResponse.json(
-        { title: 'Reward.AlreadyPublished', detail: 'The Reward is already published.', status: 409 },
+        {
+          title: 'Reward.AlreadyPublished',
+          detail: 'The Reward is already published.',
+          status: 409,
+        },
         { status: 409 }
       )
     }

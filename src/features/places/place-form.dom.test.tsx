@@ -279,9 +279,7 @@ describe('PlaceForm', () => {
 
   it('cae al mensaje traducido cuando el cuerpo del error no es problem+json', async () => {
     server.use(
-      http.post(`${API_BASE_URL}/business/places`, () =>
-        HttpResponse.text('boom', { status: 500 })
-      )
+      http.post(`${API_BASE_URL}/business/places`, () => HttpResponse.text('boom', { status: 500 }))
     )
     renderPlaceForm()
 

@@ -27,12 +27,7 @@ const SUMMARY: BusinessRewardSummary = {
 
 describe('businessRewardStatusSchema', () => {
   it('usa los cuatro estados reales del backend', () => {
-    expect(businessRewardStatusSchema.options).toEqual([
-      'Draft',
-      'Published',
-      'Paused',
-      'Archived',
-    ])
+    expect(businessRewardStatusSchema.options).toEqual(['Draft', 'Published', 'Paused', 'Archived'])
   })
 
   /**
@@ -161,9 +156,9 @@ describe('isRewardOutOfStock', () => {
  */
 describe('canPublishReward', () => {
   it('permite publicar un borrador que ya tiene imagen', () => {
-    expect(
-      canPublishReward({ ...SUMMARY, status: 'Draft', imageUrl: 'https://cdn/x.jpg' })
-    ).toBe(true)
+    expect(canPublishReward({ ...SUMMARY, status: 'Draft', imageUrl: 'https://cdn/x.jpg' })).toBe(
+      true
+    )
   })
 
   it('NO permite publicar un borrador sin imagen', () => {

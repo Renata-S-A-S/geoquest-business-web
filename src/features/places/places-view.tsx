@@ -102,10 +102,7 @@ export function PlacesView({ places }: PlacesViewProps) {
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-lg font-bold text-ink">{t('list.title')}</h1>
-        <Link
-          to="/lugares/nuevo"
-          className="font-sans text-xs font-bold text-teal hover:underline"
-        >
+        <Link to="/lugares/nuevo" className="font-sans text-xs font-bold text-teal hover:underline">
           {t('list.createCta')}
         </Link>
       </div>
