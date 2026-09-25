@@ -1,0 +1,301 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HttpResponse, http } from 'msw'
+import { describe, expect, it } from 'vitest'
+import { server } from '@/test/msw-server'
+import { API_BASE_URL } from '@/shared/lib/env'
+import {
+  SEED_EXPIRED_QR_TOKEN,
+  SEED_PRIZE_QR_TOKEN,
+  SEED_PURCHASED_QR_TOKEN,
+  SEED_REDEEMED_QR_TOKEN,
+} from '@/shared/mocks/seed'
+import { RedemptionsPage } from './redemptions-page'
+
+/**
+ * Las consultas NO se mockean: se renderiza el contenedor real contra los
+ * handlers de MSW, igual que `places-page.dom.test.tsx`. Interacción con
+ * `fireEvent` porque `@testing-library/user-event` no está instalado.
+ */
+function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RedemptionsPage />
+    </QueryClientProvider>
+  )
+}
+
+async function pasteToken(token: string) {
+  const field = await screen.findByLabelText('Código del QR')
+  fireEvent.change(field, { target: { value: token } })
+  fireEvent.click(screen.getByRole('button', { name: 'Buscar canje' }))
+}
+
+/** Lleva el flujo hasta la previsualización de un canje válido. */
+async function reachPreview(token = SEED_PURCHASED_QR_TOKEN) {
+  renderPage()
+  await pasteToken(token)
+  await screen.findByRole('button', { name: 'Confirmar canje' })
+}
+
+describe('RedemptionsPage', () => {
+  it('ya no renderiza el placeholder de ruta', async () => {
+    renderPage()
+
+    await screen.findByLabelText('Código del QR')
+    expect(screen.queryByText('validar canje — pendiente')).not.toBeInTheDocument()
+  })
+
+  it('arranca en la entrada manual del código (#44)', async () => {
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Validar canje' })).toBeInTheDocument()
+  })
+
+  /**
+   * #44: valida el formato ANTES de llamar al endpoint. El contador de
+   * requests prueba que no hubo llamada, que es la mitad del criterio.
+   */
+  it('rechaza un código con formato inválido sin llamar al endpoint', async () => {
+    let calls = 0
+    server.use(
+      http.get(
+        `${API_BASE_URL}/portal/businesses/:businessId/redemptions/by-qr-token/:qrToken`,
+        () => {
+          calls += 1
+          return HttpResponse.json({}, { status: 404 })
+        }
+      )
+    )
+
+    renderPage()
+    await pasteToken('no-es-un-token')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ese código no tiene el formato de un QR de GeoQuest'
+    )
+    expect(calls).toBe(0)
+  })
+
+  it('pide el código cuando el campo está vacío', async () => {
+    renderPage()
+    await pasteToken('   ')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Pegá el código del QR')
+  })
+
+  it('acepta un token pegado con espacios alrededor', async () => {
+    renderPage()
+    await pasteToken(`  ${SEED_PURCHASED_QR_TOKEN}  `)
+
+    expect(await screen.findByRole('button', { name: 'Confirmar canje' })).toBeInTheDocument()
+  })
+
+  it('muestra la recompensa a entregar en la previsualización (#45)', async () => {
+    await reachPreview()
+
+    expect(screen.getByText('2x1 en café de especialidad')).toBeInTheDocument()
+    expect(screen.getByText('100 GeoPoints')).toBeInTheDocument()
+  })
+
+  /**
+   * #45 pide nombre y foto del explorador, y no existen en el backend. La
+   * pantalla tiene que ser explícita al respecto en vez de dejar un hueco.
+   */
+  it('avisa que no puede identificar a la persona en vez de fingir un nombre', async () => {
+    await reachPreview()
+
+    expect(
+      screen.getByText(/El portal no puede mostrarte el nombre ni la foto del cliente/)
+    ).toBeInTheDocument()
+  })
+
+  it('distingue Purchased de Prize con el indicador de #47', async () => {
+    await reachPreview(SEED_PURCHASED_QR_TOKEN)
+
+    expect(screen.getByTestId('redemption-origin')).toHaveTextContent('Comprada con GeoPoints')
+  })
+
+  /** #47: con un premio, el copy tiene que explicar que no se descontó saldo. */
+  it('explica que un premio no descuenta saldo y que el costo 0 es correcto', async () => {
+    await reachPreview(SEED_PRIZE_QR_TOKEN)
+
+    const callout = screen.getByTestId('redemption-origin')
+    expect(callout).toHaveTextContent('Premio otorgado')
+    expect(callout).toHaveTextContent('No se le descontó saldo')
+    expect(screen.getByText('0 GeoPoints')).toBeInTheDocument()
+  })
+
+  it('confirma el canje a través del modal y muestra el estado post-canje (#46, #48)', async () => {
+    await reachPreview()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar canje' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveTextContent('¿Confirmar el canje?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, ya la entregué' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Canje confirmado')
+  })
+
+  it('no confirma nada si el modal se cancela', async () => {
+    await reachPreview()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar canje' }))
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByText('Canje confirmado')).not.toBeInTheDocument()
+  })
+
+  /**
+   * #46: el botón se deshabilita mientras la request está en curso. Un doble
+   * click es un segundo intento de canje sobre un token de un solo uso, así
+   * que el contador de requests es lo que realmente prueba el criterio.
+   */
+  it('deshabilita el botón en vuelo y no manda un segundo escaneo con doble click', async () => {
+    let scans = 0
+    server.use(
+      http.post(`${API_BASE_URL}/portal/businesses/:businessId/redemptions/scan`, async () => {
+        scans += 1
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return new HttpResponse(null, { status: 204 })
+      })
+    )
+
+    await reachPreview()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar canje' }))
+    await screen.findByRole('dialog')
+
+    const accept = screen.getByRole('button', { name: 'Sí, ya la entregué' })
+    fireEvent.click(accept)
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirmando…' })).toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmando…' }))
+
+    await screen.findByRole('status')
+    expect(scans).toBe(1)
+  })
+
+  it('vuelve a la entrada de código sin recargar tras un canje (#48)', async () => {
+    await reachPreview()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar canje' }))
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, ya la entregué' }))
+    await screen.findByRole('status')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validar otro código' }))
+
+    expect(await screen.findByLabelText('Código del QR')).toHaveValue('')
+  })
+
+  it('permite descartar la previsualización y usar otro código', async () => {
+    await reachPreview()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usar otro código' }))
+
+    expect(await screen.findByLabelText('Código del QR')).toBeInTheDocument()
+  })
+
+  /** El error más importante del flujo: un QR ya usado. */
+  it('traduce el 409 de un código ya canjeado', async () => {
+    renderPage()
+    await pasteToken(SEED_REDEEMED_QR_TOKEN)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este código ya fue canjeado')
+  })
+
+  it('traduce el 400 de un código vencido', async () => {
+    renderPage()
+    await pasteToken(SEED_EXPIRED_QR_TOKEN)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este código venció')
+  })
+
+  it('traduce el 404 sin afirmar que el código no existe', async () => {
+    renderPage()
+    await pasteToken(`Nop${'Z'.repeat(40)}=`)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No encontramos ninguna recompensa con este código'
+    )
+  })
+
+  /**
+   * Protege la decisión de no usar `getProblemDetailsMessage`: si alguien lo
+   * cambia, el `detail` inglés del backend aparece en la interfaz.
+   */
+  it('ignora el `detail` del backend y usa la copia en español', async () => {
+    server.use(
+      http.get(
+        `${API_BASE_URL}/portal/businesses/:businessId/redemptions/by-qr-token/:qrToken`,
+        () =>
+          HttpResponse.json(
+            {
+              title: 'UserReward.InvalidStatusTransition',
+              detail: 'The UserReward has already been redeemed.',
+              status: 409,
+            },
+            { status: 409 }
+          )
+      )
+    )
+
+    renderPage()
+    await pasteToken(SEED_PURCHASED_QR_TOKEN)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Este código ya fue canjeado')
+    expect(alert).not.toHaveTextContent('already been redeemed')
+  })
+
+  it('limpia el error anterior al volver a la entrada', async () => {
+    renderPage()
+    await pasteToken(SEED_REDEEMED_QR_TOKEN)
+    await screen.findByRole('alert')
+
+    await pasteToken(SEED_PURCHASED_QR_TOKEN)
+
+    expect(await screen.findByRole('button', { name: 'Confirmar canje' })).toBeInTheDocument()
+  })
+
+  it('muestra el error y permite reintentar si no se pudo resolver el negocio', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/business/me`, () =>
+        HttpResponse.json(
+          { title: 'InternalError', detail: 'No pudimos leer el negocio' },
+          { status: 500 }
+        )
+      )
+    )
+
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos leer el negocio')
+  })
+
+  it('manda el businessId del negocio autenticado en la ruta', async () => {
+    let requestedUrl = ''
+    server.use(
+      http.get(
+        `${API_BASE_URL}/portal/businesses/:businessId/redemptions/by-qr-token/:qrToken`,
+        ({ request }) => {
+          requestedUrl = request.url
+          return HttpResponse.json({}, { status: 404 })
+        }
+      )
+    )
+
+    renderPage()
+    await pasteToken(SEED_PURCHASED_QR_TOKEN)
+    await screen.findByRole('alert')
+
+    expect(requestedUrl).toContain(
+      '/portal/businesses/00000000-0000-0000-0000-000000000001/redemptions/'
+    )
+  })
+})

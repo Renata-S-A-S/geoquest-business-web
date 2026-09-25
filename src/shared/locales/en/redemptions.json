@@ -1,0 +1,66 @@
+{
+  "entry": {
+    "title": "Validate redemption",
+    "description": "Ask the customer for their reward code and paste it here to see what you need to hand over.",
+    "field": {
+      "label": "QR code",
+      "placeholder": "Paste the 44-character code",
+      "hint": "The code is meant to be pasted, not typed: it is 44 characters and case-sensitive."
+    },
+    "submit": "Look up redemption",
+    "submitting": "Looking up…",
+    "errors": {
+      "required": "Paste the QR code to continue.",
+      "format": "That code is not shaped like a GeoQuest QR. It is exactly 44 characters and ends with \"=\".",
+      "generic": "We could not look up this code. Please try again."
+    }
+  },
+  "preview": {
+    "title": "Check before handing it over",
+    "irreversible": "A redemption is single-use and cannot be undone. Only confirm once you have handed the reward to the customer.",
+    "reward": "Reward to hand over",
+    "cost": "Cost to the explorer",
+    "costPoints": "{{points, number}} GeoPoints",
+    "value": "Estimated value",
+    "valueCop": "$ {{value, number}} COP",
+    "expires": "Code expires at {{time}}",
+    "expired": "This code has expired. Ask the customer to generate a new one in their app.",
+    "explorer": {
+      "label": "Explorer",
+      "note": "The portal cannot show you the customer's name or photo: the backend only returns this identifier. Whoever holds a valid code is who can redeem."
+    },
+    "confirm": "Confirm redemption",
+    "restart": "Use another code"
+  },
+  "origin": {
+    "Purchased": {
+      "label": "Bought with GeoPoints",
+      "note": "The explorer paid for this reward with their balance."
+    },
+    "Prize": {
+      "label": "Awarded as a prize",
+      "note": "No balance was deducted: they won it as a prize. A cost of zero is correct, not an error."
+    }
+  },
+  "confirm": {
+    "title": "Confirm this redemption?",
+    "description": "You are about to mark \"{{reward}}\" as handed over. This cannot be undone.",
+    "accept": "Yes, I handed it over",
+    "accepting": "Confirming…",
+    "cancel": "Cancel"
+  },
+  "done": {
+    "title": "Redemption confirmed",
+    "description": "\"{{reward}}\" is now recorded as handed over.",
+    "again": "Validate another code"
+  },
+  "errors": {
+    "notFound": "We could not find any reward with this code.",
+    "invalidToken": "This code is not valid. Check that you pasted all of it.",
+    "expired": "This code has expired. QR codes last 30 minutes: ask the customer to generate a new one.",
+    "alreadyRedeemed": "This code was already redeemed. Do not hand the reward over again.",
+    "notOwner": "This reward does not belong to your business, so you cannot validate it.",
+    "businessNotActive": "Your business is not active, so you cannot validate redemptions right now.",
+    "generic": "We could not confirm the redemption. Please try again."
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "entry": {
+    "title": "Validar canje",
+    "description": "Pedile al cliente el código de su recompensa y pegalo acá para ver qué tenés que entregar.",
+    "field": {
+      "label": "Código del QR",
+      "placeholder": "Pegá el código de 44 caracteres",
+      "hint": "El código se pega, no se escribe a mano: son 44 caracteres y distingue mayúsculas de minúsculas."
+    },
+    "submit": "Buscar canje",
+    "submitting": "Buscando…",
+    "errors": {
+      "required": "Pegá el código del QR para continuar.",
+      "format": "Ese código no tiene el formato de un QR de GeoQuest. Son exactamente 44 caracteres y termina en «=».",
+      "generic": "No pudimos buscar este código. Probá de nuevo."
+    }
+  },
+  "preview": {
+    "title": "Revisá antes de entregar",
+    "irreversible": "El canje es de un solo uso y no se puede deshacer. Confirmá recién cuando le hayas entregado la recompensa al cliente.",
+    "reward": "Recompensa a entregar",
+    "cost": "Costo para el explorador",
+    "costPoints": "{{points, number}} GeoPoints",
+    "value": "Valor estimado",
+    "valueCop": "$ {{value, number}} COP",
+    "expires": "El código vence a las {{time}}",
+    "expired": "Este código ya venció. Pedile al cliente que genere uno nuevo desde su app.",
+    "explorer": {
+      "label": "Explorador",
+      "note": "El portal no puede mostrarte el nombre ni la foto del cliente: el backend solo entrega este identificador. Quien tiene el código válido es quien puede canjear."
+    },
+    "confirm": "Confirmar canje",
+    "restart": "Usar otro código"
+  },
+  "origin": {
+    "Purchased": {
+      "label": "Comprada con GeoPoints",
+      "note": "El explorador pagó esta recompensa con su saldo."
+    },
+    "Prize": {
+      "label": "Premio otorgado",
+      "note": "No se le descontó saldo: la ganó como premio. Un costo en cero es correcto, no es un error."
+    }
+  },
+  "confirm": {
+    "title": "¿Confirmar el canje?",
+    "description": "Vas a marcar «{{reward}}» como entregada. Esta acción no se puede deshacer.",
+    "accept": "Sí, ya la entregué",
+    "accepting": "Confirmando…",
+    "cancel": "Cancelar"
+  },
+  "done": {
+    "title": "Canje confirmado",
+    "description": "«{{reward}}» quedó registrada como entregada.",
+    "again": "Validar otro código"
+  },
+  "errors": {
+    "notFound": "No encontramos ninguna recompensa con este código.",
+    "invalidToken": "Este código no es válido. Revisá que lo hayas pegado completo.",
+    "expired": "Este código venció. Los QR duran 30 minutos: pedile al cliente que genere uno nuevo.",
+    "alreadyRedeemed": "Este código ya fue canjeado. No vuelvas a entregar la recompensa.",
+    "notOwner": "Esta recompensa no es de tu negocio, así que no podés validarla.",
+    "businessNotActive": "Tu negocio no está activo, así que no podés validar canjes por ahora.",
+    "generic": "No pudimos confirmar el canje. Probá de nuevo."
+  }
+}
