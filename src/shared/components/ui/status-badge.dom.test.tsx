@@ -40,7 +40,7 @@ describe('StatusBadge', () => {
     const expectedBg: Record<StatusBadgeVariant, string> = {
       neutral: 'bg-paper',
       success: 'bg-surface-mint',
-      warning: 'bg-surface-skeleton',
+      warning: 'bg-surface-warning',
       error: 'bg-surface-alert',
     }
     for (const variant of variants) {

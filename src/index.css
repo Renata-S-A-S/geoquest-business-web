@@ -29,6 +29,11 @@
   --color-ink: #10262b;
   --color-cream: #fff9f2;
   --color-alert: #e5484d;
+  /* #1550/real-backend-readiness: primer color de marca agregado desde el
+     ADR-047-BF original — antes "warning" se resolvía como `neutral` por no
+     existir token (ver `status-badge.tsx`, comentario histórico). Ámbar,
+     para no pisar `coral` (reservado a acentos puntuales, nunca a estado). */
+  --color-warning: #d97706;
 
   /* Neutros */
   --color-border: #e4dfd4;
@@ -39,6 +44,7 @@
   --color-surface-mint: #e1f0e6;
   --color-surface-teal: #e1f5ee;
   --color-surface-alert: #fdecec;
+  --color-surface-warning: #fdf1d9;
   --color-surface-skeleton: #e9e5dc;
   --color-surface-placeholder: #dcd6c8;
   --color-surface-raised: #ffffff;
@@ -77,6 +83,7 @@
   --color-ink: #f2ede4;
   --color-cream: #10262b;
   --color-alert: #ff6b70; /* elevado para cumplir WCAG AA — decisión del founder #3 */
+  --color-warning: #fbbf24; /* elevado sobre el valor claro para contraste AA en fondo oscuro */
 
   --color-border: #2a474d;
   --color-muted: #9fafb2;
@@ -85,6 +92,7 @@
   --color-surface-mint: #12302c;
   --color-surface-teal: #123a38;
   --color-surface-alert: #3a1d1f;
+  --color-surface-warning: #3f2d0f;
   --color-surface-skeleton: #1e3a40;
   --color-surface-placeholder: #24444a;
   --color-surface-raised: #17343a;

@@ -9,12 +9,11 @@ import { cn } from '@/shared/lib/cn'
  * solo para acentos puntuales, NUNCA para indicar estado — por eso ningún
  * variant usa `coral`.
  *
- * No existe token `warning` (ámbar/amarillo) en la paleta heredada de 6
- * colores (`src/index.css`) — ADR-047-BF la hereda "tal cual", sin
- * agregar colores nuevos. 'warning' se resuelve por ahora con el mismo
- * tratamiento neutral que 'neutral' (fondo/punto grises). Anotado también
- * en 📋 Backlog de Descubrimientos — no inventar un color de marca sin
- * respaldo en Confluence.
+ * Token `warning` (ámbar) agregado en `real-backend-readiness` PR1
+ * (`src/index.css`): hasta acá no existía en la paleta heredada de 6
+ * colores de ADR-047-BF y 'warning' se resolvía con el mismo tratamiento
+ * neutral que 'neutral' (fondo/punto grises). El estado Paused del negocio
+ * (#1547 dominio `business-gateway`) es el primer consumidor real.
  *
  * Contraste: todas las variantes usan texto `ink` sobre un fondo `surface.*`
  * tenue (relación de contraste medida >12:1, ver verificación de la tarea),
@@ -30,7 +29,7 @@ const statusBadgeVariants = cva(
       variant: {
         neutral: 'bg-paper border-border',
         success: 'bg-surface-mint',
-        warning: 'bg-surface-skeleton', // sin token warning en la paleta — ver comentario arriba
+        warning: 'bg-surface-warning',
         error: 'bg-surface-alert',
       },
     },
@@ -45,7 +44,7 @@ const dotVariants = cva('h-1.5 w-1.5 shrink-0 rounded-full', {
     variant: {
       neutral: 'bg-muted',
       success: 'bg-green',
-      warning: 'bg-muted', // mismo motivo que arriba
+      warning: 'bg-warning',
       error: 'bg-alert',
     },
   },
