@@ -2,8 +2,6 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { z } from 'zod'
-import type { TFunction } from 'i18next'
 import { FormField } from '@/shared/components/ui/form-field'
 import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -14,43 +12,10 @@ import { useCreateReward } from '@/features/rewards/queries'
 import { usePlaces } from '@/features/places/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { useToast } from '@/shared/hooks/use-toast'
-
-/**
- * Fábrica de schema, no un schema estático — zod congela sus mensajes al
- * construirse, así que uno a nivel de módulo se quedaría con el idioma del
- * primer import.
- *
- * Los numéricos se validan **como números** (`valueAsNumber: true` en el
- * registro), no como texto. `stockTotal` es la excepción interesante: es
- * opcional, y un campo vacío llega como `NaN`, así que se normaliza a `null`
- * — que es lo que el backend entiende por «sin límite». Sin ese paso, un
- * stock vacío se enviaría como `NaN` y el `POST` fallaría con un error que
- * no tendría nada que ver con lo que el usuario hizo.
- */
-function createRewardFormSchema(t: TFunction<'rewards'>) {
-  const requiredNumber = {
-    required_error: t('createForm.validation.required'),
-    invalid_type_error: t('createForm.validation.number'),
-  }
-
-  return z.object({
-    title: z.string().min(1, t('createForm.validation.required')),
-    description: z.string().min(1, t('createForm.validation.required')),
-    geoPointsCost: z
-      .number(requiredNumber)
-      .int(t('createForm.validation.number'))
-      .positive(t('createForm.validation.geoPointsPositive')),
-    estimatedValueCop: z
-      .number(requiredNumber)
-      .nonnegative(t('createForm.validation.valueNotNegative')),
-    placeId: z.string(),
-    stockTotal: z
-      .union([z.number().int().positive(t('createForm.validation.stockPositive')), z.nan()])
-      .transform((value) => (Number.isNaN(value) ? null : (value as number)))
-      .nullable(),
-  })
-}
-type RewardFormValues = z.input<ReturnType<typeof createRewardFormSchema>>
+import {
+  createRewardFormSchema,
+  type RewardFormValues,
+} from '@/features/rewards/reward-form-schema'
 
 export interface RewardFormProps {
   /**

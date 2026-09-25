@@ -12,8 +12,11 @@ import {
 } from '@/shared/schemas/business-place'
 import { isValidTaxonomy } from '@/shared/schemas/taxonomy'
 import {
+  canEditReward,
   canPublishReward,
+  committedUnits,
   createBusinessRewardInputSchema,
+  updateBusinessRewardInputSchema,
   type BusinessRewardSummary,
 } from '@/shared/schemas/business-reward'
 import {
@@ -525,6 +528,101 @@ export const handlers = [
       writeDb(db)
 
       return HttpResponse.json({ rewardId: newReward.rewardId }, { status: 201 })
+    }
+  ),
+
+  /**
+   * `PUT /portal/businesses/{businessId}/rewards/{rewardId}` — edición, #110.
+   *
+   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:30`). Responde 200 con el
+   * `PortalRewardResult` actualizado, no 204.
+   *
+   * ⚠️ **REEMPLAZO TOTAL: asigna sin condición**, igual que
+   * `Reward.Edit` (`Reward.cs:245-252`). Un `placeId` ausente en el body
+   * queda `null` y desvincula el lugar. El mock lo replica a propósito: si
+   * fuera indulgente, el portal podría mandar bodies parciales en desarrollo
+   * y romper recién en producción.
+   *
+   * El orden de las guardas también se replica: estado editable → campos →
+   * piso de stock → asignación.
+   */
+  http.put(
+    `${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId`,
+    async ({ params, request }) => {
+      const db = readDb()
+      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
+      if (denied) return denied
+
+      const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+      if (!reward) return rewardNotFound(params.rewardId)
+
+      // `Reward.cs:205` — solo Published, Exhausted o Paused.
+      if (!canEditReward(reward)) {
+        return HttpResponse.json(
+          {
+            title: 'Reward.NotEditable',
+            detail: 'Only a Published, Exhausted or Paused Reward can be edited.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      const parsed = updateBusinessRewardInputSchema.safeParse(await request.json())
+      if (!parsed.success) {
+        return HttpResponse.json(
+          { title: 'Validation.Failed', detail: parsed.error.issues[0]?.message, status: 400 },
+          { status: 400 }
+        )
+      }
+
+      /**
+       * Piso de stock (`Reward.cs:238-243`). Para una recompensa con tope, lo
+       * comprometido es `stockTotal - stockRemaining`. El backend rechaza bajar
+       * por debajo de eso con 409 y **sin decir el número**, así que el mock
+       * tampoco lo manda: mandarlo acá haría que el portal pareciera funcionar
+       * en desarrollo y perdiera el dato contra el backend real.
+       */
+      const committed = committedUnits(reward) ?? 0
+      if (parsed.data.stockTotal !== null && parsed.data.stockTotal < committed) {
+        return HttpResponse.json(
+          {
+            title: 'Reward.StockBelowCommitted',
+            detail: 'The new stock total cannot be lower than the units already committed.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      }
+
+      // Asignación incondicional, igual que el dominio: `null` BORRA.
+      reward.title = parsed.data.title
+      reward.description = parsed.data.description
+      reward.geoPointsCost = parsed.data.geoPointsCost
+      reward.estimatedValueCop = parsed.data.estimatedValueCop
+      reward.placeId = parsed.data.placeId
+      reward.menuItemId = parsed.data.menuItemId
+      reward.stockTotal = parsed.data.stockTotal
+      reward.stockRemaining =
+        parsed.data.stockTotal === null ? null : parsed.data.stockTotal - committed
+
+      /**
+       * `SyncStockStatus()` (`Reward.cs:316-336`): quitar el tope devuelve una
+       * `Exhausted` a `Published`, y agotar el stock mueve `Published` a
+       * `Exhausted`. **Nunca toca `Paused`.** O sea que una edición puede
+       * cambiar el estado como efecto secundario.
+       */
+      if (reward.stockTotal === null) {
+        if (reward.status === 'Exhausted') reward.status = 'Published'
+      } else if (reward.status === 'Published' && (reward.stockRemaining ?? 0) <= 0) {
+        reward.status = 'Exhausted'
+      } else if (reward.status === 'Exhausted' && (reward.stockRemaining ?? 0) > 0) {
+        reward.status = 'Published'
+      }
+
+      writeDb(db)
+
+      return HttpResponse.json(reward)
     }
   ),
 

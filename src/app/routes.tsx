@@ -11,6 +11,7 @@ import { PlaceDetailPage } from '@/features/places/place-detail-page'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { CreateRewardPage } from '@/features/rewards/create-reward-page'
 import { RewardDetailPage } from '@/features/rewards/reward-detail-page'
+import { RewardEditPage } from '@/features/rewards/reward-edit-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
 import { AnalyticsPage } from '@/features/analytics/analytics-page'
 import { FeatureErrorBoundary } from '@/shared/components/feature-error-boundary'
@@ -167,6 +168,18 @@ export const router = createBrowserRouter([
             element: (
               <FeatureErrorBoundary featureName="Recompensas">
                 <RewardDetailPage />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
+            /*
+             * `/recompensas/:rewardId/editar` (#110). Se declara después del
+             * detalle para que se lea en el orden en que el usuario navega.
+             */
+            path: '/recompensas/:rewardId/editar',
+            element: (
+              <FeatureErrorBoundary featureName="Recompensas">
+                <RewardEditPage />
               </FeatureErrorBoundary>
             ),
           },
