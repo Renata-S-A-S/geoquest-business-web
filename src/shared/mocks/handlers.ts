@@ -462,6 +462,26 @@ export const handlers = [
   }),
 
   /**
+   * `GET /portal/businesses/{businessId}/rewards/{rewardId}` — detalle, #109.
+   *
+   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:28`). Devuelve el MISMO
+   * `PortalRewardResult` que el listado: el backend no tiene un DTO de
+   * detalle aparte, así que el mock tampoco inventa uno.
+   *
+   * `requireActive: false`: un negocio suspendido puede abrir el detalle.
+   */
+  http.get(`${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId`, ({ params }) => {
+    const db = readDb()
+    const denied = denyUnlessOwner(db, params.businessId)
+    if (denied) return denied
+
+    const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+    if (!reward) return rewardNotFound(params.rewardId)
+
+    return HttpResponse.json(reward)
+  }),
+
+  /**
    * `POST /portal/businesses/{businessId}/rewards` — crea la recompensa en
    * **`Draft`**.
    *

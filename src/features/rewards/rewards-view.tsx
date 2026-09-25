@@ -68,7 +68,21 @@ export function RewardsView({ rewards }: RewardsViewProps) {
   }
 
   const columns: ColumnDef<BusinessRewardSummary>[] = [
-    { key: 'title', header: t('list.columns.title') },
+    {
+      key: 'title',
+      header: t('list.columns.title'),
+      // El título es la entrada al detalle (#109). Sin esto el listado es un
+      // cul-de-sac: se ve el estado pero no hay cómo actuar sobre él. Mismo
+      // criterio que la columna `name` de `PlacesView`.
+      render: (reward) => (
+        <Link
+          to={`/recompensas/${reward.rewardId}`}
+          className="font-sans font-bold text-teal hover:underline"
+        >
+          {reward.title}
+        </Link>
+      ),
+    },
     {
       key: 'status',
       header: t('list.columns.status'),

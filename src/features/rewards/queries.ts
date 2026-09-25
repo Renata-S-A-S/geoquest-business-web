@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRewards } from './api/get-rewards'
+import { getReward } from './api/get-reward'
 import { createReward, type CreateRewardFormInput } from './api/create-reward'
 
 /**
@@ -26,6 +27,8 @@ export const rewardKeys = {
   /** Prefijo de invalidación: alcanza el listado y todos los detalles. */
   all: ['rewards'] as const,
   list: (businessId: string) => ['rewards', businessId, 'list'] as const,
+  detail: (businessId: string, rewardId: string) =>
+    ['rewards', businessId, 'detail', rewardId] as const,
 }
 
 /**
@@ -47,6 +50,25 @@ export function useRewards(businessId: string | undefined) {
     queryKey: rewardKeys.list(businessId ?? ''),
     queryFn: () => getRewards(businessId as string),
     enabled: Boolean(businessId),
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * `GET /portal/businesses/{businessId}/rewards/{rewardId}` (#109).
+ *
+ * Mismo criterio que `usePlace(placeId)`: los dos ids llegan como argumento y
+ * la query espera con `enabled` hasta tenerlos. El contenedor decide qué
+ * mostrar mientras tanto.
+ *
+ * Comparte `staleTime` con el listado para que abrir el detalle justo después
+ * de verlo en la lista no dispare un request redundante.
+ */
+export function useReward(businessId: string | undefined, rewardId: string | undefined) {
+  return useQuery({
+    queryKey: rewardKeys.detail(businessId ?? '', rewardId ?? ''),
+    queryFn: () => getReward(businessId as string, rewardId as string),
+    enabled: Boolean(businessId) && Boolean(rewardId),
     staleTime: 30_000,
   })
 }

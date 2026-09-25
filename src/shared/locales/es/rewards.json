@@ -85,5 +85,58 @@
     },
     "loading": "Cargando los datos de tu negocio…",
     "retry": "Reintentar"
+  },
+  "detail": {
+    "backToList": "Volver a recompensas",
+    "loading": "Cargando la recompensa…",
+    "retry": "Reintentar",
+    "errors": {
+      "generic": "No pudimos cargar esta recompensa.",
+      "notFound": "Esta recompensa no existe o no es de tu negocio.",
+      "business": "No pudimos identificar tu negocio, así que tampoco pudimos cargar la recompensa."
+    },
+    "sections": {
+      "offer": {
+        "title": "La oferta"
+      },
+      "availability": {
+        "title": "Disponibilidad"
+      },
+      "image": {
+        "title": "Imagen"
+      }
+    },
+    "fields": {
+      "description": {
+        "label": "Descripción"
+      },
+      "geoPointsCost": {
+        "label": "Costo en GeoPoints"
+      },
+      "estimatedValueCop": {
+        "label": "Valor estimado",
+        "value": "{{amount, number}} COP"
+      },
+      "stock": {
+        "label": "Stock"
+      },
+      "place": {
+        "label": "Lugar"
+      }
+    },
+    "stock": {
+      "unlimited": "Sin tope: ilimitada",
+      "remaining": "{{remaining, number}} de {{total, number}} disponibles",
+      "outOfStock": "Agotada: no quedan canjes"
+    },
+    "place": {
+      "allPlaces": "Válida en todos tus lugares",
+      "specific": "Atada a un lugar específico"
+    },
+    "image": {
+      "alt": "Imagen de {{title}}",
+      "empty": "Esta recompensa todavía no tiene imagen.",
+      "emptyHint": "La imagen se sube después de crear la recompensa, igual que las fotos de lugar."
+    }
   }
 }
