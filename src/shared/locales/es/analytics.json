@@ -1,0 +1,70 @@
+{
+  "title": "Analytics",
+  "loading": "Cargando tus métricas…",
+  "retry": "Reintentar",
+  "refreshing": "Actualizando…",
+  "errors": {
+    "generic": "No pudimos cargar tus métricas.",
+    "business": "No pudimos identificar tu negocio, así que tampoco sus métricas."
+  },
+  "proposal": {
+    "notice": "Estas métricas las sirve un mock: el backend todavía no tiene endpoints de analytics. La propuesta de contrato está en {{issue}}."
+  },
+  "period": {
+    "label": "Período",
+    "range": "Del {{from}} al {{to}}",
+    "options": {
+      "7": "Últimos 7 días",
+      "30": "Últimos 30 días",
+      "90": "Últimos 90 días"
+    }
+  },
+  "delta": {
+    "up": "Subió {{percent}} % contra el período anterior",
+    "down": "Bajó {{percent}} % contra el período anterior",
+    "flat": "Sin cambios contra el período anterior",
+    "none": "Sin período anterior con el que comparar"
+  },
+  "metrics": {
+    "checkIns": {
+      "label": "Check-ins",
+      "hint": "Visitas validadas en tus lugares."
+    },
+    "uniqueVisitors": {
+      "label": "Visitantes únicos",
+      "hint": "Exploradores distintos que hicieron check-in."
+    },
+    "redemptions": {
+      "label": "Canjes",
+      "hint": "Recompensas que tu staff validó."
+    },
+    "estimatedValue": {
+      "label": "Valor entregado",
+      "hint": "Suma del valor estimado de las recompensas canjeadas.",
+      "value": "$ {{value, number}} COP"
+    },
+    "rating": {
+      "label": "Calificación promedio",
+      "hint": "Promedio de la experiencia que calificaron los exploradores.",
+      "value": "{{rating}} de 5",
+      "empty": "Sin calificaciones"
+    }
+  },
+  "series": {
+    "title": "Check-ins por día",
+    "columns": {
+      "date": "Día",
+      "checkIns": "Check-ins"
+    },
+    "empty": "Todavía no hay check-ins en este período."
+  },
+  "places": {
+    "title": "Por lugar",
+    "columns": {
+      "name": "Lugar",
+      "checkIns": "Check-ins",
+      "uniqueVisitors": "Visitantes únicos"
+    },
+    "empty": "Todavía no tenés ningún lugar. Creá uno para empezar a medir visitas."
+  }
+}
