@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getPlaces } from './api/get-places'
 import { createPlace } from './api/create-place'
+import { getPlace } from './api/get-place'
 
 /**
  * Registro de query keys de la slice `places` — issue #29 (B-02). Mismo
@@ -18,6 +19,13 @@ import { createPlace } from './api/create-place'
  */
 export const placeKeys = {
   list: ['places', 'list'] as const,
+  /**
+   * Clave por lugar. Comparte el prefijo `['places']` con `list` a
+   * propósito: es el ÚNICO caso donde compartir raíz es correcto, porque
+   * invalidar `['places']` después de publicar debe alcanzar al detalle Y al
+   * listado — el estado cambió en los dos.
+   */
+  detail: (placeId: string) => ['places', 'detail', placeId] as const,
 }
 
 /**
@@ -67,5 +75,21 @@ export function useCreatePlace() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: placeKeys.list })
     },
+  })
+}
+
+/**
+ * `GET /business/places/{id}` (#35) — detalle de un lugar.
+ *
+ * Mismo `staleTime` que el listado. `enabled` deja de correr la consulta si
+ * la ruta llega sin id: preferimos no disparar un request condenado a 404
+ * antes que dejar que el usuario vea un error que no explica nada.
+ */
+export function usePlace(placeId: string | undefined) {
+  return useQuery({
+    queryKey: placeKeys.detail(placeId ?? ''),
+    queryFn: () => getPlace(placeId as string),
+    enabled: Boolean(placeId),
+    staleTime: 30_000,
   })
 }

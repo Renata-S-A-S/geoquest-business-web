@@ -9,6 +9,7 @@ import { BusinessProfileEditPage } from '@/features/business/business-profile-ed
 import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { CreatePlacePage } from '@/features/places/create-place-page'
+import { PlaceDetailPage } from '@/features/places/place-detail-page'
 import { RoutePlaceholder } from '@/app/route-placeholder'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
@@ -117,6 +118,21 @@ export const router = createBrowserRouter([
             element: (
               <FeatureErrorBoundary featureName="Lugares">
                 <CreatePlacePage />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
+            /*
+             * `/lugares/:placeId` (#35) — va DESPUÉS de `/lugares/nuevo` a
+             * propósito. React Router v6 ordena por especificidad y no por
+             * declaración, así que el orden no cambia el resultado, pero
+             * leerlo en este orden evita que alguien lo mueva creyendo que
+             * `nuevo` cae en el parámetro.
+             */
+            path: '/lugares/:placeId',
+            element: (
+              <FeatureErrorBoundary featureName="Lugares">
+                <PlaceDetailPage />
               </FeatureErrorBoundary>
             ),
           },
