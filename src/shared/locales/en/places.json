@@ -160,7 +160,9 @@
       "empty": "This place has no photos yet.",
       "publishNeedsPhoto": "At least one photo is required before it can be published.",
       "count": "{{count, number}} of 5"
-    }
+    },
+    "mapUnavailable": "The map isn't available yet. These are the exact coordinates of the place.",
+    "mapLoading": "Loading the map…"
   },
   "publish": {
     "action": "Publish place",

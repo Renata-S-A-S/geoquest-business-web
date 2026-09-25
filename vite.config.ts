@@ -49,7 +49,38 @@ export default defineConfig({
         // compitiendo por el mismo scope. PNG excluido a propósito: los
         // íconos del manifest se piden al momento de instalar.
         globPatterns: ['**/*.{js,css,html}', 'favicon.svg'],
-        globIgnores: ['**/mockServiceWorker.js'],
+        /*
+         * `mapbox-gl` y el CSS del mapa quedan FUERA del precache.
+         *
+         * Se cargan con `lazy()` desde el detalle de un lugar, pero eso solo
+         * evita que entren al bundle principal: el service worker precachea
+         * todo lo que empareja `globPatterns`, así que igual se descargaban
+         * al instalar la PWA. Son ~1.9 MB (530 KB gzip) que la mayoría de los
+         * negocios paga sin abrir nunca esa pantalla, y muchos lo pagan desde
+         * el móvil con datos medidos.
+         *
+         * Excluidos del precache, Workbox los sirve igual la primera vez que
+         * se piden, solo que bajo demanda, y `runtimeCaching` los guarda para
+         * las siguientes. El costo es que el mapa no funciona sin conexión
+         * hasta haberlo abierto una vez — aceptable, porque un mapa offline
+         * sin sus tiles tampoco mostraría nada.
+         */
+        globIgnores: [
+          '**/mockServiceWorker.js',
+          '**/mapbox-gl-*.js',
+          '**/place-location-map-*.css',
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }: { url: URL }) =>
+              /\/assets\/(mapbox-gl-|place-location-map-).*\.(js|css)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gq-map-vendor',
+              expiration: { maxEntries: 4 },
+            },
+          },
+        ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html', // SPA fallback (explícito, coincide con el default)

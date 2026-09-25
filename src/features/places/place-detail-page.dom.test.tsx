@@ -146,3 +146,30 @@ describe('PlaceDetailPage', () => {
     expect(callCount).toBeGreaterThan(1)
   })
 })
+
+/**
+ * Con el token de Mapbox ausente — que es el estado real hoy, ni acá ni en
+ * el Explorer está provisionado — la pantalla cae a las coordenadas en
+ * texto, que es exactamente lo que mostraba antes de que el mapa existiera.
+ * Degradar a lo anterior es mejor que degradar a un hueco gris.
+ */
+describe('PlaceDetailPage — ubicación sin token de Mapbox', () => {
+  it('muestra las coordenadas y explica que el mapa no está disponible', async () => {
+    renderDetail(ACTIVE.placeId)
+
+    expect(
+      await screen.findByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)
+    ).toBeInTheDocument()
+    expect(screen.getByText(/El mapa no está disponible todavía/)).toBeInTheDocument()
+  })
+
+  /**
+   * El radio se muestra en las DOS ramas: con mapa y sin mapa. Es un dato
+   * del lugar, no una consecuencia de que el mapa cargue.
+   */
+  it('muestra el radio de check-in aunque el mapa no esté disponible', async () => {
+    renderDetail(ACTIVE.placeId)
+
+    expect(await screen.findByText('100 m')).toBeInTheDocument()
+  })
+})
