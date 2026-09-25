@@ -21,13 +21,15 @@
     "reward": "Recompensa a entregar",
     "cost": "Costo para el explorador",
     "costPoints": "{{points, number}} GeoPoints",
-    "value": "Valor estimado",
-    "valueCop": "$ {{value, number}} COP",
     "expires": "El código vence a las {{time}}",
-    "expired": "Este código ya venció. Pedile al cliente que genere uno nuevo desde su app.",
+    "status": {
+      "redeemed": "Este código ya fue canjeado. No hace falta entregar la recompensa de nuevo.",
+      "expired": "Este código venció. Pedile al cliente que genere uno nuevo desde su app.",
+      "notRedeemable": "Este canje no está en un estado que se pueda validar por ahora."
+    },
     "explorer": {
       "label": "Explorador",
-      "note": "El portal no puede mostrarte el nombre ni la foto del cliente: el backend solo entrega este identificador. Quien tiene el código válido es quien puede canjear."
+      "note": "El backend todavía no proyectó el usuario de este explorador: mostramos su identificador en vez del nombre."
     },
     "confirm": "Confirmar canje",
     "restart": "Usar otro código"
@@ -56,11 +58,15 @@
   },
   "errors": {
     "notFound": "No encontramos ninguna recompensa con este código.",
-    "invalidToken": "Este código no es válido. Revisá que lo hayas pegado completo.",
-    "expired": "Este código venció. Los QR duran 30 minutos: pedile al cliente que genere uno nuevo.",
-    "alreadyRedeemed": "Este código ya fue canjeado. No vuelvas a entregar la recompensa.",
     "notOwner": "Esta recompensa no es de tu negocio, así que no podés validarla.",
     "businessNotActive": "Tu negocio no está activo, así que no podés validar canjes por ahora.",
+    "otherBusiness": "Este código no pertenece a tu negocio.",
+    "alreadyRedeemed": "Este código ya fue canjeado. No vuelvas a entregar la recompensa.",
+    "notRedeemable": "Este código no está en un estado que se pueda validar.",
+    "expired": "Este código venció. Los QR duran 30 minutos: pedile al cliente que genere uno nuevo.",
+    "invalidTransition": "El estado de este canje cambió y ya no se puede confirmar así. Volvé a buscarlo.",
+    "concurrencyConflict": "Alguien más ya estaba procesando este canje. Volvé a buscarlo antes de reintentar.",
+    "rateLimited": "Hiciste demasiadas validaciones seguidas. Esperá un minuto y volvé a intentarlo.",
     "generic": "No pudimos confirmar el canje. Probá de nuevo."
   }
 }

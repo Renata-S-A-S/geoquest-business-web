@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getRedemptionByQrToken } from './api/get-redemption-by-qr-token'
+import { lookupRedemption } from './api/lookup-redemption'
 import { scanRedemption } from './api/scan-redemption'
-import type { RedemptionPreview } from '@/shared/schemas/business-redemption'
+import type { RedemptionPreview, ScanRedemptionInput } from '@/shared/schemas/business-redemption'
 
 /**
  * Keys de la slice `redemptions` — B-04. Mismo criterio que `placeKeys` y
@@ -28,7 +28,7 @@ export const redemptionKeys = {
  */
 export function useRedemptionLookup(businessId: string | undefined) {
   return useMutation<RedemptionPreview, unknown, string>({
-    mutationFn: (qrToken: string) => getRedemptionByQrToken(businessId as string, qrToken),
+    mutationFn: (qrToken: string) => lookupRedemption(businessId as string, qrToken),
   })
 }
 
@@ -44,8 +44,7 @@ export function useScanRedemption(businessId: string | undefined) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: { userRewardId: string; qrToken: string }) =>
-      scanRedemption(businessId as string, input),
+    mutationFn: (input: ScanRedemptionInput) => scanRedemption(businessId as string, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['redemptions'] })
       void queryClient.invalidateQueries({ queryKey: ['rewards'] })

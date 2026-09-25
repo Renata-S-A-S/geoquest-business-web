@@ -147,103 +147,147 @@ export const SEED_REWARDS: BusinessRewardSummary[] = [
 ]
 
 /**
- * Canjes semilla para B-04. Tienen la forma del lookup por token (Opción A de
- * `Renata-S-A-S/geoquest#202`) más los campos que el mock necesita para decidir
- * los errores: el token en claro, el negocio dueño y si ya se canjeó.
+ * Canjes semilla para B-04. Tienen la forma real de `RedemptionLookupResult`
+ * más los campos que el mock necesita para resolver por token: el token en
+ * claro y el negocio dueño.
  *
  * ⚠️ El backend guarda `QrTokenHash` (SHA-256 hex del token), **nunca el token
  * en claro**. El mock guarda el claro porque no tiene con qué hashear de forma
  * equivalente y porque nada de esto es un secreto real. No copiar ese campo a
  * ningún schema de contrato.
  *
- * Cuatro casos sembrados a propósito: los dos `origin` (que es lo que #47
- * necesita demostrar) más los dos estados que hacen fallar un canje — uno ya
- * canjeado y uno vencido. Sin ellos, los dos errores más importantes del flujo
- * no tendrían cómo probarse.
+ * Seis casos sembrados a propósito: los dos `origin` (#47), un `Redeemed` y un
+ * `Expired` (los dos motivos de `isRedeemable: false` más importantes del
+ * flujo) y un `PendingReservation`/`Failed` (el tercer motivo, que comparte
+ * copy). El `Redeemed` además queda con `qrExpiresAtUtc: null` a propósito,
+ * para probar que la previsualización no rompe cuando el backend no manda esa
+ * fecha (deja de ser relevante una vez resuelto el canje).
  *
  * Los tokens tienen la forma real (44 caracteres base64 terminados en `=`) y
- * evitan `+` y `/` a propósito, para que los tests no queden atados al bug de
- * encoding de path que documenta `get-redemption-by-qr-token.ts`.
+ * evitan `+` y `/` a propósito, para no depender de encoding de query string
+ * en los tests.
  */
 export const SEED_PURCHASED_QR_TOKEN = `Pur${'A'.repeat(40)}=`
 export const SEED_PRIZE_QR_TOKEN = `Pri${'B'.repeat(40)}=`
 export const SEED_REDEEMED_QR_TOKEN = `Red${'C'.repeat(40)}=`
 export const SEED_EXPIRED_QR_TOKEN = `Exp${'D'.repeat(40)}=`
+export const SEED_PENDING_QR_TOKEN = `Pen${'E'.repeat(40)}=`
+export const SEED_FAILED_QR_TOKEN = `Fai${'F'.repeat(40)}=`
 
 export interface MockUserReward {
   userRewardId: string
   rewardId: string
   rewardTitle: string
+  rewardDescription: string
   explorerId: string
+  /** `null` cuando el `ExplorerRef` todavía no se proyectó (decision #1473). */
+  explorerUsername: string | null
   origin: 'Purchased' | 'Prize'
   geoPointsCostSnapshot: number
-  estimatedValueCopSnapshot: number
-  qrExpiresAtUtc: string
+  qrExpiresAtUtc: string | null
   /** Solo del mock — el backend guarda el hash. Ver el comentario de arriba. */
   qrToken: string
   businessId: string
-  redeemedAtUtc: string | null
+  /** Estado EFECTIVO — lo que el handler de lookup/scan lee directo, sin derivar de fechas. */
+  status: 'Earned' | 'Redeemed' | 'Expired' | 'PendingReservation' | 'Failed'
 }
 
-/** Fechas fijas y lejanas para que ningún test dependa del reloj. */
+/** Fecha fija y lejana para que ningún test dependa del reloj. */
 const FAR_FUTURE = '2099-01-01T00:00:00Z'
-const LONG_PAST = '2020-01-01T00:00:00Z'
 
 export const SEED_USER_REWARDS: MockUserReward[] = [
   {
     userRewardId: '00000000-0000-0000-0000-000000000030',
     rewardId: SEED_REWARDS[0].rewardId,
     rewardTitle: SEED_REWARDS[0].title,
+    rewardDescription: SEED_REWARDS[0].description,
     explorerId: '00000000-0000-0000-0000-0000000000a1',
+    explorerUsername: 'ana_explorer',
     origin: 'Purchased',
     geoPointsCostSnapshot: 100,
-    estimatedValueCopSnapshot: 15000,
     qrExpiresAtUtc: FAR_FUTURE,
     qrToken: SEED_PURCHASED_QR_TOKEN,
     businessId: SEED_BUSINESS.id,
-    redeemedAtUtc: null,
+    status: 'Earned',
   },
   // `Prize` con costo 0 — RN-REW-10: no descontó saldo. Es el caso que #47
-  // necesita para que el staff no lea ese 0 como un dato roto.
+  // necesita para que el staff no lea ese 0 como un dato roto. `explorerUsername`
+  // nulo a propósito, para probar el fallback al id crudo.
   {
     userRewardId: '00000000-0000-0000-0000-000000000031',
     rewardId: SEED_REWARDS[1].rewardId,
     rewardTitle: SEED_REWARDS[1].title,
+    rewardDescription: SEED_REWARDS[1].description,
     explorerId: '00000000-0000-0000-0000-0000000000a2',
+    explorerUsername: null,
     origin: 'Prize',
     geoPointsCostSnapshot: 0,
-    estimatedValueCopSnapshot: 12000,
     qrExpiresAtUtc: FAR_FUTURE,
     qrToken: SEED_PRIZE_QR_TOKEN,
     businessId: SEED_BUSINESS.id,
-    redeemedAtUtc: null,
+    status: 'Earned',
   },
-  // Ya canjeado: reintentarlo devuelve 409 `UserReward.InvalidStatusTransition`.
+  // Ya canjeado: lookup devuelve 200 con `isRedeemable: false` (nunca 409/410
+  // en el lookup); reintentar el escaneo sí devuelve 409 `RedemptionToken.AlreadyRedeemed`.
+  // `qrExpiresAtUtc: null` a propósito — ver comentario de arriba.
   {
     userRewardId: '00000000-0000-0000-0000-000000000032',
     rewardId: SEED_REWARDS[0].rewardId,
     rewardTitle: SEED_REWARDS[0].title,
+    rewardDescription: SEED_REWARDS[0].description,
     explorerId: '00000000-0000-0000-0000-0000000000a3',
+    explorerUsername: 'redeemed_user',
     origin: 'Purchased',
     geoPointsCostSnapshot: 100,
-    estimatedValueCopSnapshot: 15000,
-    qrExpiresAtUtc: FAR_FUTURE,
+    qrExpiresAtUtc: null,
     qrToken: SEED_REDEEMED_QR_TOKEN,
     businessId: SEED_BUSINESS.id,
-    redeemedAtUtc: '2026-09-01T12:00:00Z',
+    status: 'Redeemed',
   },
-  // Vencido: 400 `ScanRedemptionQrCommand.QrExpired`, no 409 — ver geoquest#206.
+  // Vencido: el lookup lo reporta como `Expired` (degradado desde `Earned`,
+  // GR-3), nunca como error — el escaneo sí devuelve 410 `RedemptionToken.Expired`.
   {
     userRewardId: '00000000-0000-0000-0000-000000000033',
     rewardId: SEED_REWARDS[0].rewardId,
     rewardTitle: SEED_REWARDS[0].title,
+    rewardDescription: SEED_REWARDS[0].description,
     explorerId: '00000000-0000-0000-0000-0000000000a4',
+    explorerUsername: 'expired_user',
     origin: 'Purchased',
     geoPointsCostSnapshot: 100,
-    estimatedValueCopSnapshot: 15000,
-    qrExpiresAtUtc: LONG_PAST,
+    qrExpiresAtUtc: '2020-01-01T00:00:00Z',
     qrToken: SEED_EXPIRED_QR_TOKEN,
     businessId: SEED_BUSINESS.id,
-    redeemedAtUtc: null,
+    status: 'Expired',
+  },
+  // `PendingReservation`: tercer motivo de `isRedeemable: false`, comparte
+  // copy con `Failed` (spec: "not redeemable for PendingReservation|Failed").
+  {
+    userRewardId: '00000000-0000-0000-0000-000000000034',
+    rewardId: SEED_REWARDS[0].rewardId,
+    rewardTitle: SEED_REWARDS[0].title,
+    rewardDescription: SEED_REWARDS[0].description,
+    explorerId: '00000000-0000-0000-0000-0000000000a5',
+    explorerUsername: 'pending_user',
+    origin: 'Purchased',
+    geoPointsCostSnapshot: 100,
+    qrExpiresAtUtc: FAR_FUTURE,
+    qrToken: SEED_PENDING_QR_TOKEN,
+    businessId: SEED_BUSINESS.id,
+    status: 'PendingReservation',
+  },
+  {
+    userRewardId: '00000000-0000-0000-0000-000000000035',
+    rewardId: SEED_REWARDS[0].rewardId,
+    rewardTitle: SEED_REWARDS[0].title,
+    rewardDescription: SEED_REWARDS[0].description,
+    explorerId: '00000000-0000-0000-0000-0000000000a6',
+    explorerUsername: 'failed_user',
+    origin: 'Purchased',
+    geoPointsCostSnapshot: 100,
+    qrExpiresAtUtc: FAR_FUTURE,
+    qrToken: SEED_FAILED_QR_TOKEN,
+    businessId: SEED_BUSINESS.id,
+    status: 'Failed',
   },
 ]

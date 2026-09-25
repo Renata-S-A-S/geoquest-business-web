@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   createQrTokenFormSchema,
+  lookupRedemptionInputSchema,
   redemptionErrorKey,
+  redemptionNotRedeemableReason,
   redemptionOriginSchema,
   redemptionPreviewSchema,
+  redemptionStatusSchema,
   scanRedemptionInputSchema,
 } from './business-redemption'
 
@@ -16,11 +19,14 @@ const BASE_PREVIEW = {
   userRewardId: '00000000-0000-0000-0000-000000000010',
   rewardId: '00000000-0000-0000-0000-000000000020',
   rewardTitle: 'Postre gratis',
-  explorerId: '00000000-0000-0000-0000-000000000030',
+  rewardDescription: 'Un postre de la vitrina llevando cualquier bebida caliente.',
+  status: 'Earned',
+  isRedeemable: true,
+  qrExpiresAtUtc: '2026-09-24T18:30:00Z',
   origin: 'Purchased',
   geoPointsCostSnapshot: 80,
-  estimatedValueCopSnapshot: 12000,
-  qrExpiresAtUtc: '2026-09-24T18:30:00Z',
+  explorerId: '00000000-0000-0000-0000-000000000030',
+  explorerUsername: 'ana_explorer',
 }
 
 describe('redemptionOriginSchema', () => {
@@ -36,6 +42,19 @@ describe('redemptionOriginSchema', () => {
    */
   it('rechaza `Granted`, que es el valor que dice la documentación y no existe', () => {
     expect(() => redemptionOriginSchema.parse('Granted')).toThrow()
+  })
+})
+
+describe('redemptionStatusSchema', () => {
+  it.each(['Earned', 'Redeemed', 'Expired', 'PendingReservation', 'Failed'])(
+    'acepta %s',
+    (status) => {
+      expect(redemptionStatusSchema.parse(status)).toBe(status)
+    }
+  )
+
+  it('rechaza un estado que el backend no reporta', () => {
+    expect(() => redemptionStatusSchema.parse('Cancelled')).toThrow()
   })
 })
 
@@ -88,10 +107,12 @@ describe('createQrTokenFormSchema', () => {
 })
 
 describe('redemptionPreviewSchema', () => {
-  it('parsea la respuesta del lookup por token', () => {
+  it('parsea la respuesta real del lookup', () => {
     expect(redemptionPreviewSchema.parse(BASE_PREVIEW)).toMatchObject({
       userRewardId: BASE_PREVIEW.userRewardId,
       origin: 'Purchased',
+      status: 'Earned',
+      isRedeemable: true,
     })
   })
 
@@ -116,31 +137,102 @@ describe('redemptionPreviewSchema', () => {
 
     expect(() => redemptionPreviewSchema.parse(sinId)).toThrow()
   })
+
+  it('ya no expone estimatedValueCopSnapshot: el backend no lo manda', () => {
+    const withStaleField = { ...BASE_PREVIEW, estimatedValueCopSnapshot: 12000 }
+
+    expect(redemptionPreviewSchema.parse(withStaleField)).not.toHaveProperty(
+      'estimatedValueCopSnapshot'
+    )
+  })
+
+  it('acepta qrExpiresAtUtc nulo', () => {
+    const parsed = redemptionPreviewSchema.parse({ ...BASE_PREVIEW, qrExpiresAtUtc: null })
+
+    expect(parsed.qrExpiresAtUtc).toBeNull()
+  })
+
+  it('acepta explorerUsername nulo, cuando el ExplorerRef todavía no se proyectó', () => {
+    const parsed = redemptionPreviewSchema.parse({ ...BASE_PREVIEW, explorerUsername: null })
+
+    expect(parsed.explorerUsername).toBeNull()
+  })
+
+  it('exige rewardDescription', () => {
+    const { rewardDescription: _omitido, ...sinDescripcion } = BASE_PREVIEW
+
+    expect(() => redemptionPreviewSchema.parse(sinDescripcion)).toThrow()
+  })
+
+  it('exige isRedeemable', () => {
+    const { isRedeemable: _omitido, ...sinIsRedeemable } = BASE_PREVIEW
+
+    expect(() => redemptionPreviewSchema.parse(sinIsRedeemable)).toThrow()
+  })
+})
+
+describe('redemptionNotRedeemableReason', () => {
+  it('devuelve null para Earned: es el único estado redimible', () => {
+    expect(redemptionNotRedeemableReason('Earned')).toBeNull()
+  })
+
+  it('mapea Redeemed a "redeemed"', () => {
+    expect(redemptionNotRedeemableReason('Redeemed')).toBe('redeemed')
+  })
+
+  it('mapea Expired a "expired"', () => {
+    expect(redemptionNotRedeemableReason('Expired')).toBe('expired')
+  })
+
+  it.each(['PendingReservation', 'Failed'] as const)('mapea %s a "notRedeemable"', (status) => {
+    expect(redemptionNotRedeemableReason(status)).toBe('notRedeemable')
+  })
+})
+
+describe('lookupRedemptionInputSchema', () => {
+  it('exige solo qrToken en el body del lookup', () => {
+    const parsed = lookupRedemptionInputSchema.parse({ qrToken: VALID_TOKEN })
+
+    expect(Object.keys(parsed)).toEqual(['qrToken'])
+  })
+
+  it('rechaza un body sin qrToken', () => {
+    expect(() => lookupRedemptionInputSchema.parse({})).toThrow()
+  })
 })
 
 describe('scanRedemptionInputSchema', () => {
-  it('exige los dos campos que pide `ScanRedemptionQrRequest`', () => {
-    const parsed = scanRedemptionInputSchema.parse({
-      userRewardId: BASE_PREVIEW.userRewardId,
-      qrToken: VALID_TOKEN,
-    })
+  it('exige solo qrToken: userRewardId ya no es parte del contrato', () => {
+    const parsed = scanRedemptionInputSchema.parse({ qrToken: VALID_TOKEN })
 
-    expect(Object.keys(parsed).sort()).toEqual(['qrToken', 'userRewardId'])
+    expect(Object.keys(parsed)).toEqual(['qrToken'])
   })
 
-  it('rechaza un escaneo sin userRewardId: es justo lo que el QR no trae', () => {
-    expect(() => scanRedemptionInputSchema.parse({ qrToken: VALID_TOKEN })).toThrow()
+  it('rechaza un body sin qrToken', () => {
+    expect(() => scanRedemptionInputSchema.parse({})).toThrow()
+  })
+
+  it('ignora un userRewardId colado: el backend ya no lo lee', () => {
+    const parsed = scanRedemptionInputSchema.parse({
+      qrToken: VALID_TOKEN,
+      userRewardId: BASE_PREVIEW.userRewardId,
+    })
+
+    expect(Object.keys(parsed)).toEqual(['qrToken'])
   })
 })
 
 describe('redemptionErrorKey', () => {
   it.each([
-    ['ScanRedemptionQrCommand.RewardNotFound', 'notFound'],
-    ['ScanRedemptionQrCommand.InvalidQrToken', 'invalidToken'],
-    ['ScanRedemptionQrCommand.QrExpired', 'expired'],
-    ['UserReward.InvalidStatusTransition', 'alreadyRedeemed'],
+    ['RedemptionToken.NotFound', 'notFound'],
     ['RewardPortal.NotBusinessOwner', 'notOwner'],
     ['RewardPortal.BusinessNotActive', 'businessNotActive'],
+    ['RedemptionToken.OtherBusiness', 'otherBusiness'],
+    ['RedemptionToken.AlreadyRedeemed', 'alreadyRedeemed'],
+    ['RedemptionToken.NotRedeemable', 'notRedeemable'],
+    ['RedemptionToken.Expired', 'expired'],
+    ['UserReward.InvalidStatusTransition', 'invalidTransition'],
+    ['UserReward.ConcurrencyConflict', 'concurrencyConflict'],
   ])('mapea %s a la clave %s', (title, expected) => {
     expect(redemptionErrorKey(title)).toBe(expected)
   })
@@ -151,6 +243,19 @@ describe('redemptionErrorKey', () => {
 
   it('devuelve null cuando no vino ningún title', () => {
     expect(redemptionErrorKey(undefined)).toBeNull()
+  })
+
+  /**
+   * Los códigos de `ScanRedemptionQrCommand` ya no existen: el comando se
+   * reemplazó por resolución por token (`RedemptionToken.*`). Si alguien los
+   * reintroduce por error de copy-paste, este test lo agarra.
+   */
+  it.each([
+    'ScanRedemptionQrCommand.RewardNotFound',
+    'ScanRedemptionQrCommand.InvalidQrToken',
+    'ScanRedemptionQrCommand.QrExpired',
+  ])('ya no reconoce el código muerto %s', (deadCode) => {
+    expect(redemptionErrorKey(deadCode)).toBeNull()
   })
 
   /**
