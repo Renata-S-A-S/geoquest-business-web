@@ -2,7 +2,7 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
-import { readDb, writeDb } from '@/shared/mocks/db'
+import { setMockBusiness } from '@/test/mock-business'
 import {
   SEED_BUSINESS,
   SEED_EXPIRED_QR_TOKEN,
@@ -111,10 +111,8 @@ describe('lookupRedemption', () => {
    * (`denyUnlessActive`), para que el portal lo reconozca con el criterio ya
    * existente.
    */
-  it('responde 403 BusinessNotActive al buscar con el negocio Suspended', async () => {
-    const db = readDb()
-    db.business.status = 'Suspended'
-    writeDb(db)
+  it('responde 403 BusinessNotActive al buscar con el negocio Paused', async () => {
+    setMockBusiness('Paused')
 
     await expect(lookupRedemption(BUSINESS_ID, SEED_PURCHASED_QR_TOKEN)).rejects.toMatchObject({
       response: { status: 403, data: { title: 'RewardPortal.BusinessNotActive' } },
@@ -244,13 +242,11 @@ describe('scanRedemption', () => {
    * `requireActive: true` (design #1549, verificado contra
    * `ScanRedemptionQrCommandHandler.cs:47`): un negocio no Active no puede
    * confirmar canjes — mismo criterio y mismo mensaje que el lookup.
-   * `db.business` (contrato LEGACY) solo modela `Pending|Active|Suspended`;
-   * `Paused` existe en `MyBusiness` pero no acá — ver PR6a.
+   * `denyUnlessActive` lee `db.myBusiness` (real-backend-readiness PR6c), así
+   * que el estado real `Paused` aplica directamente, sin aproximación.
    */
-  it('responde 403 BusinessNotActive al escanear con el negocio Suspended', async () => {
-    const db = readDb()
-    db.business.status = 'Suspended'
-    writeDb(db)
+  it('responde 403 BusinessNotActive al escanear con el negocio Paused', async () => {
+    setMockBusiness('Paused')
 
     await expect(
       scanRedemption(BUSINESS_ID, { qrToken: SEED_PURCHASED_QR_TOKEN })

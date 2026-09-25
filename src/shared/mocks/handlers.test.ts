@@ -264,8 +264,8 @@ describe('mock handlers — round-trip de persistencia', () => {
    * comercio. Publicar y ser visible no son lo mismo.
    */
   it('POST /business/places/{id}/publish activa pero deja invisible si el negocio no está activo', async () => {
+    applyMockBusinessScenario('Paused')
     const db = readDb()
-    db.business.status = 'Pending'
     db.places[1].photos = ['https://cdn.example/a.jpg']
     writeDb(db)
 
@@ -316,9 +316,7 @@ describe('mock handlers — round-trip de persistencia', () => {
    * sin ver su propio catálogo mientras resuelve su estado.
    */
   it('deja LEER el listado aunque el negocio no esté Active (Suspended)', async () => {
-    const db = readDb()
-    db.business.status = 'Suspended'
-    writeDb(db)
+    applyMockBusinessScenario('Suspended')
 
     const { data } = await apiClient.get<BusinessRewardSummary[]>(REWARDS_PATH)
 
@@ -331,9 +329,7 @@ describe('mock handlers — round-trip de persistencia', () => {
    * por el estado del negocio.
    */
   it('responde 403 BusinessNotActive al ESCRIBIR con el negocio Suspended', async () => {
-    const db = readDb()
-    db.business.status = 'Suspended'
-    writeDb(db)
+    applyMockBusinessScenario('Suspended')
 
     await expect(
       apiClient.post(REWARDS_PATH, {
@@ -414,7 +410,7 @@ describe('mock handlers — round-trip de persistencia', () => {
     })
   })
 
-  it('POST /business/register crea el negocio y GET /business/me lo refleja después', async () => {
+  it('POST /business/register crea el negocio y lo refleja en GET /business/me y GET /business/mine', async () => {
     const {
       commercialAgreementAccepted: _accepted,
       termsAccepted: _terms,
@@ -437,8 +433,21 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(created.data).not.toHaveProperty('commercialAgreementAccepted')
     expect(created.data).not.toHaveProperty('termsAccepted')
 
-    const { data: after } = await apiClient.get('/business/me')
-    expect(after).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
+    const { data: afterMe } = await apiClient.get('/business/me')
+    expect(afterMe).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
+
+    // Unificación de fuente de autorización (real-backend-readiness PR6c,
+    // ítem mandatorio de la review de PR6b): el negocio recién registrado
+    // también existe en `db.myBusiness`, que es lo que leen `GET
+    // /business/mine` y las guardas de escritura/canje.
+    const { data: afterMine } = await apiClient.get('/business/mine')
+    expect(afterMine).toEqual([
+      expect.objectContaining({
+        businessId: created.data.id,
+        name: 'El Trigal',
+        status: 'PendingVerification',
+      }),
+    ])
   })
 
   it('POST /business/register sin aceptar el acuerdo comercial responde 400', async () => {

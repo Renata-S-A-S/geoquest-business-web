@@ -15,16 +15,28 @@ import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
 const STORAGE_KEY = 'geoquest-business.mock-db'
 
 interface MockDb {
+  /**
+   * Negocio legado (contrato de `GET /business/me`, 3 estados). Sigue
+   * siendo la fuente de `business-settings-section.tsx`/`pending-page.tsx`
+   * hasta que esas pantallas migren a `myBusiness` (real-backend-readiness
+   * PR6c, próximo lote — ver apply-progress). **Ya NO es la fuente de
+   * autorización**: `denyUnlessOwner`/`denyUnlessActive` leen `myBusiness`.
+   */
   business: Business
   places: BusinessPlaceDetail[]
   rewards: BusinessRewardSummary[]
   /** Canjes de B-04. Los muta el handler de escaneo al confirmar. */
   userRewards: MockUserReward[]
   /**
-   * Negocio propio con la forma REAL de `MyBusinessResult` — fuente de `GET
-   * /business/mine` (real-backend-readiness PR6a). `null` representa "sin
-   * negocio propio" (el handler responde `[]`). Coexiste con `business`
-   * (contrato legacy de `/business/me`) hasta PR6c.
+   * Negocio propio con la forma REAL de `MyBusinessResult` — ÚNICA fuente
+   * de AUTORIZACIÓN (real-backend-readiness PR6c, ítem mandatorio de la
+   * review de PR6b): `denyUnlessOwner`/`denyUnlessActive`
+   * (`shared/mocks/handlers.ts`) y `GET /business/mine` leen de acá, para
+   * que las guardas de escritura coincidan con lo que la UI real muestra.
+   * Antes `denyUnlessOwner`/`denyUnlessActive` leían `business` (legado,
+   * solo 3 estados), desincronizado del negocio que `/business/mine` ya
+   * exponía desde PR6a. `null` representa "sin negocio propio" (`GET
+   * /business/mine` responde `[]`).
    */
   myBusiness: MyBusiness | null
 }
