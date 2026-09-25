@@ -193,5 +193,24 @@
       "invalidTransition": "El estado de esta recompensa no permite esta acción. Recargá para ver cómo quedó.",
       "businessNotActive": "Tu negocio no está activo, así que no podés cambiar el estado de tus recompensas. La recompensa está bien: lo que falta es el estado del negocio."
     }
+  },
+  "image": {
+    "upload": "Subir imagen",
+    "replace": "Reemplazar imagen",
+    "uploading": "Subiendo…",
+    "success": "Imagen actualizada",
+    "emptyHint": "Subila ahora: es lo primero que ve el explorador cuando se le ofrece la recompensa.",
+    "limits": "Hasta {{maxSizeMb, number}} MB, en {{formats}}.",
+    "fileInputAria": "Elegir la imagen de la recompensa",
+    "errors": {
+      "generic": "No pudimos subir la imagen.",
+      "tooLarge": "La imagen pesa más de {{maxSizeMb, number}} MB. Probá con una más liviana.",
+      "unsupportedFormat": "Ese formato no se acepta. Tiene que ser JPG, PNG o WebP.",
+      "empty": "El archivo llegó vacío. Volvé a elegirlo.",
+      "noFile": "No llegó ningún archivo. Volvé a elegir la imagen.",
+      "notFound": "Esta recompensa no existe o no es de tu negocio.",
+      "businessNotActive": "Tu negocio no está activo, así que no podés subir imágenes. La recompensa está bien: lo que falta es el estado del negocio.",
+      "serverOrConflict": "No pudimos subir la imagen. Puede haber sido algo momentáneo, o que alguien más estuviera editando la recompensa al mismo tiempo: probá de nuevo."
+    }
   }
 }

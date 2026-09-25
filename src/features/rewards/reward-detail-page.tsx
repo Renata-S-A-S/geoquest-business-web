@@ -8,6 +8,7 @@ import { usePlaces } from '@/features/places/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { RewardDetailView } from '@/features/rewards/reward-detail-view'
 import { RewardStatusAction } from '@/features/rewards/reward-status-action'
+import { RewardImageUpload } from '@/features/rewards/reward-image-upload'
 
 /**
  * Contenedor del detalle de recompensa (#109, B-03). Hermano de
@@ -96,6 +97,7 @@ export function RewardDetailPage() {
       reward={rewardQuery.data}
       placeName={placeName}
       actions={<RewardStatusAction businessId={businessQuery.data.id} reward={rewardQuery.data} />}
+      imageSlot={<RewardImageUpload businessId={businessQuery.data.id} reward={rewardQuery.data} />}
     />
   )
 }

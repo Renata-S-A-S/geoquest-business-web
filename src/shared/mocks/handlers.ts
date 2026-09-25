@@ -1,5 +1,6 @@
 import { http, HttpResponse, type StrictResponse } from 'msw'
 import { API_BASE_URL } from '@/shared/lib/env'
+import { UPLOAD_LIMITS } from '@/shared/lib/upload-limits'
 import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
@@ -626,6 +627,97 @@ export const handlers = [
       writeDb(db)
 
       return HttpResponse.json(reward)
+    }
+  ),
+
+  /**
+   * `PUT /portal/businesses/{businessId}/rewards/{rewardId}/image` — #112.
+   *
+   * ✅ Ruta REAL (`RewardImageEndpoints.cs:38`). Ojo con el verbo: **`PUT`**, al
+   * revés que las fotos de lugar, que son `POST`.
+   *
+   * Responde **200 con `{ url }`**, no la recompensa entera.
+   *
+   * El campo del form es **`file`** literal (`form.Files["file"]`). Un nombre
+   * distinto da 400 `RewardImageEndpoints.NoFile`, no un error de validación:
+   * el mock replica esa distinción porque es la que un cliente mal escrito
+   * necesita ver.
+   *
+   * ⚠️ El backend valida el formato por **magic bytes** y no por el
+   * `Content-Type` declarado. El mock no puede leer magic bytes de forma
+   * barata, así que valida por `type`/tamaño — es una aproximación, y por eso
+   * pasar el mock NO garantiza pasar el backend. Queda anotado para que nadie
+   * lea un verde de acá como prueba de compatibilidad de formato.
+   */
+  http.put(
+    `${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId/image`,
+    async ({ params, request }) => {
+      const db = readDb()
+      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
+      if (denied) return denied
+
+      const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
+      if (!reward) return rewardNotFound(params.rewardId)
+
+      const form = await request.formData()
+      const file = form.get('file')
+
+      /**
+       * ⚠️ NO usar `instanceof File` acá. El `File` que construye el test vive
+       * en el realm de jsdom, y el que devuelve `formData()` lo construye
+       * undici: son clases distintas, así que `instanceof` da `false` para un
+       * archivo perfectamente válido y el handler responde `NoFile`. Se detecta
+       * por forma (no es string y tiene `size`/`type`), que es cross-realm.
+       */
+      if (file === null || typeof file === 'string') {
+        return HttpResponse.json(
+          {
+            title: 'RewardImageEndpoints.NoFile',
+            detail: "No file was received under the 'file' field.",
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      if (file.size === 0) {
+        return HttpResponse.json(
+          {
+            title: 'RewardImage.Empty',
+            detail: 'No se recibió ningún archivo o está vacío.',
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      const limit = UPLOAD_LIMITS.rewardImage
+      if (file.size > limit.maxSizeBytes) {
+        return HttpResponse.json(
+          {
+            title: 'RewardImage.TooLarge',
+            detail: `El archivo supera el tamaño máximo permitido (${limit.maxSizeBytes} bytes).`,
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      if (!limit.acceptedMimeTypes.includes(file.type)) {
+        return HttpResponse.json(
+          {
+            title: 'RewardImage.UnsupportedFormat',
+            detail: 'Solo se aceptan imágenes JPEG, PNG o WebP.',
+            status: 400,
+          },
+          { status: 400 }
+        )
+      }
+
+      reward.imageUrl = `https://mock.geoquest.local/rewards/${reward.rewardId}.jpg`
+      writeDb(db)
+
+      return HttpResponse.json({ url: reward.imageUrl })
     }
   ),
 

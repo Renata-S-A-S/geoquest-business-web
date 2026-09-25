@@ -193,5 +193,24 @@
       "invalidTransition": "This reward's status doesn't allow this action. Reload to see where it landed.",
       "businessNotActive": "Your business isn't active, so you can't change your rewards' status. The reward is fine: it's the business status that's blocking."
     }
+  },
+  "image": {
+    "upload": "Upload image",
+    "replace": "Replace image",
+    "uploading": "Uploading…",
+    "success": "Image updated",
+    "emptyHint": "Upload it now: it's the first thing an explorer sees when the reward is offered to them.",
+    "limits": "Up to {{maxSizeMb, number}} MB, in {{formats}}.",
+    "fileInputAria": "Choose the reward image",
+    "errors": {
+      "generic": "We couldn't upload the image.",
+      "tooLarge": "The image is over {{maxSizeMb, number}} MB. Try a lighter one.",
+      "unsupportedFormat": "That format isn't accepted. It has to be JPG, PNG or WebP.",
+      "empty": "The file arrived empty. Pick it again.",
+      "noFile": "No file arrived. Pick the image again.",
+      "notFound": "This reward doesn't exist, or it isn't your business's.",
+      "businessNotActive": "Your business isn't active, so you can't upload images. The reward is fine: it's the business status that's blocking.",
+      "serverOrConflict": "We couldn't upload the image. It may have been a momentary glitch, or someone else may have been editing the reward at the same time: try again."
+    }
   }
 }
