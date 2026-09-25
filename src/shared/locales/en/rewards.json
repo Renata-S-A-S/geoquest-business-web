@@ -29,5 +29,56 @@
       "title": "You don't have any rewards yet",
       "description": "Once you create your first reward, explorers will be able to redeem it with their GeoPoints."
     }
+  },
+  "createForm": {
+    "title": "Create reward",
+    "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "2-for-1 specialty coffee"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Spell out exactly what the explorer gets and under what conditions.",
+        "hint": "This is what explorers read before redeeming. Put any restrictions here."
+      },
+      "geoPointsCost": {
+        "label": "GeoPoints cost",
+        "hint": "What the explorer pays with the points they earned checking in."
+      },
+      "estimatedValueCop": {
+        "label": "Estimated value (COP)",
+        "hint": "What you'd normally charge for this. Explorers don't see it."
+      },
+      "place": {
+        "label": "Place (optional)",
+        "placeholder": "Valid at all your places",
+        "hint": "Leave it empty and it works at any of your places."
+      },
+      "stockTotal": {
+        "label": "Stock (optional)",
+        "placeholder": "No limit",
+        "hint": "How many redemptions are available. Empty = unlimited."
+      }
+    },
+    "validation": {
+      "required": "This field is required",
+      "number": "Enter a number",
+      "geoPointsPositive": "The cost must be greater than zero",
+      "valueNotNegative": "The value can't be negative",
+      "stockPositive": "Stock must be greater than zero, or empty for unlimited"
+    },
+    "submit": "Save draft",
+    "submitting": "Saving…",
+    "cancel": "Cancel",
+    "success": "Reward created as a draft",
+    "draftNote": "It saves as a draft. You'll be able to publish it once you add an image.",
+    "unavailable": {
+      "title": "Fields that aren't available yet",
+      "description": "Reward type, the General/Special classification, validity dates and your own terms can't be configured yet: the backend doesn't have those fields. They're requested and will follow."
+    },
+    "errors": {
+      "generic": "We couldn't create the reward."
+    }
   }
 }

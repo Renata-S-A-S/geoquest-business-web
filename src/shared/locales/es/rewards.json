@@ -29,5 +29,56 @@
       "title": "Todavía no hay ninguna recompensa",
       "description": "Cuando crees tu primera recompensa, los exploradores van a poder canjearla con sus GeoPoints."
     }
+  },
+  "createForm": {
+    "title": "Crear recompensa",
+    "fields": {
+      "title": {
+        "label": "Título",
+        "placeholder": "2x1 en café de especialidad"
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Contá exactamente qué recibe el explorador y con qué condiciones.",
+        "hint": "Es lo que el explorador lee antes de canjear. Si hay restricciones, mejor que estén acá."
+      },
+      "geoPointsCost": {
+        "label": "Costo en GeoPoints",
+        "hint": "Lo que el explorador paga con los puntos que juntó haciendo check-in."
+      },
+      "estimatedValueCop": {
+        "label": "Valor estimado (COP)",
+        "hint": "Cuánto cuesta normalmente lo que estás dando. No lo ve el explorador."
+      },
+      "place": {
+        "label": "Lugar (opcional)",
+        "placeholder": "Válida en todos tus lugares",
+        "hint": "Si la dejás vacía, sirve en cualquiera de tus lugares."
+      },
+      "stockTotal": {
+        "label": "Stock (opcional)",
+        "placeholder": "Sin límite",
+        "hint": "Cantidad de canjes disponibles. Vacío = ilimitado."
+      }
+    },
+    "validation": {
+      "required": "Este campo es obligatorio",
+      "number": "Escribí un número",
+      "geoPointsPositive": "El costo tiene que ser mayor a cero",
+      "valueNotNegative": "El valor no puede ser negativo",
+      "stockPositive": "El stock tiene que ser mayor a cero, o vacío para ilimitado"
+    },
+    "submit": "Guardar borrador",
+    "submitting": "Guardando…",
+    "cancel": "Cancelar",
+    "success": "Recompensa creada como borrador",
+    "draftNote": "Se guarda como borrador. Vas a poder publicarla después de subirle una imagen.",
+    "unavailable": {
+      "title": "Campos que todavía no están disponibles",
+      "description": "El tipo de recompensa, la clasificación General/Special, la vigencia y los términos propios no se pueden configurar todavía: el backend no tiene esos campos. Están pedidos y llegan después."
+    },
+    "errors": {
+      "generic": "No pudimos crear la recompensa."
+    }
   }
 }

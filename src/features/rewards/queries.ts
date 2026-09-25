@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRewards } from './api/get-rewards'
+import { createReward } from './api/create-reward'
 
 /**
  * Registro de query keys de la slice `rewards` — issue #36 (B-03). Mismo
@@ -28,14 +29,35 @@ export const rewardKeys = {
  *
  * La mutación de publicación (`POST /portal/rewards/{id}/publish`) NO vive
  * acá todavía: el mock ya la soporta, pero llega con su primer consumidor
- * real, siguiendo el precedente de `useUpdateBusinessMe` (#72) y de la
- * creación de lugares (#29). Un hook sin consumidor se testea contra la
- * idea de cómo se va a usar, que es donde se cuelan los errores de diseño.
+ * real. La de creación sí está, abajo, con `RewardForm` (#38/#40/#41).
  */
 export function useRewards() {
   return useQuery({
     queryKey: rewardKeys.list,
     queryFn: getRewards,
     staleTime: 30_000,
+  })
+}
+
+/**
+ * `POST /portal/rewards` (#38, #40, #41) — mutación del formulario.
+ *
+ * Invalida en vez de sembrar la cache, por el mismo motivo que
+ * `useCreatePlace`: el `POST` devuelve solo `{ rewardId }`, así que armar la
+ * fila a mano sería adivinar lo que el servidor decidió — el estado, el
+ * stock restante — y esa fila inventada quedaría en pantalla hasta el
+ * próximo refetch.
+ *
+ * Nunca optimista: el servidor puede rechazar con 400, y una lista que ya
+ * mostró la recompensa tendría que quitarla.
+ */
+export function useCreateReward() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createReward,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.list })
+    },
   })
 }
