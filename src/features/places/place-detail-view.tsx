@@ -1,9 +1,21 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
 import { MAX_PLACE_PHOTOS, type BusinessPlaceDetail, type BusinessPlaceStatus } from '@/shared/schemas/business-place'
+import { hasMapboxToken } from '@/features/places/map-config'
+
+/**
+ * `mapbox-gl` pesa cientos de kilobytes y solo hace falta en esta pantalla,
+ * así que se carga aparte. Sin `lazy()` el login y el listado — las dos
+ * pantallas que todo negocio abre primero — pagarían ese peso sin usarlo.
+ */
+const PlaceLocationMap = lazy(() =>
+  import('@/features/places/place-location-map').then((mod) => ({
+    default: mod.PlaceLocationMap,
+  }))
+)
 
 const PLACE_STATUS_VARIANT: Record<BusinessPlaceStatus, StatusBadgeVariant> = {
   Draft: 'neutral',
@@ -104,13 +116,44 @@ export function PlaceDetailView({ place, actions }: PlaceDetailViewProps) {
 
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('detail.sections.location.title')}</SectionTitle>
-        <DetailField
-          label={t('detail.fields.coordinates.label')}
-          value={t('detail.fields.coordinates.value', {
-            latitude: place.latitude,
-            longitude: place.longitude,
-          })}
-        />
+
+        {/*
+         * Un pin en el mapa dice dónde queda el local; un par de números
+         * decimales no. Pero el token de Mapbox todavía no está
+         * provisionado, así que sin él se cae a las coordenadas en texto —
+         * que es exactamente lo que se mostraba antes de que el mapa
+         * existiera. Degradar a lo anterior es mejor que degradar a un hueco
+         * gris.
+         */}
+        {hasMapboxToken ? (
+          <Suspense
+            fallback={
+              <div className="flex h-48 items-center justify-center rounded-xs border border-border">
+                <p role="status" className="font-sans text-xs text-muted">
+                  {t('detail.mapLoading')}
+                </p>
+              </div>
+            }
+          >
+            <PlaceLocationMap
+              latitude={place.latitude}
+              longitude={place.longitude}
+              name={place.name}
+            />
+          </Suspense>
+        ) : (
+          <>
+            <DetailField
+              label={t('detail.fields.coordinates.label')}
+              value={t('detail.fields.coordinates.value', {
+                latitude: place.latitude,
+                longitude: place.longitude,
+              })}
+            />
+            <p className="font-sans text-xs text-muted">{t('detail.mapUnavailable')}</p>
+          </>
+        )}
+
         <DetailField
           label={t('detail.fields.checkInRadiusMeters.label')}
           value={t('detail.fields.checkInRadiusMeters.value', {
