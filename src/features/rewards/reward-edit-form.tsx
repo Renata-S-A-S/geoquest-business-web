@@ -16,6 +16,7 @@ import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-messa
 import { useToast } from '@/shared/hooks/use-toast'
 import {
   createRewardFormSchema,
+  type RewardFormOutput,
   type RewardFormValues,
 } from '@/features/rewards/reward-form-schema'
 import { committedUnits, type BusinessRewardSummary } from '@/shared/schemas/business-reward'
@@ -127,17 +128,18 @@ export function RewardEditForm({ businessId, reward, onReload }: RewardEditFormP
     },
   })
 
-  function onSubmit(values: RewardFormValues) {
+  function onSubmit(values: RewardFormOutput) {
     mutation.mutate(
       {
         title: values.title,
         description: values.description,
-        geoPointsCost: values.geoPointsCost as number,
-        estimatedValueCop: values.estimatedValueCop as number,
+        geoPointsCost: values.geoPointsCost,
+        estimatedValueCop: values.estimatedValueCop,
         // Vacío significa «válida en todos mis lugares», que el backend
         // representa como `null`, no como cadena vacía.
         placeId: values.placeId === '' ? null : values.placeId,
-        stockTotal: Number.isNaN(values.stockTotal) ? null : (values.stockTotal ?? null),
+        // Ya transformado por el schema: NaN llegó acá como `null`.
+        stockTotal: values.stockTotal,
         // Se reenvía sin tocar: el PUT es reemplazo total y omitirlo lo
         // borraría. No hay campo de formulario para esto a propósito.
         menuItemId: reward.menuItemId,
@@ -236,6 +238,7 @@ export function RewardEditForm({ businessId, reward, onReload }: RewardEditFormP
             render={({ field }) => (
               <Select
                 id="reward-edit-place"
+                ref={field.ref}
                 aria-labelledby="reward-edit-place-label"
                 options={placeOptions}
                 value={field.value === '' ? null : field.value}

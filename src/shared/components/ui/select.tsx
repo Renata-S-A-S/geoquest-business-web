@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react'
 import { CaretDown, Check } from '@phosphor-icons/react'
 import { cn } from '@/shared/lib/cn'
 
@@ -23,6 +32,14 @@ export interface SelectProps {
    */
   label?: string
   'aria-labelledby'?: string
+  /**
+   * Marca el trigger como inválido para tecnologías asistivas. El caller lo
+   * pasa cuando su `FormField` está mostrando un error: sin esto el mensaje
+   * rojo es visible pero el control mismo no se anuncia como inválido.
+   */
+  'aria-invalid'?: boolean
+  /** Id del nodo de error, para que el trigger lo referencie. */
+  'aria-describedby'?: string
   id?: string
   className?: string
 }
@@ -48,17 +65,22 @@ export interface SelectProps {
  *   `aria-labelledby` (el caller ya tiene un label externo) — nunca los
  *   dos a la vez, ver JSDoc de la prop.
  */
-export function Select({
-  options,
-  value,
-  onChange,
-  placeholder,
-  disabled,
-  label,
-  id,
-  className,
-  ...ariaProps
-}: SelectProps) {
+/**
+ * `forwardRef` al trigger, no al contenedor.
+ *
+ * React Hook Form usa esa ref para mover el foco al primer campo inválido
+ * cuando falla el submit (`shouldFocusError`). Sin ella, un `Controller` que
+ * envuelva este `Select` muestra el mensaje de error pero **el foco no se
+ * mueve**: un usuario de teclado o lector de pantalla queda en el botón de
+ * enviar, con un error que no sabe dónde está.
+ *
+ * Se expone el `<button>` y no el `<div>` raíz porque es el elemento
+ * enfocable — enfocar el contenedor no haría nada.
+ */
+const SelectImpl = forwardRef<HTMLButtonElement, SelectProps>(function Select(
+  { options, value, onChange, placeholder, disabled, label, id, className, ...ariaProps },
+  forwardedRef
+) {
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const generatedId = useId()
@@ -66,6 +88,9 @@ export function Select({
   const listboxId = `${selectId}-listbox`
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+
+  // El trigger es el nodo enfocable, así que es el que se expone hacia afuera.
+  useImperativeHandle(forwardedRef, () => triggerRef.current as HTMLButtonElement)
 
   const selectedIndex = options.findIndex((option) => option.value === value)
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined
@@ -150,6 +175,8 @@ export function Select({
         id={selectId}
         type="button"
         role="combobox"
+        aria-invalid={ariaProps['aria-invalid']}
+        aria-describedby={ariaProps['aria-describedby']}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
@@ -213,4 +240,8 @@ export function Select({
       )}
     </div>
   )
-}
+})
+
+SelectImpl.displayName = 'Select'
+
+export const Select = SelectImpl

@@ -241,7 +241,9 @@ export function PlaceForm() {
             render={({ field }) => (
               <Select
                 id="place-category"
+                ref={field.ref}
                 aria-labelledby="place-category-label"
+                aria-invalid={errors.category ? true : undefined}
                 options={categoryOptions}
                 value={field.value === '' ? null : field.value}
                 placeholder={t('createForm.fields.category.placeholder')}
@@ -269,7 +271,9 @@ export function PlaceForm() {
             render={({ field }) => (
               <Select
                 id="place-subcategory"
+                ref={field.ref}
                 aria-labelledby="place-subcategory-label"
+                aria-invalid={errors.subcategory ? true : undefined}
                 options={subcategoryOptions}
                 value={field.value === '' ? null : field.value}
                 disabled={selectedCategory === ''}

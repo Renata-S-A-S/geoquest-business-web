@@ -7,7 +7,6 @@ import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials
 import { SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
 import {
   createBusinessPlaceInputSchema,
-  DEFAULT_CHECK_IN_RADIUS_METERS,
   type BusinessPlaceDetail,
   type BusinessPlaceSummary,
 } from '@/shared/schemas/business-place'
@@ -372,7 +371,6 @@ export const handlers = [
     const newPlace: BusinessPlaceDetail = {
       ...parsed.data,
       placeId: crypto.randomUUID(),
-      checkInRadiusMeters: parsed.data.checkInRadiusMeters ?? DEFAULT_CHECK_IN_RADIUS_METERS,
       status: 'Draft',
       photos: [],
     }

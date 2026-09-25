@@ -24,16 +24,30 @@ export async function publishPlace(placeId: string): Promise<PublishBusinessPlac
 /**
  * Precondición de publicación, replicada de `Place.Activate` del backend.
  *
- * Solo un `Draft` con al menos una foto se puede publicar. Las tres razones
- * de rechazo del backend son 409:
+ * `Place.Activate` rechaza **exactamente dos** estados, ambos con 409:
  *
  * - `Place.Deleted` — un lugar borrado no revive
  * - `Place.AlreadyActive` — ya está publicado
- * - `Place.ActiveRequiresAtLeastOnePhoto` — sin fotos no hay nada que mostrar
+ *
+ * más `Place.ActiveRequiresAtLeastOnePhoto` si no tiene fotos.
+ *
+ * ⚠️ **`Paused` NO está en esa lista: un lugar pausado sí se puede
+ * publicar.** El docstring de `Place.Activate` lo confirma — dice que
+ * `BusinessReactivatedEventDispatcher` reutiliza ese mismo método
+ * precisamente sobre lugares `Paused`.
+ *
+ * Esto estaba mal antes: la condición exigía `status === 'Draft'`, así que
+ * el portal deshabilitaba el botón para una acción que el servidor habría
+ * aceptado. Un negocio cuyo lugar quedó pausado —por ejemplo por la cascada
+ * de RN-BIZ-04 al suspenderse el negocio, y luego reactivado— no tenía
+ * ninguna forma de volver a publicarlo.
  *
  * Chequearlo del lado del cliente no reemplaza al servidor: evita ofrecer un
- * botón que va a fallar, que es distinto de confiar en que no falle.
+ * botón que va a fallar, que es distinto de confiar en que no falle. Pero
+ * ser MÁS estricto que el servidor es peor que no chequear nada, porque
+ * esconde una acción legítima.
  */
 export function canPublishPlace(place: BusinessPlaceDetail): boolean {
-  return place.status === 'Draft' && place.photos.length > 0
+  const publishableStatus = place.status === 'Draft' || place.status === 'Paused'
+  return publishableStatus && place.photos.length > 0
 }
