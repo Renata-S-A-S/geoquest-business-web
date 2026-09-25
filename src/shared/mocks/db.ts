@@ -1,12 +1,14 @@
 import { createMockStorage, type MockStorage } from '@/shared/mocks/storage'
 import {
   SEED_BUSINESS,
+  SEED_BUSINESS_SCENARIOS,
   SEED_PLACES,
   SEED_REWARDS,
   SEED_USER_REWARDS,
   type MockUserReward,
+  type MyBusinessScenario,
 } from '@/shared/mocks/seed'
-import type { Business } from '@/shared/schemas/business'
+import type { Business, MyBusiness } from '@/shared/schemas/business'
 import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
 import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
 
@@ -18,6 +20,13 @@ interface MockDb {
   rewards: BusinessRewardSummary[]
   /** Canjes de B-04. Los muta el handler de escaneo al confirmar. */
   userRewards: MockUserReward[]
+  /**
+   * Negocio propio con la forma REAL de `MyBusinessResult` — fuente de `GET
+   * /business/mine` (real-backend-readiness PR6a). `null` representa "sin
+   * negocio propio" (el handler responde `[]`). Coexiste con `business`
+   * (contrato legacy de `/business/me`) hasta PR6c.
+   */
+  myBusiness: MyBusiness | null
 }
 
 /**
@@ -39,6 +48,7 @@ function seedDb(): MockDb {
     places: SEED_PLACES,
     rewards: SEED_REWARDS,
     userRewards: SEED_USER_REWARDS,
+    myBusiness: SEED_BUSINESS_SCENARIOS.Active,
   })
 }
 
@@ -58,4 +68,22 @@ export function writeDb(db: MockDb, storage: MockStorage = createMockStorage()):
 
 export function resetDb(storage: MockStorage = createMockStorage()): void {
   storage.clear(STORAGE_KEY)
+}
+
+/**
+ * Único punto que escribe un escenario de `GET /business/mine` sobre el mock
+ * db — usado tanto por `shared/mocks/browser.ts` (demo pública vía
+ * `?mockBusiness=`) como por `test/mock-business.ts` (`setMockBusiness()`).
+ * Clona el escenario semilla antes de guardarlo: `MemoryStorageAdapter`
+ * (proyecto Vitest 'node') guarda la referencia cruda sin serializar, así
+ * que escribir el objeto de `SEED_BUSINESS_SCENARIOS` sin clonar dejaría un
+ * mismo objeto compartido entre `readDb()` de distintos tests.
+ */
+export function applyMockBusinessScenario(
+  scenario: MyBusinessScenario,
+  storage: MockStorage = createMockStorage()
+): void {
+  const db = readDb(storage)
+  db.myBusiness = structuredClone(SEED_BUSINESS_SCENARIOS[scenario])
+  writeDb(db, storage)
 }

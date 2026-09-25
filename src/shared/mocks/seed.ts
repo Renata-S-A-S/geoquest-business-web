@@ -1,4 +1,4 @@
-import type { Business, BusinessStaff } from '@/shared/schemas/business'
+import type { Business, BusinessStaff, MyBusiness } from '@/shared/schemas/business'
 import type { BusinessPlaceDetail } from '@/shared/schemas/business-place'
 import { Category, Subcategory } from '@/shared/schemas/taxonomy'
 import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
@@ -54,6 +54,61 @@ export const SEED_BUSINESS_STAFF: BusinessStaff = {
  * JWT, no de un endpoint aparte.
  */
 export const SEED_BUSINESS_STAFF_USERNAME = 'maria_cafe70'
+
+/**
+ * Base compartida por cada escenario de `SEED_BUSINESS_SCENARIOS` — evita
+ * repetir los 6 campos que no varían entre estados (`businessId`/`name`
+ * fijos, y los defaults "sin bandera especial" de un negocio verificado).
+ * Cada escenario solo declara `status` y lo que realmente cambia.
+ */
+function myBusinessScenario(
+  overrides: Pick<MyBusiness, 'status'> & Partial<Omit<MyBusiness, 'businessId' | 'name'>>
+): MyBusiness {
+  return {
+    businessId: SEED_BUSINESS.id,
+    name: SEED_BUSINESS.displayName,
+    rejectionReason: null,
+    rejectedAtUtc: null,
+    hasLegalDocument: true,
+    legalDocumentWaived: false,
+    logoUrl: null,
+    hasVerificationVideo: false,
+    ...overrides,
+  }
+}
+
+/**
+ * Escenarios demo de `GET /business/mine` (real-backend-readiness PR6a,
+ * design "Mock status demo"): un `MyBusiness` por cada uno de los 5 estados
+ * reales del backend, más `none` para el caso "sin negocio propio"
+ * (`myBusiness: null` → el handler responde `[]`). Comparten `businessId`
+ * con `SEED_BUSINESS.id` a propósito — las semillas de lugares/recompensas
+ * ya referencian ese id, y PR6b migra esos consumidores al contrato real
+ * sin necesitar otro UUID.
+ *
+ * `?mockBusiness=` (`shared/mocks/mock-business-param.ts`, leído por
+ * `shared/mocks/browser.ts`) y `setMockBusiness()` (`test/mock-business.ts`)
+ * son los dos únicos puntos que aplican uno de estos escenarios sobre el
+ * mock db — ningún handler debe construir un `MyBusiness` ad hoc.
+ */
+export const SEED_BUSINESS_SCENARIOS = {
+  Active: myBusinessScenario({ status: 'Active' }),
+  Paused: myBusinessScenario({ status: 'Paused' }),
+  Suspended: myBusinessScenario({ status: 'Suspended' }),
+  PendingVerification: myBusinessScenario({
+    status: 'PendingVerification',
+    hasLegalDocument: false,
+  }),
+  Rejected: myBusinessScenario({
+    status: 'Rejected',
+    rejectionReason:
+      'El documento legal no coincide con el nombre registrado ante cámara de comercio.',
+    rejectedAtUtc: '2026-09-01T12:00:00Z',
+  }),
+  none: null,
+} as const satisfies Record<MyBusiness['status'] | 'none', MyBusiness | null>
+
+export type MyBusinessScenario = keyof typeof SEED_BUSINESS_SCENARIOS
 
 /**
  * Lugares semilla con la forma REAL de `BusinessPlaceDetailResult`. El mock

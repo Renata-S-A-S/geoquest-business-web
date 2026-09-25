@@ -107,3 +107,39 @@ export const businessStaffSchema = z.object({
   createdAt: z.string().datetime(),
 })
 export type BusinessStaff = z.infer<typeof businessStaffSchema>
+
+/**
+ * `MyBusiness` — mirror CONFIRMADO de `MyBusinessResult`
+ * (`GeoQuest.Modules.Business/Contracts/MyBusinessResult.cs`, origin/main),
+ * contrato real de `GET /business/mine` (real-backend-readiness PR6a, spec
+ * #1547 dominio `business-identity-status`). A diferencia de `businessSchema`
+ * (propuesta sin confirmar de #21, con `id`/`displayName`/`email`/`category`
+ * y solo 3 estados), este schema es 1:1 con el DTO real: nombres de campo
+ * `businessId`/`name`, y NO declara `email`/`category`/valores legales — el
+ * backend no los manda acá. Coexiste con `businessSchema` durante el
+ * expand/contract de PR6a-6c; PR6c retira el schema legacy y sus
+ * consumidores migran a este (PR6b).
+ */
+export const myBusinessStatusSchema = z.enum([
+  'Active',
+  'Paused',
+  'Suspended',
+  'PendingVerification',
+  'Rejected',
+])
+export type MyBusinessStatus = z.infer<typeof myBusinessStatusSchema>
+
+export const myBusinessSchema = z.object({
+  businessId: z.string().uuid(),
+  name: z.string(),
+  status: myBusinessStatusSchema,
+  // Nullable, no opcional: el backend serializa `null` explícito para estos
+  // tres campos (tipos nullable de C#), nunca omite la clave.
+  rejectionReason: z.string().nullable(),
+  rejectedAtUtc: z.string().datetime().nullable(),
+  hasLegalDocument: z.boolean(),
+  legalDocumentWaived: z.boolean(),
+  logoUrl: z.string().nullable(),
+  hasVerificationVideo: z.boolean(),
+})
+export type MyBusiness = z.infer<typeof myBusinessSchema>

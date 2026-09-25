@@ -168,6 +168,18 @@ export const handlers = [
     return HttpResponse.json(business)
   }),
 
+  /**
+   * `GET /business/mine` — contrato REAL (real-backend-readiness PR6a),
+   * confirmado contra `MyBusinessResult.cs` en `origin/main`. A diferencia
+   * de `/business/me` (arriba), SIEMPRE responde un array: `[myBusiness]`
+   * cuando el explorador de sesión es dueño de un negocio, `[]` cuando no
+   * (`db.myBusiness === null`, escenario `none` de `SEED_BUSINESS_SCENARIOS`).
+   */
+  http.get(`${API_BASE_URL}/business/mine`, () => {
+    const { myBusiness } = readDb()
+    return HttpResponse.json(myBusiness ? [myBusiness] : [])
+  }),
+
   http.post(`${API_BASE_URL}/business/register`, async ({ request }) => {
     const body = await request.json()
     const parsed = registerBusinessInputSchema.safeParse(body)

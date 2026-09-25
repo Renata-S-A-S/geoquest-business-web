@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import {
   businessSchema,
   registerBusinessInputSchema,
   businessStaffRoleSchema,
   businessStaffSchema,
+  myBusinessSchema,
 } from './business'
 
 const baseBusiness = {
@@ -177,5 +179,66 @@ describe('businessStaffSchema', () => {
 
   it('rechaza un role fuera de Owner/Manager/Staff', () => {
     expect(() => businessStaffSchema.parse({ ...baseBusinessStaff, role: 'SuperAdmin' })).toThrow()
+  })
+})
+
+/**
+ * `myBusinessSchema` — contrato REAL de `GET /business/mine` (real-backend-readiness
+ * PR6a). A diferencia de `businessSchema` (arriba), acá cada test confirma
+ * los 5 estados reales del backend y que un payload con la forma LEGACY
+ * (`id`/`displayName`, 3 estados) no cuela solo porque comparte el nombre
+ * "business".
+ */
+const baseMyBusiness = {
+  businessId: '11111111-1111-1111-1111-111111111111',
+  name: 'Café de la 70',
+  status: 'Active',
+  rejectionReason: null,
+  rejectedAtUtc: null,
+  hasLegalDocument: true,
+  legalDocumentWaived: false,
+  logoUrl: null,
+  hasVerificationVideo: false,
+}
+
+describe('myBusinessSchema', () => {
+  it.each(['Active', 'Paused', 'Suspended', 'PendingVerification', 'Rejected'] as const)(
+    'acepta el status %s (MyBusinessResult del backend)',
+    (status) => {
+      expect(() => myBusinessSchema.parse({ ...baseMyBusiness, status })).not.toThrow()
+    }
+  )
+
+  it('rechaza un status fuera de los 5 valores reales', () => {
+    expect(() => myBusinessSchema.parse({ ...baseMyBusiness, status: 'Pending' })).toThrow()
+  })
+
+  it('acepta rejectionReason/rejectedAtUtc/logoUrl con valor no nulo (negocio rechazado)', () => {
+    const rejected = {
+      ...baseMyBusiness,
+      status: 'Rejected',
+      rejectionReason: 'El documento legal no coincide con el nombre registrado.',
+      rejectedAtUtc: '2026-09-01T12:00:00Z',
+      logoUrl: 'https://cdn.geoquest.app/logos/cafe70.png',
+    }
+    expect(myBusinessSchema.parse(rejected)).toMatchObject({ status: 'Rejected' })
+  })
+
+  it('acepta la forma [] a través de z.array (0 negocios propios)', () => {
+    expect(z.array(myBusinessSchema).parse([])).toEqual([])
+  })
+
+  it('parsea un array con un solo elemento', () => {
+    expect(z.array(myBusinessSchema).parse([baseMyBusiness])).toHaveLength(1)
+  })
+
+  it('rechaza el payload LEGACY de businessSchema (id/displayName, sin businessId/name)', () => {
+    expect(() =>
+      myBusinessSchema.parse({
+        id: '11111111-1111-1111-1111-111111111111',
+        displayName: 'Café de la 70',
+        status: 'Active',
+      })
+    ).toThrow()
   })
 })
