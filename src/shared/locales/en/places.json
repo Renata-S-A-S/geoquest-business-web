@@ -55,5 +55,56 @@
       "18": "Hotel",
       "19": "Hostel"
     }
+  },
+  "createForm": {
+    "title": "Create place",
+    "fields": {
+      "name": {
+        "label": "Place name",
+        "placeholder": "Café de la 70 — Laureles"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Tell explorers what makes this place special.",
+        "hint": "Explorers see this on the map."
+      },
+      "category": {
+        "label": "Category",
+        "placeholder": "Choose a category"
+      },
+      "subcategory": {
+        "label": "Subcategory",
+        "placeholder": "Choose a subcategory",
+        "pickCategoryFirst": "Choose a category first"
+      },
+      "latitude": {
+        "label": "Latitude",
+        "placeholder": "6.2447"
+      },
+      "longitude": {
+        "label": "Longitude",
+        "placeholder": "-75.5916"
+      },
+      "coordinatesHint": "Typed by hand for now. The map picker ships in a separate task.",
+      "checkInRadiusMeters": {
+        "label": "Check-in radius (meters)",
+        "hint": "Between 50 and 1000 meters. It's how close an explorer must be to check in."
+      }
+    },
+    "validation": {
+      "required": "This field is required",
+      "latitudeRange": "Latitude must be between -90 and 90",
+      "longitudeRange": "Longitude must be between -180 and 180",
+      "radiusRange": "Radius must be between 50 and 1000 meters",
+      "number": "Enter a number"
+    },
+    "submit": "Create place",
+    "submitting": "Creating…",
+    "cancel": "Cancel",
+    "success": "Place created as a draft",
+    "errors": {
+      "generic": "We couldn't create the place.",
+      "invalidTaxonomy": "That subcategory doesn't belong to the chosen category."
+    }
   }
 }
