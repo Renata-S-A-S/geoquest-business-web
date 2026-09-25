@@ -85,7 +85,9 @@ describe('RewardForm', () => {
     renderRewardForm()
 
     expect(screen.getByRole('button', { name: 'Guardar borrador' })).toBeInTheDocument()
-    expect(screen.getByText(/Vas a poder publicarla después de subirle una imagen/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Vas a poder publicarla después de subirle una imagen/)
+    ).toBeInTheDocument()
   })
 
   it('exige título, descripción, costo y valor', async () => {

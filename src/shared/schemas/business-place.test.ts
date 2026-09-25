@@ -73,9 +73,9 @@ describe('businessPlaceSummarySchema', () => {
   })
 
   it('rechaza la categoría como slug de texto', () => {
-    expect(businessPlaceSummarySchema.safeParse({ ...SUMMARY, category: 'gastronomia' }).success).toBe(
-      false
-    )
+    expect(
+      businessPlaceSummarySchema.safeParse({ ...SUMMARY, category: 'gastronomia' }).success
+    ).toBe(false)
   })
 })
 
@@ -85,9 +85,9 @@ describe('businessPlaceDetailSchema', () => {
   })
 
   it('acepta un borrador sin fotos — el mínimo de 1 se exige al publicar', () => {
-    expect(businessPlaceDetailSchema.parse({ ...DETAIL, status: 'Draft', photos: [] })).toMatchObject(
-      { photos: [] }
-    )
+    expect(
+      businessPlaceDetailSchema.parse({ ...DETAIL, status: 'Draft', photos: [] })
+    ).toMatchObject({ photos: [] })
   })
 
   /**
@@ -119,21 +119,35 @@ describe('createBusinessPlaceInputSchema', () => {
   })
 
   it('exige descripción no vacía', () => {
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, description: '' }).success).toBe(
-      false
-    )
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, description: '' }).success
+    ).toBe(false)
   })
 
   it('respeta el rango de radio 50–1000 inclusive', () => {
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 50 }).success).toBe(true)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 1000 }).success).toBe(true)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 49 }).success).toBe(false)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 1001 }).success).toBe(false)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 50 }).success
+    ).toBe(true)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 1000 })
+        .success
+    ).toBe(true)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 49 }).success
+    ).toBe(false)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, checkInRadiusMeters: 1001 })
+        .success
+    ).toBe(false)
   })
 
   it('valida el rango geográfico de latitud y longitud', () => {
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, latitude: 91 }).success).toBe(false)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, longitude: -181 }).success).toBe(false)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, latitude: 91 }).success
+    ).toBe(false)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, longitude: -181 }).success
+    ).toBe(false)
   })
 
   /**
@@ -153,9 +167,9 @@ describe('createBusinessPlaceInputSchema', () => {
   })
 
   it('rechaza cualquier otro valor de recompensa, incluido el mínimo que el backend exige hoy', () => {
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 50 }).success).toBe(
-      false
-    )
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 50 }).success
+    ).toBe(false)
     expect(
       createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, geoPointsReward: 50 }).success
     ).toBe(false)
@@ -165,7 +179,9 @@ describe('createBusinessPlaceInputSchema', () => {
   })
 
   it('rechaza una subcategoría fuera del enum', () => {
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, subcategory: 20 }).success).toBe(false)
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, subcategory: 20 }).success
+    ).toBe(false)
   })
 })
 

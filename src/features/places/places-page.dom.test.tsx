@@ -21,9 +21,7 @@ function renderPlacesPage() {
 
 describe('PlacesPage', () => {
   it('muestra el estado de carga mientras la consulta está pendiente', async () => {
-    server.use(
-      http.get(`${API_BASE_URL}/business/places`, () => new Promise<never>(() => {}))
-    )
+    server.use(http.get(`${API_BASE_URL}/business/places`, () => new Promise<never>(() => {})))
 
     renderPlacesPage()
 
@@ -114,9 +112,7 @@ describe('PlacesPage', () => {
    */
   it('cae al mensaje traducido cuando el cuerpo del error no es problem+json', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/places`, () =>
-        HttpResponse.text('boom', { status: 500 })
-      )
+      http.get(`${API_BASE_URL}/business/places`, () => HttpResponse.text('boom', { status: 500 }))
     )
 
     renderPlacesPage()

@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
-import { MAX_PLACE_PHOTOS, type BusinessPlaceDetail, type BusinessPlaceStatus } from '@/shared/schemas/business-place'
+import {
+  MAX_PLACE_PHOTOS,
+  type BusinessPlaceDetail,
+  type BusinessPlaceStatus,
+} from '@/shared/schemas/business-place'
 import { hasMapboxToken } from '@/features/places/map-config'
 import { PlacePhotoViewer } from '@/features/places/place-photo-viewer'
 

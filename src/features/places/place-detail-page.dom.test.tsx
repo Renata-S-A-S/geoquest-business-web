@@ -198,9 +198,7 @@ describe('PlaceDetailPage — ubicación', () => {
     it('muestra las coordenadas y explica que el mapa no está disponible', async () => {
       renderDetail(ACTIVE.placeId)
 
-      expect(
-        await screen.findByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)
-      ).toBeInTheDocument()
+      expect(await screen.findByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)).toBeInTheDocument()
       expect(screen.getByText(/El mapa no está disponible todavía/)).toBeInTheDocument()
     })
   })
@@ -221,9 +219,7 @@ describe('PlaceDetailPage — ubicación', () => {
 
       await screen.findByText(ACTIVE.description)
 
-      expect(
-        screen.queryByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)
-      ).not.toBeInTheDocument()
+      expect(screen.queryByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)).not.toBeInTheDocument()
       expect(screen.queryByText(/El mapa no está disponible todavía/)).not.toBeInTheDocument()
     })
   })

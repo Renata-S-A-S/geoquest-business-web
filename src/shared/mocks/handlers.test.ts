@@ -290,11 +290,11 @@ describe('mock handlers — round-trip de persistencia', () => {
   it('POST /business/places/{id}/publish responde 409 cuando el borrador no tiene fotos', async () => {
     const draft = SEED_PLACES.find((place) => place.status === 'Draft')!
 
-    await expect(
-      apiClient.post(`/business/places/${draft.placeId}/publish`)
-    ).rejects.toMatchObject({
-      response: { status: 409, data: { title: 'Place.ActiveRequiresAtLeastOnePhoto' } },
-    })
+    await expect(apiClient.post(`/business/places/${draft.placeId}/publish`)).rejects.toMatchObject(
+      {
+        response: { status: 409, data: { title: 'Place.ActiveRequiresAtLeastOnePhoto' } },
+      }
+    )
   })
 
   it('POST /business/places/{id}/publish responde 409 cuando el lugar ya está activo', async () => {

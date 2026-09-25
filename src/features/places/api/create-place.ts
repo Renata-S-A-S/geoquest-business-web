@@ -11,10 +11,7 @@ import {
  * Subconjunto que el FORMULARIO recoge del usuario. Es más chico que el
  * payload real: las recompensas no se piden.
  */
-export type CreatePlaceFormInput = Omit<
-  CreateBusinessPlaceInput,
-  'xpReward' | 'geoPointsReward'
->
+export type CreatePlaceFormInput = Omit<CreateBusinessPlaceInput, 'xpReward' | 'geoPointsReward'>
 
 /**
  * `POST /business/places` — issues #30 y #33 (B-02).

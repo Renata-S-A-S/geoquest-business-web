@@ -32,9 +32,7 @@ export type CreateRewardFormInput = Omit<CreateBusinessRewardInput, 'menuItemId'
  * La imagen no viaja acá: se sube después con
  * `PUT /portal/rewards/{id}/image`, mismo patrón que las fotos de lugar.
  */
-export async function createReward(
-  input: CreateRewardFormInput
-): Promise<CreatedBusinessReward> {
+export async function createReward(input: CreateRewardFormInput): Promise<CreatedBusinessReward> {
   const { data } = await apiClient.post('/portal/rewards', { ...input, menuItemId: null })
   return createdBusinessRewardSchema.parse(data)
 }

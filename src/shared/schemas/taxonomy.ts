@@ -90,11 +90,7 @@ export const SUBCATEGORIES_BY_CATEGORY: Readonly<Record<Category, readonly Subca
     Subcategory.HistoricSite,
     Subcategory.CulturalCenter,
   ],
-  [Category.Aventura]: [
-    Subcategory.AdventureActivity,
-    Subcategory.CableCar,
-    Subcategory.Sports,
-  ],
+  [Category.Aventura]: [Subcategory.AdventureActivity, Subcategory.CableCar, Subcategory.Sports],
   [Category.Arte]: [Subcategory.StreetArt, Subcategory.Gallery, Subcategory.PublicArt],
   [Category.Alojamiento]: [Subcategory.Hotel, Subcategory.Hostel],
 } as const
