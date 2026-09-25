@@ -10,6 +10,7 @@ import { CreatePlacePage } from '@/features/places/create-place-page'
 import { PlaceDetailPage } from '@/features/places/place-detail-page'
 import { RewardsPage } from '@/features/rewards/rewards-page'
 import { CreateRewardPage } from '@/features/rewards/create-reward-page'
+import { RewardDetailPage } from '@/features/rewards/reward-detail-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
 import { AnalyticsPage } from '@/features/analytics/analytics-page'
 import { FeatureErrorBoundary } from '@/shared/components/feature-error-boundary'
@@ -150,6 +151,22 @@ export const router = createBrowserRouter([
             element: (
               <FeatureErrorBoundary featureName="Recompensas">
                 <CreateRewardPage />
+              </FeatureErrorBoundary>
+            ),
+          },
+          {
+            /*
+             * `/recompensas/:rewardId` (#109) — va DESPUÉS de
+             * `/recompensas/nueva` a propósito, igual que
+             * `/lugares/:placeId`. React Router v6 ordena por especificidad y
+             * no por declaración, así que el orden no cambia el resultado,
+             * pero leerlo en este orden evita que alguien mueva la ruta
+             * creyendo que `nueva` cae en el parámetro.
+             */
+            path: '/recompensas/:rewardId',
+            element: (
+              <FeatureErrorBoundary featureName="Recompensas">
+                <RewardDetailPage />
               </FeatureErrorBoundary>
             ),
           },

@@ -85,5 +85,58 @@
     },
     "loading": "Loading your business details…",
     "retry": "Retry"
+  },
+  "detail": {
+    "backToList": "Back to rewards",
+    "loading": "Loading the reward…",
+    "retry": "Retry",
+    "errors": {
+      "generic": "We couldn't load this reward.",
+      "notFound": "This reward doesn't exist, or it isn't your business's.",
+      "business": "We couldn't identify your business, so we couldn't load the reward either."
+    },
+    "sections": {
+      "offer": {
+        "title": "The offer"
+      },
+      "availability": {
+        "title": "Availability"
+      },
+      "image": {
+        "title": "Image"
+      }
+    },
+    "fields": {
+      "description": {
+        "label": "Description"
+      },
+      "geoPointsCost": {
+        "label": "GeoPoints cost"
+      },
+      "estimatedValueCop": {
+        "label": "Estimated value",
+        "value": "{{amount, number}} COP"
+      },
+      "stock": {
+        "label": "Stock"
+      },
+      "place": {
+        "label": "Place"
+      }
+    },
+    "stock": {
+      "unlimited": "No cap: unlimited",
+      "remaining": "{{remaining, number}} of {{total, number}} available",
+      "outOfStock": "Out of stock: no redemptions left"
+    },
+    "place": {
+      "allPlaces": "Valid at all your places",
+      "specific": "Tied to a specific place"
+    },
+    "image": {
+      "alt": "Image of {{title}}",
+      "empty": "This reward doesn't have an image yet.",
+      "emptyHint": "The image is uploaded after the reward is created, same as place photos."
+    }
   }
 }
