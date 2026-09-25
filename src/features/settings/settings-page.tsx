@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
 import { ThemeSwitcher } from '@/shared/components/theme-switcher'
+import { SignOutSection } from '@/features/settings/sign-out-section'
 import { useBusinessStaffMe } from '@/features/business/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 
@@ -78,15 +79,21 @@ function AccountBlock() {
 }
 
 /**
- * `/configuracion` (issue #72, PR6 — cierra #72). Dos bloques: la
- * identidad de la cuenta (solo lectura) y el selector de tema, que se muda
- * acá completo desde `AccountMenu` (decisión de diseño D5) — un solo
- * componente, un solo call site, sin cambios internos.
+ * `/configuracion` (issue #72, PR6). Ahora es el destino DIRECTO del avatar
+ * del shell: `AccountLink` navega acá sin menú intermedio.
  *
- * El logout NO vive acá: la decisión de #70 fue explícita ("el menú puede
- * sumar 'Mi negocio' y 'Configuración' sin mover el logout") y esta
- * pantalla no reabre esa decisión — sigue existiendo una única superficie
- * de cierre de sesión, en `AccountMenu`.
+ * ⚠️ **El logout ahora SÍ vive acá**, revirtiendo la decisión de #70 a pedido
+ * de Derek (24 sep 2026). El comentario anterior de este archivo decía lo
+ * contrario y quedó superado. Sigue habiendo una única superficie de cierre
+ * de sesión — solo que es esta, y no un menú.
+ *
+ * El motivo del cambio: llegar a cerrar sesión costaba dos clics y una
+ * decisión intermedia (abrir el menú, después elegir), y el menú no aportaba
+ * nada propio: era una lista de dos ítems, uno de los cuales llevaba a esta
+ * misma pantalla.
+ *
+ * Efecto secundario deseable: hay un solo lugar donde se agregan cosas de
+ * cuenta, en vez de repartirlas entre un menú y una pantalla.
  */
 export function SettingsPage() {
   const { t } = useTranslation('settings')
@@ -103,6 +110,17 @@ export function SettingsPage() {
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('appearance.title')}</SectionTitle>
         <ThemeSwitcher />
+      </Card>
+
+      {/*
+        La zona destructiva va última y separada. No es solo estética: cuando
+        esta pantalla sume más secciones, el cierre de sesión no debe quedar
+        entre dos bloques inocuos donde se pueda tocar de paso.
+      */}
+      <Card className="flex flex-col gap-3">
+        <SectionTitle>{t('session.title')}</SectionTitle>
+        <p className="font-sans text-xs text-muted">{t('session.description')}</p>
+        <SignOutSection />
       </Card>
     </div>
   )

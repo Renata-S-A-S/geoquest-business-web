@@ -19,5 +19,9 @@
   },
   "appearance": {
     "title": "Apariencia"
+  },
+  "session": {
+    "title": "Sesión",
+    "description": "Vas a tener que iniciar sesión de nuevo para volver a entrar al portal."
   }
 }

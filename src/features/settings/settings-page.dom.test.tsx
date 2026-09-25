@@ -108,12 +108,33 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument()
   })
 
-  it('no muestra un botón de cerrar sesión — el logout sigue siendo exclusivo del menú de cuenta', async () => {
+  /**
+   * Este caso afirmaba lo contrario —"el logout sigue siendo exclusivo del
+   * menú de cuenta"— y defendía la decisión de #70. Derek la revirtió el 24
+   * sep 2026: el avatar navega directo acá y cerrar sesión vive en esta
+   * pantalla, así que el test se invierte en vez de borrarse.
+   */
+  it('muestra el botón de cerrar sesión, que ahora vive acá', async () => {
     renderSettingsPage()
 
     await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
 
-    expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+  })
+
+  /**
+   * La confirmación se mantuvo al mudar el logout. Cerrar sesión no destruye
+   * datos, pero interrumpe el trabajo de quien lo toque por accidente — y en
+   * un mostrador eso pasa.
+   */
+  it('pide confirmación antes de cerrar sesión, no lo hace de una', async () => {
+    renderSettingsPage()
+
+    await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)
+    screen.getByRole('button', { name: 'Cerrar sesión' }).click()
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText(/Vas a salir del portal/)).toBeInTheDocument()
   })
 
   it('el selector de tema funciona desde /configuracion', async () => {

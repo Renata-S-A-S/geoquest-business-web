@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { NAV_ITEMS } from './nav-items'
-import { AccountMenu } from './account-menu'
+import { AccountLink } from './account-link'
 import { cn } from '@/shared/lib/cn'
 
 /**
@@ -14,7 +14,7 @@ import { cn } from '@/shared/lib/cn'
  * labels también en desktop: es un panel de gestión con más secciones y
  * más densidad de datos que el mapa de exploración, no una app de consumo.
  *
- * `justify-between` + pie con `AccountMenu` (issue #70, decisión de diseño
+ * `justify-between` + pie con `AccountLink` (issue #70, decisión de diseño
  * #1) mirror el rail del Explorer (`rail-nav.tsx`), que ya resuelve el
  * mismo problema: el logout necesita estar en todo momento alcanzable
  * desde el sidebar sin competir por espacio con la lista de secciones.
@@ -48,7 +48,7 @@ export function SidebarNav() {
         ))}
       </div>
       <div className="flex items-center gap-2 px-2 pt-4">
-        <AccountMenu />
+        <AccountLink />
         <span className="font-sans text-sm text-on-inverse/70">{t('account.title')}</span>
       </div>
     </nav>
