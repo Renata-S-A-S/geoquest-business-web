@@ -34,6 +34,7 @@ El backend de `Business` arranca en paralelo (slice `004-business-rewards`, Dere
 
 ```bash
 npm run dev            # servidor de desarrollo
+npm run dev:https      # servidor de desarrollo con HTTPS autofirmado (ver abajo)
 npm run test           # vitest run
 npm run test:watch     # vitest en watch
 npm run test:coverage  # cobertura
@@ -43,6 +44,21 @@ npm run format:check   # prettier --check . (esto es lo que corre en CI)
 ```
 
 Gate de calidad completo antes de abrir un PR: `npm run lint && npm run format:check && npm run test:coverage && npm run build`.
+
+### Probar el escaneo de QR con cámara desde el teléfono
+
+El escaneo con cámara (#44-#48) exige un "contexto seguro" del navegador
+(`window.isSecureContext`): HTTPS o `localhost`. `npm run dev` normal alcanza
+para probarlo desde la misma máquina (`http://localhost` ya es seguro), pero
+un teléfono en la misma red probando contra la IP de la máquina (por ejemplo
+`http://192.168.1.20:5173`) no lo es, y el navegador bloquea la cámara
+directamente.
+
+`npm run dev:https` levanta el mismo servidor con `@vitejs/plugin-basic-ssl`
+(certificado autofirmado, `vite --mode https`) para poder abrir esa IP desde
+el teléfono por `https://` — el navegador va a avisar que el certificado no
+es de confianza, y hay que aceptar la excepción a mano. `npm run dev` sigue
+igual, sin este plugin.
 
 ## TDD en un scaffold
 
