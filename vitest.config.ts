@@ -21,6 +21,21 @@ const alias = {
  */
 export default defineConfig({
   test: {
+    /**
+     * real-backend-readiness: el repo tiene un `.env.local` git-ignorado
+     * con `VITE_USE_MOCKS=false` (para probar manualmente contra el backend
+     * real con `npm run dev`). Vite/Vitest cargan `.env.local` igual que
+     * cualquier `.env*`, así que sin esto `import.meta.env.VITE_USE_MOCKS`
+     * — y por lo tanto `BACKEND_MODE` — dependería de si esta máquina tiene
+     * ese archivo, dando corridas locales en modo "real" y CI en modo
+     * "mock". `test.env` se aplica después de cargar los `.env*` (ver
+     * `backend-capabilities.test.ts`), forzando modo mock determinístico
+     * bajo Vitest sin importar el entorno local. Los tests que necesiten
+     * modo real deben pedirlo explícitamente vía
+     * `resolveBackendCapabilities('real')` o un provider. Se declara en
+     * `test.projects[].test.env` (no en la raíz) porque cada proyecto tiene
+     * su propia config resuelta y no hereda `test.env` del nivel raíz.
+     */
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary'],
@@ -50,6 +65,7 @@ export default defineConfig({
           include: ['src/**/*.test.ts'],
           exclude: ['src/**/*.dom.test.*'],
           setupFiles: ['./src/test/setup.ts'],
+          env: { VITE_USE_MOCKS: 'true' },
         },
       },
       {
@@ -59,6 +75,7 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['src/**/*.dom.test.{ts,tsx}'],
           setupFiles: ['./src/test/setup-dom.ts'],
+          env: { VITE_USE_MOCKS: 'true' },
         },
       },
     ],
