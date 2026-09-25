@@ -3,6 +3,8 @@ import { getRewards } from './api/get-rewards'
 import { getReward } from './api/get-reward'
 import { createReward, type CreateRewardFormInput } from './api/create-reward'
 import { updateReward } from './api/update-reward'
+import { pauseReward } from './api/pause-reward'
+import { republishReward } from './api/republish-reward'
 import type { UpdateBusinessRewardInput } from '@/shared/schemas/business-reward'
 
 /**
@@ -127,4 +129,44 @@ export function useUpdateReward(businessId: string | undefined, rewardId: string
       void queryClient.invalidateQueries({ queryKey: rewardKeys.all })
     },
   })
+}
+
+/**
+ * `POST .../rewards/{rewardId}/pause` y `.../republish` (#111).
+ *
+ * Las dos comparten hook porque comparten exactamente la misma mecánica de
+ * cache, y esa mecánica es la parte que importa:
+ *
+ * **Invalidan el prefijo `['rewards']`, no solo el detalle.** Los dos endpoints
+ * responden 204 sin body, así que no hay nada con qué sembrar: el estado nuevo
+ * solo se conoce releyendo. Y hay que releer las DOS pantallas — si se
+ * invalidara solo el detalle, el listado seguiría mostrando el estado anterior
+ * hasta el próximo refetch, que es exactamente el caso en que el negocio
+ * vuelve al listado para confirmar que su acción surtió efecto.
+ *
+ * Republicar además puede terminar en `Exhausted` en vez de `Published`
+ * (`Reward.cs:298`), así que releer no es una optimización: es el único modo de
+ * saber en qué estado quedó.
+ */
+function useRewardStatusMutation(
+  action: (businessId: string, rewardId: string) => Promise<void>,
+  businessId: string | undefined,
+  rewardId: string | undefined
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => action(businessId as string, rewardId as string),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.all })
+    },
+  })
+}
+
+export function usePauseReward(businessId: string | undefined, rewardId: string | undefined) {
+  return useRewardStatusMutation(pauseReward, businessId, rewardId)
+}
+
+export function useRepublishReward(businessId: string | undefined, rewardId: string | undefined) {
+  return useRewardStatusMutation(republishReward, businessId, rewardId)
 }

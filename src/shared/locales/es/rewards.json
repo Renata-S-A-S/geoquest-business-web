@@ -170,5 +170,28 @@
       "notEditable": "El estado de esta recompensa cambió y ya no acepta cambios. Recargá el detalle para ver cómo quedó.",
       "businessNotActive": "Tu negocio no está activo, así que no podés editar recompensas. La recompensa está bien: lo que falta es el estado del negocio."
     }
+  },
+  "statusActions": {
+    "pause": {
+      "action": "Pausar",
+      "pending": "Pausando…",
+      "success": "Recompensa pausada: los exploradores ya no la ven",
+      "exhaustedHint": "Pausar una recompensa agotada la deja de ofrecer. No repone el stock: para eso hay que editarla."
+    },
+    "republish": {
+      "action": "Republicar",
+      "pending": "Republicando…",
+      "success": "Recompensa republicada: los exploradores ya pueden canjearla",
+      "successButExhausted": "Se republicó, pero quedó AGOTADA porque no tiene stock disponible. Los exploradores la ven y no la pueden canjear. Editá el stock para volver a ofrecerla.",
+      "willExhaust": "Ojo: esta recompensa no tiene stock disponible, así que republicarla la va a dejar AGOTADA en vez de publicada. Si querés volver a ofrecerla, primero editá el stock.",
+      "pausedStaysHint": "Reponer stock no la despausa sola: mientras esté pausada se queda pausada hasta que la republiques."
+    },
+    "errors": {
+      "generic": "No pudimos cambiar el estado de la recompensa.",
+      "alreadyPaused": "Esta recompensa ya estaba pausada. Recargá para ver su estado actual.",
+      "notPaused": "Solo se puede republicar una recompensa pausada, y esta ya no lo está. Recargá para ver su estado actual.",
+      "invalidTransition": "El estado de esta recompensa no permite esta acción. Recargá para ver cómo quedó.",
+      "businessNotActive": "Tu negocio no está activo, así que no podés cambiar el estado de tus recompensas. La recompensa está bien: lo que falta es el estado del negocio."
+    }
   }
 }

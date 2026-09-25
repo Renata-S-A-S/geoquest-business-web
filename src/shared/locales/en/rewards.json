@@ -170,5 +170,28 @@
       "notEditable": "This reward's status changed and it no longer accepts edits. Reload the reward to see where it landed.",
       "businessNotActive": "Your business isn't active, so you can't edit rewards. The reward is fine: it's the business status that's blocking."
     }
+  },
+  "statusActions": {
+    "pause": {
+      "action": "Pause",
+      "pending": "Pausing…",
+      "success": "Reward paused: explorers no longer see it",
+      "exhaustedHint": "Pausing an out-of-stock reward stops offering it. It doesn't restock: for that you need to edit it."
+    },
+    "republish": {
+      "action": "Republish",
+      "pending": "Republishing…",
+      "success": "Reward republished: explorers can redeem it now",
+      "successButExhausted": "It was republished, but it ended up OUT OF STOCK because there's none available. Explorers can see it and can't redeem it. Edit the stock to offer it again.",
+      "willExhaust": "Careful: this reward has no stock available, so republishing it will leave it OUT OF STOCK instead of published. If you want to offer it again, edit the stock first.",
+      "pausedStaysHint": "Restocking doesn't unpause it on its own: while it's paused it stays paused until you republish it."
+    },
+    "errors": {
+      "generic": "We couldn't change the reward's status.",
+      "alreadyPaused": "This reward was already paused. Reload to see its current status.",
+      "notPaused": "Only a paused reward can be republished, and this one isn't anymore. Reload to see its current status.",
+      "invalidTransition": "This reward's status doesn't allow this action. Reload to see where it landed.",
+      "businessNotActive": "Your business isn't active, so you can't change your rewards' status. The reward is fine: it's the business status that's blocking."
+    }
   }
 }

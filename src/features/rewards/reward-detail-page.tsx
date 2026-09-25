@@ -7,6 +7,7 @@ import { useBusinessMe } from '@/features/business/queries'
 import { usePlaces } from '@/features/places/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { RewardDetailView } from '@/features/rewards/reward-detail-view'
+import { RewardStatusAction } from '@/features/rewards/reward-status-action'
 
 /**
  * Contenedor del detalle de recompensa (#109, B-03). Hermano de
@@ -90,5 +91,11 @@ export function RewardDetailPage() {
     (place) => place.placeId === rewardQuery.data.placeId
   )?.name
 
-  return <RewardDetailView reward={rewardQuery.data} placeName={placeName} />
+  return (
+    <RewardDetailView
+      reward={rewardQuery.data}
+      placeName={placeName}
+      actions={<RewardStatusAction businessId={businessQuery.data.id} reward={rewardQuery.data} />}
+    />
+  )
 }

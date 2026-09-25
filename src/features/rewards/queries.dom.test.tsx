@@ -8,7 +8,7 @@ import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS, SEED_REWARDS } from '@/shared/mocks/seed'
 import { placeKeys } from '@/features/places/queries'
 import { businessKeys } from '@/features/business/queries'
-import { rewardKeys, useRewards } from './queries'
+import { rewardKeys, usePauseReward, useRewards } from './queries'
 
 const businessId = SEED_BUSINESS.id
 const REWARDS_URL = `${API_BASE_URL}/portal/businesses/${businessId}/rewards`
@@ -132,5 +132,34 @@ describe('useRewards', () => {
     await waitFor(() => expect(second.result.current.isSuccess).toBe(true))
 
     expect(requestCount).toBe(1)
+  })
+})
+
+/**
+ * Lo que se verifica acá no es que la mutación funcione (eso lo cubre el test
+ * de transporte) sino que invalide el PREFIJO y no solo el detalle. Es la
+ * diferencia entre que el listado refleje el estado nuevo o se quede con el
+ * anterior hasta el próximo refetch — justo cuando el negocio vuelve al
+ * listado para confirmar que su acción surtió efecto.
+ */
+describe('usePauseReward', () => {
+  it('invalida el prefijo completo, alcanzando al listado y al detalle', async () => {
+    const { Wrapper, queryClient } = createWrapper()
+    queryClient.setQueryData(rewardKeys.list(businessId), [])
+    queryClient.setQueryData(rewardKeys.detail(businessId, SEED_REWARDS[0].rewardId), {})
+
+    const { result } = renderHook(() => usePauseReward(businessId, SEED_REWARDS[0].rewardId), {
+      wrapper: Wrapper,
+    })
+    result.current.mutate(undefined)
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => {
+      expect(queryClient.getQueryState(rewardKeys.list(businessId))?.isInvalidated).toBe(true)
+      expect(
+        queryClient.getQueryState(rewardKeys.detail(businessId, SEED_REWARDS[0].rewardId))
+          ?.isInvalidated
+      ).toBe(true)
+    })
   })
 })
