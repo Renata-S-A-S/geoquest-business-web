@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_PLACES } from '@/shared/mocks/seed'
-import { placeKeys, usePlaces } from './queries'
+import { resetDb, readDb, writeDb } from '@/shared/mocks/db'
+import { placeKeys, usePlace, usePlaces, usePublishPlace } from './queries'
 
 function createWrapper() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -81,5 +82,61 @@ describe('usePlaces', () => {
     await waitFor(() => expect(second.result.current.isSuccess).toBe(true))
 
     expect(requestCount).toBe(1)
+  })
+})
+
+/**
+ * `usePublishPlace` invalida **todo el prefijo `['places']`**, no solo el
+ * detalle. Esa conducta estaba documentada como importante y no tenía ni un
+ * test: si solo invalidara el detalle, el listado seguiría mostrando
+ * «Borrador» sobre un lugar ya activo, y el negocio no tendría ningún motivo
+ * para dudar de lo que ve.
+ *
+ * El test usa UN solo `QueryClient` con las dos consultas montadas, porque es
+ * la única forma de probar que la invalidación cruza de una a la otra — cada
+ * test de componente usa su cliente aislado, así que ninguno lo demostraba.
+ */
+describe('usePublishPlace — invalidación cruzada', () => {
+  it('refresca el listado Y el detalle tras publicar', async () => {
+    resetDb()
+    // La semilla deja el borrador sin fotos; publicar exige al menos una.
+    const db = readDb()
+    const draft = db.places.find((place) => place.status === 'Draft')!
+    draft.photos = ['https://cdn.example/a.jpg']
+    writeDb(db)
+
+    const { Wrapper } = createWrapper()
+    const rendered = renderHook(
+      () => ({
+        list: usePlaces(),
+        detail: usePlace(draft.placeId),
+        publish: usePublishPlace(),
+      }),
+      { wrapper: Wrapper }
+    )
+
+    await waitFor(() => {
+      expect(rendered.result.current.list.isSuccess).toBe(true)
+      expect(rendered.result.current.detail.isSuccess).toBe(true)
+    })
+
+    const statusInListBefore = rendered.result.current.list.data?.find(
+      (place) => place.placeId === draft.placeId
+    )?.status
+    expect(statusInListBefore).toBe('Draft')
+    expect(rendered.result.current.detail.data?.status).toBe('Draft')
+
+    rendered.result.current.publish.mutate(draft.placeId)
+
+    await waitFor(() => expect(rendered.result.current.publish.isSuccess).toBe(true))
+
+    // Las DOS consultas tienen que reflejar el estado nuevo.
+    await waitFor(() => {
+      const statusInList = rendered.result.current.list.data?.find(
+        (place) => place.placeId === draft.placeId
+      )?.status
+      expect(statusInList).toBe('Active')
+      expect(rendered.result.current.detail.data?.status).toBe('Active')
+    })
   })
 })

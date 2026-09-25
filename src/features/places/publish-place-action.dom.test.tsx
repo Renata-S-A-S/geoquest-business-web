@@ -49,6 +49,31 @@ describe('PublishPlaceAction', () => {
   })
 
   /**
+   * ⚠️ Un lugar `Paused` SÍ se puede publicar. `Place.Activate` del backend
+   * rechaza exactamente dos estados —`Deleted` y `Active`— y su propio
+   * docstring dice que `BusinessReactivatedEventDispatcher` reutiliza ese
+   * método precisamente sobre lugares `Paused`.
+   *
+   * La condición del cliente exigía `Draft`, así que deshabilitaba el botón
+   * para una acción que el servidor habría aceptado: un negocio cuyo lugar
+   * quedó pausado —por la cascada de RN-BIZ-04, por ejemplo— no tenía forma
+   * de volver a publicarlo. Ser MÁS estricto que el servidor esconde una
+   * acción legítima, que es peor que no chequear nada.
+   */
+  it('permite publicar un lugar Paused que tiene foto', () => {
+    renderAction({ ...DRAFT_WITH_PHOTO, status: 'Paused' })
+
+    expect(screen.getByRole('button', { name: 'Publicar lugar' })).toBeEnabled()
+  })
+
+  it('bloquea un Paused sin fotos Y explica por qué, sin dejarlo mudo', () => {
+    renderAction({ ...DRAFT_NO_PHOTO, status: 'Paused' })
+
+    expect(screen.getByRole('button', { name: 'Publicar lugar' })).toBeDisabled()
+    expect(screen.getByText('Para publicar hace falta al menos una foto.')).toBeInTheDocument()
+  })
+
+  /**
    * Sobre un lugar ya activo el componente no renderiza nada: un botón
    * deshabilitado permanente es ruido, no información.
    */

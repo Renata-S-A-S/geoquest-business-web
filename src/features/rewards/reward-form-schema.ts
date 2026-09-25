@@ -57,7 +57,15 @@ export function createRewardFormSchema(t: TFunction<'rewards'>) {
 }
 
 /**
- * `z.input<...>` y no `z.infer<...>`: el `.transform()` de `stockTotal` hace
- * que el tipo de ENTRADA (lo que el formulario maneja) difiera del de salida.
+ * `z.input`, no `z.output`, y a propósito: el `.transform()` de `stockTotal`
+ * (NaN → null) hace que los dos tipos diverjan. `useForm` administra los
+ * valores ANTES de la transformación —lo que el input entrega— mientras que
+ * `onSubmit` recibe los de DESPUÉS.
+ *
+ * Por eso el submit se tipa aparte con `RewardFormOutput`: sin esa distinción,
+ * el chequeo defensivo de NaN quedaba como código muerto según los tipos
+ * aunque en runtime el resolver ya había transformado el valor. Un editor
+ * futuro que confiara en el tipo equivocado podía reintroducir el camino del NaN.
  */
 export type RewardFormValues = z.input<ReturnType<typeof createRewardFormSchema>>
+export type RewardFormOutput = z.output<ReturnType<typeof createRewardFormSchema>>
