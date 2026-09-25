@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { mockSessionPort } from './session-port.mock'
 import { useSessionStore } from '@/shared/stores/session-store'
+import { SEED_BUSINESS_STAFF, SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
 
 /**
  * `session-port.mock.ts` dejó de ser la implementación activa desde #20
@@ -40,6 +41,26 @@ describe('mockSessionPort', () => {
 
     expect(mockSessionPort.isAuthenticated()).toBe(false)
     expect(mockSessionPort.getAccessToken()).toBeNull()
+  })
+
+  /**
+   * `getIdentityClaims()` (spec "session-identity"): a diferencia de
+   * `realSessionPort`, el token de este puerto (`mock-token`) NO es un JWT
+   * — nunca fue pensado para decodificarse — así que devuelve la identidad
+   * semilla directamente en vez de intentar `decodeJwtClaims` sobre un
+   * string que jamás tendría esa forma.
+   */
+  it('getIdentityClaims() devuelve la identidad semilla cuando hay sesión mock activa', () => {
+    useSessionStore.getState().signIn('mock-token')
+
+    expect(mockSessionPort.getIdentityClaims()).toEqual({
+      username: SEED_BUSINESS_STAFF_USERNAME,
+      email: SEED_BUSINESS_STAFF.email,
+    })
+  })
+
+  it('getIdentityClaims() devuelve null si no hay sesión mock activa', () => {
+    expect(mockSessionPort.getIdentityClaims()).toBeNull()
   })
 
   it('subscribe() se suscribe al store del mock y el unsubscribe funciona', () => {

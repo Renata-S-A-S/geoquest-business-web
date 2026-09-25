@@ -4,6 +4,7 @@ import { server } from '@/test/msw-server'
 import { realSessionPort } from './session-port.real'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { useBusinessSessionStore } from '@/shared/stores/business-session-store'
+import { createMockJwt } from '@/shared/mocks/mock-jwt'
 
 const freshTokens = {
   accessToken: 'fresh-access',
@@ -92,6 +93,47 @@ describe('realSessionPort', () => {
       accessToken: null,
       refreshToken: null,
     })
+  })
+
+  /**
+   * `getIdentityClaims()` (spec "session-identity") decodifica el
+   * `accessToken` del store real — issue #1547. Solo lo hace `realSessionPort`
+   * porque es el puerto activo en AMBOS modos (`session-port.instance.ts`).
+   */
+  it('getIdentityClaims() decodifica el JWT del access token real', () => {
+    const token = createMockJwt({
+      sub: '00000000-0000-0000-0000-000000000002',
+      email: 'maria@cafe70.co',
+      username: 'maria_cafe70',
+    })
+    useBusinessSessionStore.setState({
+      isAuthenticated: true,
+      accessToken: token,
+      accessTokenExpiresAtUtc: null,
+      refreshToken: 'some-refresh',
+      refreshTokenExpiresAtUtc: null,
+    })
+
+    expect(realSessionPort.getIdentityClaims()).toEqual({
+      username: 'maria_cafe70',
+      email: 'maria@cafe70.co',
+    })
+  })
+
+  it('getIdentityClaims() devuelve null si no hay sesión (sin access token)', () => {
+    expect(realSessionPort.getIdentityClaims()).toBeNull()
+  })
+
+  it('getIdentityClaims() devuelve null si el access token no es un JWT válido', () => {
+    useBusinessSessionStore.setState({
+      isAuthenticated: true,
+      accessToken: 'opaque-token-sin-forma-de-jwt',
+      accessTokenExpiresAtUtc: null,
+      refreshToken: 'some-refresh',
+      refreshTokenExpiresAtUtc: null,
+    })
+
+    expect(realSessionPort.getIdentityClaims()).toBeNull()
   })
 
   it('subscribe() se suscribe al store real y el unsubscribe funciona', () => {

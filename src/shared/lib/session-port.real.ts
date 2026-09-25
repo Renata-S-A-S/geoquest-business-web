@@ -3,6 +3,7 @@ import type { SessionPort } from '@/shared/lib/session-port'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { authTokensSchema } from '@/shared/schemas/auth'
 import { useBusinessSessionStore } from '@/shared/stores/business-session-store'
+import { decodeJwtClaims } from '@/shared/lib/jwt-claims'
 
 /**
  * Nunca pasa por `session-interceptor.ts`: si `refresh()` llamara al
@@ -28,6 +29,10 @@ const rawAxios = axios.create({ baseURL: API_BASE_URL })
 export const realSessionPort: SessionPort = {
   getAccessToken: () => useBusinessSessionStore.getState().accessToken,
   isAuthenticated: () => useBusinessSessionStore.getState().isAuthenticated,
+  getIdentityClaims: () => {
+    const { accessToken } = useBusinessSessionStore.getState()
+    return accessToken ? decodeJwtClaims(accessToken) : null
+  },
   refresh: async () => {
     const { refreshToken } = useBusinessSessionStore.getState()
     if (!refreshToken) {

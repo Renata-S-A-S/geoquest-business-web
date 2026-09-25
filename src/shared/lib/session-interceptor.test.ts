@@ -18,6 +18,9 @@ function createFakePort(initialToken: string | null): SessionPort {
   return {
     getAccessToken: () => token,
     isAuthenticated: () => token !== null,
+    // No decodifica nada real — este puerto falso no necesita identidad
+    // para probar el interceptor, solo tiene que cumplir la interfaz.
+    getIdentityClaims: () => null,
     refresh: vi.fn(async () => {
       if (token === null) throw new Error('no session')
       token = 'fresh-token'

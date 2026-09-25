@@ -4,7 +4,8 @@ import { UPLOAD_LIMITS } from '@/shared/lib/upload-limits'
 import { readDb, writeDb } from '@/shared/mocks/db'
 import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
-import { SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
+import { SEED_BUSINESS_STAFF, SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
+import { createMockJwt } from '@/shared/mocks/mock-jwt'
 import {
   createBusinessPlaceInputSchema,
   type BusinessPlaceDetail,
@@ -947,13 +948,23 @@ export const handlers = [
       )
     }
 
-    // Valores de tokens/expiración arbitrarios (mock-only) — la vida útil
-    // real de Identity no está confirmada (ver disclaimer en
+    // Valores de expiración arbitrarios (mock-only) — la vida útil real de
+    // Identity no está confirmada (ver disclaimer en
     // business-staff-credentials.mock.ts), así que no se finge un valor
-    // "realista": son strings/fechas de relleno, no una regla de negocio.
+    // "realista": son fechas de relleno, no una regla de negocio.
+    //
+    // `accessToken` SÍ tiene forma real (spec "session-identity", #1547):
+    // `realSessionPort` es el puerto activo en AMBOS modos
+    // (`session-port.instance.ts`), así que `getIdentityClaims()` decodifica
+    // este token igual que decodificaría uno real — un opaco `mock-access-*`
+    // (la forma anterior) nunca expondría username/email.
     const now = Date.now()
     const tokens: AuthTokens = {
-      accessToken: `mock-access-${crypto.randomUUID()}`,
+      accessToken: createMockJwt({
+        sub: SEED_BUSINESS_STAFF.id,
+        email: SEED_BUSINESS_STAFF.email,
+        username: SEED_BUSINESS_STAFF_USERNAME,
+      }),
       accessTokenExpiresAtUtc: new Date(now + 15 * 60 * 1000).toISOString(),
       refreshToken: `mock-refresh-${crypto.randomUUID()}`,
       refreshTokenExpiresAtUtc: new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString(),

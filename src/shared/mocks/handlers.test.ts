@@ -10,6 +10,7 @@ import {
 } from '@/shared/mocks/seed'
 import { MOCK_BUSINESS_STAFF_PASSWORD } from '@/shared/mocks/business-staff-credentials.mock'
 import { authTokensSchema } from '@/shared/schemas/auth'
+import { decodeJwtClaims } from '@/shared/lib/jwt-claims'
 import type {
   BusinessPlaceDetail,
   BusinessPlaceSummary,
@@ -650,6 +651,25 @@ describe('mock handlers — round-trip de persistencia', () => {
 
     expect(status).toBe(200)
     expect(() => authTokensSchema.parse(data)).not.toThrow()
+  })
+
+  /**
+   * `getIdentityClaims()` (spec "session-identity", #1547) decodifica el
+   * `accessToken` real — el mock tiene que emitir un token con la MISMA
+   * forma (`sub`/`email`/`username`), no el opaco `mock-access-${uuid}` de
+   * antes, o la identidad nunca se vería en modo mock.
+   */
+  it('POST /auth/login devuelve un accessToken con forma de JWT que decodifica a la identidad semilla', async () => {
+    const { data } = await apiClient.post<{ accessToken: string }>(
+      '/auth/login',
+      { email: SEED_BUSINESS_STAFF.email, password: MOCK_BUSINESS_STAFF_PASSWORD },
+      { skipSessionAuth: true }
+    )
+
+    expect(decodeJwtClaims(data.accessToken)).toEqual({
+      username: SEED_BUSINESS_STAFF_USERNAME,
+      email: SEED_BUSINESS_STAFF.email,
+    })
   })
 
   it('POST /auth/login con contraseña incorrecta responde 401 problem+json con detail', async () => {
