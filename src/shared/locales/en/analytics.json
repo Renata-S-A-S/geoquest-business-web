@@ -10,6 +10,15 @@
   "proposal": {
     "notice": "These metrics come from a mock: the backend has no analytics endpoints yet. The contract proposal lives in {{issue}}."
   },
+  "comingSoon": {
+    "badge": "Coming soon",
+    "title": "Analytics is on its way",
+    "description": "We're building the real metrics backend. In the meantime, you can keep managing your business from Places and Rewards.",
+    "links": {
+      "places": "Places",
+      "rewards": "Rewards"
+    }
+  },
   "period": {
     "label": "Period",
     "range": "From {{from}} to {{to}}",

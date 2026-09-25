@@ -10,6 +10,15 @@
   "proposal": {
     "notice": "Estas métricas las sirve un mock: el backend todavía no tiene endpoints de analytics. La propuesta de contrato está en {{issue}}."
   },
+  "comingSoon": {
+    "badge": "Muy pronto",
+    "title": "Analytics está en camino",
+    "description": "Estamos construyendo el backend real de métricas. Mientras tanto, podés seguir gestionando tu negocio desde Lugares y Recompensas.",
+    "links": {
+      "places": "Lugares",
+      "rewards": "Recompensas"
+    }
+  },
   "period": {
     "label": "Período",
     "range": "Del {{from}} al {{to}}",
