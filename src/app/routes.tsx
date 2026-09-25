@@ -10,8 +10,8 @@ import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { CreatePlacePage } from '@/features/places/create-place-page'
 import { PlaceDetailPage } from '@/features/places/place-detail-page'
-import { RoutePlaceholder } from '@/app/route-placeholder'
 import { RewardsPage } from '@/features/rewards/rewards-page'
+import { CreateRewardPage } from '@/features/rewards/create-reward-page'
 import { RedemptionsPage } from '@/features/redemptions/redemptions-page'
 import { AnalyticsPage } from '@/features/analytics/analytics-page'
 import { FeatureErrorBoundary } from '@/shared/components/feature-error-boundary'
@@ -159,7 +159,7 @@ export const router = createBrowserRouter([
             path: '/recompensas/nueva',
             element: (
               <FeatureErrorBoundary featureName="Recompensas">
-                <RoutePlaceholder label="crear recompensa — pendiente (#37-#42)" />
+                <CreateRewardPage />
               </FeatureErrorBoundary>
             ),
           },
