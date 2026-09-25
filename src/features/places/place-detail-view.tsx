@@ -5,6 +5,7 @@ import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
 import { MAX_PLACE_PHOTOS, type BusinessPlaceDetail, type BusinessPlaceStatus } from '@/shared/schemas/business-place'
 import { hasMapboxToken } from '@/features/places/map-config'
+import { PlacePhotoViewer } from '@/features/places/place-photo-viewer'
 
 /**
  * `mapbox-gl` pesa cientos de kilobytes y solo hace falta en esta pantalla,
@@ -33,28 +34,6 @@ function DetailField({ label, value }: { label: string; value: ReactNode }) {
     <div className="flex flex-col gap-0.5">
       <span className="font-sans text-xs font-semibold text-muted">{label}</span>
       <span className="font-sans text-sm text-ink">{value}</span>
-    </div>
-  )
-}
-
-/**
- * Valor fijado por la plataforma — issue #35.
- *
- * El criterio de aceptación es explícito: los puntos tienen que verse
- * **visiblemente distintos a un campo editable, no solo `disabled`**. Un
- * input deshabilitado sigue pareciendo un input: comunica "esto se edita,
- * pero no ahora", que es lo contrario de lo que pasa acá. Nunca se va a
- * poder editar.
- *
- * Por eso se renderiza como un dato con su unidad, sobre fondo `bg-cream`,
- * sin borde de campo ni cursor de texto. No hay `<input disabled>` en
- * ninguna parte de esta pantalla.
- */
-function PlatformFixedValue({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 rounded-xs bg-cream px-3 py-2">
-      <span className="font-sans text-xs font-semibold text-muted">{label}</span>
-      <span className="font-display text-base font-bold text-ink">{value}</span>
     </div>
   )
 }
@@ -162,14 +141,29 @@ export function PlaceDetailView({ place, actions }: PlaceDetailViewProps) {
         />
       </Card>
 
-      <Card className="flex flex-col gap-3">
-        <SectionTitle>{t('detail.sections.platform.title')}</SectionTitle>
-        <PlatformFixedValue label={t('detail.fields.xpReward.label')} value={place.xpReward} />
-        <PlatformFixedValue
-          label={t('detail.fields.geoPointsReward.label')}
-          value={place.geoPointsReward}
-        />
-        <p className="font-sans text-xs text-muted">{t('detail.platformFixedNote')}</p>
+      {/*
+       * La REGLA, no los números.
+       *
+       * RN-GAM-02/03 y RN-GAM-10 (verificado en Confluence, 24 sep 2026):
+       * un check-in en un `BusinessVenue` otorga **0 XP siempre** —«consumir
+       * no es explorar»— y una cantidad de GeoPoints **fijada por la
+       * plataforma** (25% del baseline, ~12), nunca elegida por el negocio.
+       *
+       * ⚠️ Los valores que el backend DEVUELVE hoy no son esos: guarda lo que
+       * el portal manda, y el portal manda el mínimo que ese backend exige
+       * (50/50) porque crea el lugar como `TouristSite` en vez de
+       * `BusinessVenue`. Mostrar `place.xpReward` y `place.geoPointsReward`
+       * le diría al negocio que su local da 50 XP, que es falso por regla.
+       *
+       * Así que se enuncia la regla, que es correcta con el backend actual y
+       * con el corregido. Los números vuelven cuando el backend los fije
+       * bien — ver `Renata-S-A-S/geoquest#191`.
+       */}
+      <Card className="flex flex-col gap-2">
+        <SectionTitle>{t('detail.rewards.title')}</SectionTitle>
+        <p className="font-sans text-sm text-ink">{t('detail.rewards.geoPoints')}</p>
+        <p className="font-sans text-sm text-ink">{t('detail.rewards.noXp')}</p>
+        <p className="font-sans text-xs text-muted">{t('detail.rewards.notConfigurable')}</p>
       </Card>
 
       <Card className="flex flex-col gap-3">
@@ -190,16 +184,7 @@ export function PlaceDetailView({ place, actions }: PlaceDetailViewProps) {
             <p className="font-sans text-xs text-muted">
               {t('detail.photos.count', { count: place.photos.length, max: MAX_PLACE_PHOTOS })}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {place.photos.map((url) => (
-                <img
-                  key={url}
-                  src={url}
-                  alt=""
-                  className="size-20 rounded-xs border border-border object-cover"
-                />
-              ))}
-            </div>
+            <PlacePhotoViewer photos={place.photos} placeName={place.name} />
           </>
         )}
       </Card>

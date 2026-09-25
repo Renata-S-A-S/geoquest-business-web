@@ -11,7 +11,7 @@
       "name": "Nombre",
       "status": "Estado",
       "category": "Categoría",
-      "geoPointsReward": "GeoPoints"
+      "subcategory": "Subcategoría"
     },
     "status": {
       "Draft": "Borrador",
@@ -21,8 +21,7 @@
     "empty": {
       "title": "Todavía no hay ningún lugar",
       "description": "Cuando crees tu primer lugar, los exploradores van a poder hacer check-in ahí y ganar GeoPoints."
-    },
-    "geoPointsValue": "{{points, number}}"
+    }
   },
   "taxonomy": {
     "categories": {
@@ -123,9 +122,6 @@
       "location": {
         "title": "Ubicación"
       },
-      "platform": {
-        "title": "Recompensas de la plataforma"
-      },
       "photos": {
         "title": "Fotos"
       }
@@ -147,22 +143,25 @@
       "checkInRadiusMeters": {
         "label": "Radio de check-in",
         "value": "{{meters, number}} m"
-      },
-      "xpReward": {
-        "label": "XP por check-in"
-      },
-      "geoPointsReward": {
-        "label": "GeoPoints por check-in"
       }
     },
-    "platformFixedNote": "Estos valores los fija GeoQuest, no tu negocio. Se mantienen iguales para todos los comercios de la red, porque los GeoPoints se pueden canjear en cualquiera de ellos.",
     "photos": {
       "empty": "Este lugar todavía no tiene fotos.",
       "publishNeedsPhoto": "Hace falta al menos una foto para poder publicarlo.",
-      "count": "{{count, number}} de 5"
+      "count": "{{count, number}} de 5",
+      "open": "Ver la foto {{index, number}} más grande",
+      "viewerTitle": "Foto {{index, number}} de {{total, number}}",
+      "previous": "Foto anterior",
+      "next": "Foto siguiente"
     },
     "mapUnavailable": "El mapa no está disponible todavía. Estas son las coordenadas exactas del lugar.",
-    "mapLoading": "Cargando el mapa…"
+    "mapLoading": "Cargando el mapa…",
+    "rewards": {
+      "title": "Qué gana un explorador acá",
+      "geoPoints": "Un check-in en tu local otorga **GeoPoints**, en una cantidad que fija GeoQuest — la misma para todos los negocios de la red.",
+      "noXp": "No otorga XP. El XP se gana solo explorando sitios turísticos: consumir no es explorar.",
+      "notConfigurable": "Vos no definís estos valores. El racional es que ningún negocio pueda competir por visitas subiendo el número, porque esos GeoPoints se canjean en toda la red."
+    }
   },
   "publish": {
     "action": "Publicar lugar",

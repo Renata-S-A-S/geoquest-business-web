@@ -11,7 +11,7 @@
       "name": "Name",
       "status": "Status",
       "category": "Category",
-      "geoPointsReward": "GeoPoints"
+      "subcategory": "Subcategory"
     },
     "status": {
       "Draft": "Draft",
@@ -21,8 +21,7 @@
     "empty": {
       "title": "You don't have any places yet",
       "description": "Once you create your first place, explorers will be able to check in there and earn GeoPoints."
-    },
-    "geoPointsValue": "{{points, number}}"
+    }
   },
   "taxonomy": {
     "categories": {
@@ -123,9 +122,6 @@
       "location": {
         "title": "Location"
       },
-      "platform": {
-        "title": "Platform rewards"
-      },
       "photos": {
         "title": "Photos"
       }
@@ -147,22 +143,25 @@
       "checkInRadiusMeters": {
         "label": "Check-in radius",
         "value": "{{meters, number}} m"
-      },
-      "xpReward": {
-        "label": "XP per check-in"
-      },
-      "geoPointsReward": {
-        "label": "GeoPoints per check-in"
       }
     },
-    "platformFixedNote": "GeoQuest sets these values, not your business. They stay the same across every business in the network, because GeoPoints can be redeemed at any of them.",
     "photos": {
       "empty": "This place has no photos yet.",
       "publishNeedsPhoto": "At least one photo is required before it can be published.",
-      "count": "{{count, number}} of 5"
+      "count": "{{count, number}} of 5",
+      "open": "View photo {{index, number}} larger",
+      "viewerTitle": "Photo {{index, number}} of {{total, number}}",
+      "previous": "Previous photo",
+      "next": "Next photo"
     },
     "mapUnavailable": "The map isn't available yet. These are the exact coordinates of the place.",
-    "mapLoading": "Loading the map…"
+    "mapLoading": "Loading the map…",
+    "rewards": {
+      "title": "What an explorer earns here",
+      "geoPoints": "A check-in at your place awards **GeoPoints**, in an amount GeoQuest sets — the same for every business in the network.",
+      "noXp": "It awards no XP. XP is earned only by exploring tourist sites: consuming isn't exploring.",
+      "notConfigurable": "You don't set these values. The rationale is that no business should compete for visits by raising the number, because those GeoPoints are redeemable across the whole network."
+    }
   },
   "publish": {
     "action": "Publish place",

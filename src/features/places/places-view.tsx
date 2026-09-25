@@ -29,9 +29,17 @@ export interface PlacesViewProps {
  * Listado de lugares del negocio (#29, B-02). Primer consumidor real de
  * `DataTable` (#17), que hasta ahora solo tenía su propio test.
  *
- * Columnas: nombre, categoría, estado y GeoPoints. Todas salen del
+ * Columnas: nombre, categoría, subcategoría y estado. Todas salen del
  * **resumen** que devuelve `GET /business/places` — la lista trae 7 campos,
  * no el detalle.
+ *
+ * ⚠️ **Sin columna de GeoPoints**, por dos razones que apuntan al mismo
+ * lado. La primera es de regla: RN-GAM-10 fija ese valor desde la
+ * plataforma, igual para todos los `BusinessVenue`, así que la columna
+ * mostraría **el mismo número en cada fila** — cero información por mucho
+ * ancho. La segunda es de datos: el backend guarda hoy lo que el portal
+ * manda (50) y no el 12 que la regla dicta, así que la columna además
+ * mentiría. Ver `Renata-S-A-S/geoquest#191`.
  *
  * ⚠️ Las columnas anteriores de check-ins y radio se retiraron: `totalCheckIns`
  * **no existe en ningún DTO del backend** (era invención del portal) y
@@ -84,9 +92,9 @@ export function PlacesView({ places }: PlacesViewProps) {
       ),
     },
     {
-      key: 'geoPointsReward',
-      header: t('list.columns.geoPointsReward'),
-      render: (place) => t('list.geoPointsValue', { points: place.geoPointsReward }),
+      key: 'subcategory',
+      header: t('list.columns.subcategory'),
+      render: (place) => t(`taxonomy.subcategories.${place.subcategory}`),
     },
   ]
 

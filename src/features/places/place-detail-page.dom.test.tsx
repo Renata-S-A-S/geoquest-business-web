@@ -2,11 +2,30 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_PLACES } from '@/shared/mocks/seed'
 import { PlaceDetailPage } from './place-detail-page'
+
+/**
+ * El fork del mapa se controla acá, no desde el entorno.
+ *
+ * `hasMapboxToken` se resuelve de `import.meta.env.VITE_MAPBOX_TOKEN`, así
+ * que sin este mock los tests pasarían o fallarían según si quien los corre
+ * tiene un token en su `.env.local` — y ambas ramas son comportamiento que
+ * hay que verificar, no un detalle del entorno de quien programa.
+ */
+let mapboxTokenPresent = false
+vi.mock('@/features/places/map-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/places/map-config')>()
+  return {
+    ...actual,
+    get hasMapboxToken() {
+      return mapboxTokenPresent
+    },
+  }
+})
 
 const ACTIVE = SEED_PLACES[0]
 const DRAFT = SEED_PLACES[1]
@@ -38,11 +57,11 @@ describe('PlaceDetailPage', () => {
   it('muestra los campos que el listado NO trae', async () => {
     renderDetail(ACTIVE.placeId)
 
-    // Los cinco campos exclusivos del detalle: descripción, coordenadas,
-    // radio y fotos. Si el detalle resolviera del listado, como proponía la
-    // issue, ninguno de estos podría mostrarse.
+    // Campos exclusivos del detalle: descripción, radio y fotos. Si el
+    // detalle resolviera del listado, como proponía la issue, ninguno podría
+    // mostrarse. Las coordenadas se verifican aparte, porque su presentación
+    // depende de si hay mapa.
     expect(await screen.findByText(ACTIVE.description)).toBeInTheDocument()
-    expect(screen.getByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)).toBeInTheDocument()
     expect(screen.getByText('100 m')).toBeInTheDocument()
   })
 
@@ -70,12 +89,33 @@ describe('PlaceDetailPage', () => {
     expect(document.querySelectorAll('input')).toHaveLength(0)
   })
 
-  it('muestra los valores de recompensa y explica quién los fija', async () => {
+  /**
+   * Se enuncia la REGLA, no los números. RN-GAM-02/03 y RN-GAM-10
+   * (verificado en Confluence): un check-in en un `BusinessVenue` da 0 XP
+   * siempre y GeoPoints fijados por la plataforma.
+   *
+   * Los valores que el backend devuelve hoy (50/50) contradicen esa regla,
+   * porque crea el lugar como `TouristSite`. Mostrarlos le diría al negocio
+   * que su local otorga 50 XP, que es falso por regla.
+   */
+  it('enuncia la regla de recompensas en vez de mostrar los números del backend', async () => {
     renderDetail(ACTIVE.placeId)
 
-    expect(await screen.findByText('XP por check-in')).toBeInTheDocument()
-    expect(screen.getByText('GeoPoints por check-in')).toBeInTheDocument()
-    expect(screen.getByText(/Estos valores los fija GeoQuest, no tu negocio/)).toBeInTheDocument()
+    expect(await screen.findByText('Qué gana un explorador acá')).toBeInTheDocument()
+    expect(screen.getByText(/No otorga XP/)).toBeInTheDocument()
+    expect(screen.getByText(/Vos no definís estos valores/)).toBeInTheDocument()
+  })
+
+  it('NO muestra los valores numéricos que el backend devuelve, que contradicen la regla', async () => {
+    renderDetail(ACTIVE.placeId)
+
+    await screen.findByText('Qué gana un explorador acá')
+
+    // La semilla trae 60/60; el backend real devolvería 50/50. Ninguno de los
+    // dos debe aparecer: la regla dice 0 XP y ~12 GeoPoints.
+    expect(screen.queryByText(String(ACTIVE.xpReward))).not.toBeInTheDocument()
+    expect(screen.queryByText('XP por check-in')).not.toBeInTheDocument()
+    expect(screen.queryByText('GeoPoints por check-in')).not.toBeInTheDocument()
   })
 
   it('traduce el estado del lugar en vez de mostrar el literal del enum', async () => {
@@ -153,23 +193,63 @@ describe('PlaceDetailPage', () => {
  * texto, que es exactamente lo que mostraba antes de que el mapa existiera.
  * Degradar a lo anterior es mejor que degradar a un hueco gris.
  */
-describe('PlaceDetailPage — ubicación sin token de Mapbox', () => {
-  it('muestra las coordenadas y explica que el mapa no está disponible', async () => {
-    renderDetail(ACTIVE.placeId)
+describe('PlaceDetailPage — ubicación', () => {
+  /**
+   * Las dos ramas son comportamiento a verificar, no un detalle del entorno.
+   * Sin token la pantalla cae a las coordenadas en texto, que es exactamente
+   * lo que mostraba antes de que el mapa existiera: degradar a lo anterior es
+   * mejor que degradar a un hueco gris.
+   */
+  describe('sin token de Mapbox', () => {
+    beforeEach(() => {
+      mapboxTokenPresent = false
+    })
 
-    expect(
-      await screen.findByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)
-    ).toBeInTheDocument()
-    expect(screen.getByText(/El mapa no está disponible todavía/)).toBeInTheDocument()
+    it('muestra las coordenadas y explica que el mapa no está disponible', async () => {
+      renderDetail(ACTIVE.placeId)
+
+      expect(
+        await screen.findByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)
+      ).toBeInTheDocument()
+      expect(screen.getByText(/El mapa no está disponible todavía/)).toBeInTheDocument()
+    })
+  })
+
+  describe('con token de Mapbox', () => {
+    beforeEach(() => {
+      mapboxTokenPresent = true
+    })
+
+    /**
+     * Con mapa las coordenadas crudas desaparecen: el pin ya dice dónde
+     * queda, y dejar además dos números decimales sería ruido sobre el mismo
+     * dato. Este caso fija que la rama del mapa realmente reemplaza el texto
+     * en vez de agregarse arriba.
+     */
+    it('NO muestra las coordenadas crudas ni el aviso de mapa faltante', async () => {
+      renderDetail(ACTIVE.placeId)
+
+      await screen.findByText(ACTIVE.description)
+
+      expect(
+        screen.queryByText(`${ACTIVE.latitude}, ${ACTIVE.longitude}`)
+      ).not.toBeInTheDocument()
+      expect(screen.queryByText(/El mapa no está disponible todavía/)).not.toBeInTheDocument()
+    })
   })
 
   /**
-   * El radio se muestra en las DOS ramas: con mapa y sin mapa. Es un dato
-   * del lugar, no una consecuencia de que el mapa cargue.
+   * El radio se muestra en las DOS ramas: es un dato del lugar, no una
+   * consecuencia de que el mapa cargue.
    */
-  it('muestra el radio de check-in aunque el mapa no esté disponible', async () => {
-    renderDetail(ACTIVE.placeId)
+  it('muestra el radio de check-in con mapa y sin mapa', async () => {
+    mapboxTokenPresent = false
+    const withoutMap = renderDetail(ACTIVE.placeId)
+    expect(await screen.findByText('100 m')).toBeInTheDocument()
+    withoutMap.unmount()
 
+    mapboxTokenPresent = true
+    renderDetail(ACTIVE.placeId)
     expect(await screen.findByText('100 m')).toBeInTheDocument()
   })
 })
