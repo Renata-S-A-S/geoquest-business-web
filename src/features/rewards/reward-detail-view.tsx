@@ -38,6 +38,28 @@ function DetailField({ label, value }: { label: string; value: ReactNode }) {
   )
 }
 
+/** Imagen en modo lectura, sin capacidad de subir. */
+function RewardImage({ reward }: { reward: BusinessRewardSummary }) {
+  const { t } = useTranslation('rewards')
+
+  if (reward.imageUrl === null) {
+    return (
+      <>
+        <p className="font-sans text-sm text-ink">{t('detail.image.empty')}</p>
+        <p className="font-sans text-xs text-muted">{t('detail.image.emptyHint')}</p>
+      </>
+    )
+  }
+
+  return (
+    <img
+      src={reward.imageUrl}
+      alt={t('detail.image.alt', { title: reward.title })}
+      className="max-h-64 w-full rounded-sm border border-border object-cover"
+    />
+  )
+}
+
 export interface RewardDetailViewProps {
   reward: BusinessRewardSummary
   /**
@@ -53,6 +75,11 @@ export interface RewardDetailViewProps {
    * `PlaceDetailView`.
    */
   actions?: ReactNode
+  /**
+   * Bloque de imagen (#112). Se inyecta por el mismo motivo que `actions`: la
+   * subida es una mutación y la vista no debe conocerla.
+   */
+  imageSlot?: ReactNode
 }
 
 /**
@@ -63,7 +90,7 @@ export interface RewardDetailViewProps {
  * contra backend `main` @ `ea471f4`, y el propio `Reward.cs:346-348` lo dice.
  * Un "creada el…" acá sería un dato inventado.
  */
-export function RewardDetailView({ reward, placeName, actions }: RewardDetailViewProps) {
+export function RewardDetailView({ reward, placeName, actions, imageSlot }: RewardDetailViewProps) {
   const { t } = useTranslation('rewards')
 
   /**
@@ -148,18 +175,12 @@ export function RewardDetailView({ reward, placeName, actions }: RewardDetailVie
 
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('detail.sections.image.title')}</SectionTitle>
-        {reward.imageUrl === null ? (
-          <>
-            <p className="font-sans text-sm text-ink">{t('detail.image.empty')}</p>
-            <p className="font-sans text-xs text-muted">{t('detail.image.emptyHint')}</p>
-          </>
-        ) : (
-          <img
-            src={reward.imageUrl}
-            alt={t('detail.image.alt', { title: reward.title })}
-            className="max-h-64 w-full rounded-sm border border-border object-cover"
-          />
-        )}
+        {/*
+          La sección de imagen se inyecta igual que `actions`: la vista sigue
+          sin conocer mutaciones. Cuando no se inyecta nada (por ejemplo en un
+          test de la vista sola) muestra la imagen en modo lectura.
+        */}
+        {imageSlot ?? <RewardImage reward={reward} />}
       </Card>
     </div>
   )

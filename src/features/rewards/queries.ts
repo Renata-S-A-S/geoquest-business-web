@@ -5,6 +5,7 @@ import { createReward, type CreateRewardFormInput } from './api/create-reward'
 import { updateReward } from './api/update-reward'
 import { pauseReward } from './api/pause-reward'
 import { republishReward } from './api/republish-reward'
+import { uploadRewardImage } from './api/upload-reward-image'
 import type { UpdateBusinessRewardInput } from '@/shared/schemas/business-reward'
 
 /**
@@ -169,4 +170,27 @@ export function usePauseReward(businessId: string | undefined, rewardId: string 
 
 export function useRepublishReward(businessId: string | undefined, rewardId: string | undefined) {
   return useRewardStatusMutation(republishReward, businessId, rewardId)
+}
+
+/**
+ * `PUT .../rewards/{rewardId}/image` (#112).
+ *
+ * Invalida el prefijo en vez de sembrar el detalle con la URL nueva. Sembrar
+ * sería tentador —la respuesta trae `{ url }`— pero armaría el objeto a mano a
+ * partir de un fragmento: la respuesta NO trae la recompensa entera, así que
+ * habría que mezclarla con la copia en cache y confiar en que nada más cambió.
+ * Releer cuesta un request y no miente.
+ *
+ * El listado también muestra si hay imagen o no, así que el prefijo es el
+ * alcance correcto y no solo el detalle.
+ */
+export function useUploadRewardImage(businessId: string | undefined, rewardId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (file: File) => uploadRewardImage(businessId as string, rewardId as string, file),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.all })
+    },
+  })
 }
