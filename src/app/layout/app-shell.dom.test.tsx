@@ -37,7 +37,13 @@ describe('AppShell', () => {
     // Uno en el pie de SidebarNav (desktop) y otro en MobileTopBar (mobile)
     // — ambos siempre en el DOM, el corte lg: es puramente CSS (issue #70,
     // decisión de diseño #1: BottomNav no gana un 6to ítem).
-    expect(screen.getAllByRole('button', { name: 'Abrir menú de cuenta' })).toHaveLength(2)
+    //
+    // Son `link` y no `button` desde que el avatar navega directo a
+    // `/configuracion` en vez de abrir un menú: el rol tiene que reflejar
+    // que la acción es navegar, no desplegar.
+    const triggers = screen.getAllByRole('link', { name: 'Abrir menú de cuenta' })
+    expect(triggers).toHaveLength(2)
+    expect(triggers[0]).toHaveAttribute('href', '/configuracion')
     expect(screen.getAllByText('Lugares')).toHaveLength(2)
   })
 })

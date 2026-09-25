@@ -1,4 +1,4 @@
-import { AccountMenu } from './account-menu'
+import { AccountLink } from './account-link'
 
 /**
  * Barra superior compacta — visible por debajo de 1024px (breakpoint `lg`),
@@ -17,7 +17,7 @@ export function MobileTopBar() {
         </div>
         <span className="font-display text-sm font-bold text-on-inverse">Negocios</span>
       </div>
-      <AccountMenu />
+      <AccountLink />
     </header>
   )
 }

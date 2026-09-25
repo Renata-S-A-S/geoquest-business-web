@@ -39,12 +39,15 @@ describe('SidebarNav', () => {
     expect(activeLink).toHaveClass('text-teal')
   })
 
-  it('renders the account menu trigger in its footer', () => {
+  it('renders the account trigger in its footer, linking straight to settings', () => {
     render(
       <MemoryRouter>
         <SidebarNav />
       </MemoryRouter>
     )
-    expect(screen.getByRole('button', { name: 'Abrir menú de cuenta' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abrir menú de cuenta' })).toHaveAttribute(
+      'href',
+      '/configuracion'
+    )
   })
 })
