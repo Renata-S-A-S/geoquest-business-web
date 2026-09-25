@@ -941,6 +941,18 @@ export const handlers = [
       }
 
       const db = readDb()
+
+      /**
+       * `requireActive: true` (`LookupRedemptionByQrTokenQueryHandler.cs:39`,
+       * design #1549): un negocio Pausado o Suspendido no puede ni siquiera
+       * PREVISUALIZAR un canje, aunque el lookup sea de solo lectura. Mismo
+       * `denyUnlessActive` que las escrituras de recompensas, chequeado ANTES
+       * de resolver el token — el estado del negocio que llama, no el dueño
+       * del token, es lo que se evalúa acá.
+       */
+      const denied = denyUnlessActive(db)
+      if (denied) return denied
+
       const userReward = db.userRewards.find(
         (candidate) => candidate.qrToken === parsed.data.qrToken
       )
@@ -1020,6 +1032,15 @@ export const handlers = [
       }
 
       const db = readDb()
+
+      /**
+       * `requireActive: true` (`ScanRedemptionQrCommandHandler.cs:47`, design
+       * #1549): un negocio Pausado o Suspendido no puede confirmar canjes.
+       * Mismo criterio que el lookup, chequeado antes de resolver el token.
+       */
+      const denied = denyUnlessActive(db)
+      if (denied) return denied
+
       const userReward = db.userRewards.find(
         (candidate) => candidate.qrToken === parsed.data.qrToken
       )

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { ActionLink } from '@/shared/components/ui/action-link'
 import { StatusBadge } from '@/shared/components/ui/status-badge'
-import { useBusinessMe } from '@/features/business/queries'
+import { useMyBusiness } from '@/features/business/queries'
 import { useAnalyticsCheckIns, useAnalyticsSummary } from '@/features/analytics/queries'
 import { AnalyticsView } from '@/features/analytics/analytics-view'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
@@ -22,7 +22,7 @@ import {
  * exista — acá solo se lo oculta detrás de `capabilities.analytics`.
  *
  * Presentational y sin queries propias a propósito: el gate de
- * `AnalyticsPage` corta ANTES de montar `useBusinessMe()`/`useAnalyticsSummary()`/
+ * `AnalyticsPage` corta ANTES de montar `useMyBusiness()`/`useAnalyticsSummary()`/
  * `useAnalyticsCheckIns()`, así que ningún fetch de analytics ni de negocio
  * se dispara en modo real (spec `analytics-landing`, escenario "Visit
  * landing" — "no analytics fetch occurs").
@@ -83,7 +83,7 @@ function AnalyticsComingSoon() {
  *
  * Extraído a un componente separado (`AnalyticsDashboard`) en vez de un
  * `if` temprano dentro de `AnalyticsPage` (real-backend-readiness PR5): un
- * early return ANTES de `useState`/`useBusinessMe`/etc. violaría las reglas
+ * early return ANTES de `useState`/`useMyBusiness`/etc. violaría las reglas
  * de hooks (cantidad de hooks distinta entre el render "Próximamente" y el
  * render del dashboard). Montar un componente hijo distinto según la
  * capacidad sí es válido — React nunca intenta reconciliar los hooks de un
@@ -99,12 +99,42 @@ function AnalyticsDashboard() {
   // pregunta haya cambiado.
   const range = useMemo(() => resolveAnalyticsRange(period), [period])
 
-  const businessQuery = useBusinessMe()
-  const businessId = businessQuery.data?.id
+  const businessQuery = useMyBusiness()
+  const businessId = businessQuery.data?.businessId
   const summaryQuery = useAnalyticsSummary(businessId, range)
   const checkInsQuery = useAnalyticsCheckIns(businessId, range)
 
   if (businessQuery.isError) {
+    return (
+      <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6 text-center">
+        <p role="alert" className="font-sans text-xs text-alert">
+          {getProblemDetailsMessage(businessQuery.error, t('errors.business'))}
+        </p>
+        <Button variant="primary" onClick={() => businessQuery.refetch()}>
+          {t('retry')}
+        </Button>
+      </div>
+    )
+  }
+
+  if (businessQuery.isPending) {
+    return (
+      <div className="flex min-h-[240px] items-center justify-center p-4">
+        <p role="status">{t('loading')}</p>
+      </div>
+    )
+  }
+
+  /**
+   * `businessId === undefined` acá solo puede ser `data === null`
+   * (`/business/mine` devolvió `[]`, sin negocio propio) — sin esta rama,
+   * `summaryQuery`/`checkInsQuery` quedan `enabled: false` para siempre y el
+   * chequeo de abajo mostraría "Cargando…" eternamente. Se narrowea sobre
+   * `businessId`, no `businessQuery.data`: comparar el `data` de la query
+   * directamente degrada el tipo de `businessQuery` a `never` acá (límite de
+   * TS con la unión discriminada de TanStack Query).
+   */
+  if (businessId === undefined) {
     return (
       <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6 text-center">
         <p role="alert" className="font-sans text-xs text-alert">

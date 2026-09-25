@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS, SEED_PLACES, SEED_REWARDS } from '@/shared/mocks/seed'
+import { setMockBusiness } from '@/test/mock-business'
 import { RewardDetailPage } from './reward-detail-page'
 
 const businessId = SEED_BUSINESS.id
@@ -149,10 +150,24 @@ describe('RewardDetailPage', () => {
 
   it('muestra un error propio si no puede resolver el negocio', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me`, () =>
+      http.get(`${API_BASE_URL}/business/mine`, () =>
         HttpResponse.json({ title: 'InternalError' }, { status: 500 })
       )
     )
+
+    renderDetail(published.rewardId)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos identificar tu negocio')
+  })
+
+  /**
+   * `useMyBusiness()` resuelve con éxito y `data === null` cuando
+   * `/business/mine` devuelve `[]` (sin negocio propio, real-backend-readiness
+   * PR6b). Sin la rama dedicada, `rewardQuery` quedaría `enabled: false` para
+   * siempre y la pantalla se quedaría en «Cargando…» eternamente.
+   */
+  it('muestra el mismo error cuando el explorador no tiene negocio propio', async () => {
+    setMockBusiness('none')
 
     renderDetail(published.rewardId)
 

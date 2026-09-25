@@ -2,6 +2,7 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
+import { readDb, writeDb } from '@/shared/mocks/db'
 import {
   SEED_BUSINESS,
   SEED_EXPIRED_QR_TOKEN,
@@ -99,6 +100,24 @@ describe('lookupRedemption', () => {
       lookupRedemption(OTHER_BUSINESS_ID, SEED_PURCHASED_QR_TOKEN)
     ).rejects.toMatchObject({
       response: { status: 403, data: { title: 'RedemptionToken.OtherBusiness' } },
+    })
+  })
+
+  /**
+   * `requireActive: true` (design #1549, verificado contra
+   * `LookupRedemptionByQrTokenQueryHandler.cs:39`): un negocio Pausado o
+   * Suspendido no puede ni siquiera PREVISUALIZAR un canje, aunque el lookup
+   * sea de solo lectura. El mismo mensaje que las escrituras de recompensas
+   * (`denyUnlessActive`), para que el portal lo reconozca con el criterio ya
+   * existente.
+   */
+  it('responde 403 BusinessNotActive al buscar con el negocio Suspended', async () => {
+    const db = readDb()
+    db.business.status = 'Suspended'
+    writeDb(db)
+
+    await expect(lookupRedemption(BUSINESS_ID, SEED_PURCHASED_QR_TOKEN)).rejects.toMatchObject({
+      response: { status: 403, data: { title: 'RewardPortal.BusinessNotActive' } },
     })
   })
 
@@ -218,6 +237,25 @@ describe('scanRedemption', () => {
       scanRedemption(OTHER_BUSINESS_ID, { qrToken: SEED_PURCHASED_QR_TOKEN })
     ).rejects.toMatchObject({
       response: { status: 403, data: { title: 'RedemptionToken.OtherBusiness' } },
+    })
+  })
+
+  /**
+   * `requireActive: true` (design #1549, verificado contra
+   * `ScanRedemptionQrCommandHandler.cs:47`): un negocio no Active no puede
+   * confirmar canjes — mismo criterio y mismo mensaje que el lookup.
+   * `db.business` (contrato LEGACY) solo modela `Pending|Active|Suspended`;
+   * `Paused` existe en `MyBusiness` pero no acá — ver PR6a.
+   */
+  it('responde 403 BusinessNotActive al escanear con el negocio Suspended', async () => {
+    const db = readDb()
+    db.business.status = 'Suspended'
+    writeDb(db)
+
+    await expect(
+      scanRedemption(BUSINESS_ID, { qrToken: SEED_PURCHASED_QR_TOKEN })
+    ).rejects.toMatchObject({
+      response: { status: 403, data: { title: 'RewardPortal.BusinessNotActive' } },
     })
   })
 

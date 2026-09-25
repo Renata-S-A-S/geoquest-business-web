@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { useRewards } from '@/features/rewards/queries'
-import { useBusinessMe } from '@/features/business/queries'
+import { useMyBusiness } from '@/features/business/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { RewardsView } from '@/features/rewards/rewards-view'
 
@@ -26,20 +26,19 @@ import { RewardsView } from '@/features/rewards/rewards-view'
  */
 export function RewardsPage() {
   const { t } = useTranslation('rewards')
-  const businessQuery = useBusinessMe()
-  const rewardsQuery = useRewards(businessQuery.data?.id)
+  const businessQuery = useMyBusiness()
+  const rewardsQuery = useRewards(businessQuery.data?.businessId)
 
-  if (businessQuery.isError) {
+  /**
+   * `data === null` (`/business/mine` devolvió `[]`, sin negocio propio)
+   * colapsa en la misma rama que un error de red: sin `businessId`,
+   * `rewardsQuery` quedaría `enabled: false` para siempre (spinner eterno).
+   * El gate real (`BusinessGateway`, PR7a) la reemplaza por una pantalla
+   * dedicada.
+   */
+  if (businessQuery.isError || businessQuery.data === null) {
     return (
       <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6 text-center">
-        {/*
-          Copia traducida DIRECTA, no vía el `fallback` de
-          `getProblemDetailsMessage`: ese helper resuelve
-          `detail ?? title ?? fallback`, así que un `InternalError` crudo del
-          backend le ganaría al texto traducido. Y para «no pudimos
-          identificar tu negocio» el detalle del servidor no aporta nada que
-          un dueño de negocio pueda accionar.
-        */}
         <p role="alert" className="font-sans text-xs text-alert">
           {t('list.errors.business')}
         </p>
@@ -50,7 +49,7 @@ export function RewardsPage() {
     )
   }
 
-  if (businessQuery.isPending || rewardsQuery.isPending) {
+  if (rewardsQuery.isPending) {
     return (
       <div className="flex min-h-[240px] items-center justify-center p-4">
         <p role="status">{t('list.loading')}</p>

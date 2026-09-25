@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
+import { readDb, writeDb } from '@/shared/mocks/db'
 import {
   SEED_EXPIRED_QR_TOKEN,
   SEED_FAILED_QR_TOKEN,
@@ -12,6 +13,7 @@ import {
   SEED_PURCHASED_QR_TOKEN,
   SEED_REDEEMED_QR_TOKEN,
 } from '@/shared/mocks/seed'
+import { setMockBusiness } from '@/test/mock-business'
 import { RedemptionsPage } from './redemptions-page'
 
 /**
@@ -361,9 +363,30 @@ describe('RedemptionsPage', () => {
     expect(await screen.findByRole('button', { name: 'Confirmar canje' })).toBeInTheDocument()
   })
 
+  /**
+   * Spec `business-gateway`, escenario "Paused blocks redemption scan"
+   * (real-backend-readiness PR6b): el mock replica `requireActive: true`
+   * (`LookupRedemptionByQrTokenQueryHandler.cs:39`) end-to-end, desde el MSW
+   * handler hasta la copia que ve el mostrador. `db.business` (contrato
+   * LEGACY) solo modela `Pending|Active|Suspended`, así que `Suspended` es el
+   * estado no-Active disponible acá — mismo gate que bloquearía `Paused`.
+   */
+  it('bloquea la búsqueda del canje con el negocio Suspended y explica por qué', async () => {
+    const db = readDb()
+    db.business.status = 'Suspended'
+    writeDb(db)
+
+    renderPage()
+    await pasteToken(SEED_PURCHASED_QR_TOKEN)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu negocio no está activo, así que no podés validar canjes por ahora.'
+    )
+  })
+
   it('muestra el error y permite reintentar si no se pudo resolver el negocio', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me`, () =>
+      http.get(`${API_BASE_URL}/business/mine`, () =>
         HttpResponse.json(
           { title: 'InternalError', detail: 'No pudimos leer el negocio' },
           { status: 500 }
@@ -374,6 +397,24 @@ describe('RedemptionsPage', () => {
     renderPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos leer el negocio')
+  })
+
+  /**
+   * `useMyBusiness()` resuelve con éxito y `data === null` cuando
+   * `/business/mine` devuelve `[]` (sin negocio propio,
+   * real-backend-readiness PR6b) — un caso que `useBusinessMe()` no podía
+   * representar. `getProblemDetailsMessage` cae al `fallback` porque acá no
+   * hay ningún `AxiosError` que traducir.
+   */
+  it('muestra un error genérico y permite reintentar cuando el explorador no tiene negocio propio', async () => {
+    setMockBusiness('none')
+
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos confirmar el canje. Probá de nuevo.'
+    )
+    expect(screen.getByRole('button', { name: 'Validar otro código' })).toBeInTheDocument()
   })
 
   it('manda el businessId del negocio autenticado en la ruta', async () => {
