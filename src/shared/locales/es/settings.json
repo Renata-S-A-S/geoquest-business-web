@@ -2,8 +2,6 @@
   "title": "Configuración",
   "user": {
     "title": "Tu cuenta",
-    "loading": "Cargando los datos de tu cuenta…",
-    "retry": "Reintentar",
     "errors": {
       "generic": "No pudimos cargar los datos de tu cuenta."
     },

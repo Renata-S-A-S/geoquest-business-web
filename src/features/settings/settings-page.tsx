@@ -1,69 +1,46 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
 import { ThemeSwitcher } from '@/shared/components/theme-switcher'
 import { LanguageSwitcher } from '@/shared/components/language-switcher'
 import { LegalDisclosure } from '@/features/onboarding/legal-disclosure'
 import { SignOutSection } from '@/features/settings/sign-out-section'
 import { BusinessSettingsSection } from '@/features/business/business-settings-section'
-import { useBusinessStaffMe } from '@/features/business/queries'
-import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
+import { useIdentityClaims } from '@/shared/hooks/use-identity-claims'
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return <h2 className="font-display text-base font-bold text-ink">{children}</h2>
 }
 
 /**
- * Bloque de cuenta — username y correo de acceso, ambos de solo lectura:
- * no existe contrato para editarlos (issue #72). Reusa `useBusinessStaffMe()`
- * (#72, PR4), la misma lectura que ya alimenta el gate de edición de
- * `/negocio`, así que no agrega ningún endpoint nuevo.
+ * Bloque de cuenta — username y correo de acceso, ambos de solo lectura: no
+ * existe contrato para editarlos. Desde #1547 (PR2) la identidad sale de
+ * `useIdentityClaims()`, que decodifica el `accessToken` de la sesión —
+ * YA NO de `GET /business-staff/me` (#72 PR4), que este PR deja de
+ * consumir acá porque no sobrevive al contrato real (`/business/mine` no
+ * expone un `BusinessStaff` con username; la identidad es del JWT).
  *
- * El fork pending/error/success es independiente del resto de la pantalla
- * (el selector de tema no depende de esta query) — mismo criterio que
- * `BusinessProfileEditPage` (#72 D4): una falla acá nunca debe tumbar una
- * sección que no depende de ella.
+ * Sin fork pending/error de query: las claims salen del token ya presente
+ * en memoria, no de una petición. El único estado "sin datos" posible es un
+ * token sin las claims esperadas (`decodeJwtClaims` nunca lanza, devuelve
+ * `null`) — un caso defensivo, no una petición que pueda fallar.
  */
 function AccountBlock() {
   const { t } = useTranslation('settings')
-  const staffQuery = useBusinessStaffMe()
+  const claims = useIdentityClaims()
 
-  if (staffQuery.isPending) {
+  if (!claims) {
     return (
-      <div className="flex min-h-[80px] items-center justify-center">
-        <p role="status">{t('user.loading')}</p>
-      </div>
+      <p role="alert" className="font-sans text-xs text-alert">
+        {t('user.errors.generic')}
+      </p>
     )
   }
 
-  if (staffQuery.isError) {
-    return (
-      <div className="flex min-h-[80px] flex-col items-center justify-center gap-3 text-center">
-        <p role="alert" className="font-sans text-xs text-alert">
-          {getProblemDetailsMessage(staffQuery.error, t('user.errors.generic'))}
-        </p>
-        <Button variant="primary" onClick={() => staffQuery.refetch()}>
-          {t('user.retry')}
-        </Button>
-      </div>
-    )
-  }
-
-  const { username, email } = staffQuery.data
+  const { username, email } = claims
 
   return (
     <>
-      {/*
-        `username` es una PROPUESTA sin confirmar (issue #72, PR6): viene de
-        `GET /business-staff/me` (#72 PR4), que a su vez lo proyecta desde el
-        mismo Identity del Explorer — si esa proyección es alcanzable para
-        una cuenta que es SOLO BusinessStaff (sin ExplorerProfile) sigue
-        siendo la pregunta abierta de `Renata-S-A-S/geoquest#182`. Si la
-        respuesta llega negativa, esta fila se elimina y solo queda el
-        correo — ver `businessStaffMeSchema` en `schemas/business.ts` para
-        la misma advertencia en el origen del dato.
-      */}
       <div className="flex flex-col gap-0.5">
         <span className="font-sans text-[11px] font-semibold text-muted">
           {t('user.fields.username.label')}

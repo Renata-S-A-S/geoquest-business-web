@@ -2,8 +2,6 @@
   "title": "Settings",
   "user": {
     "title": "Your account",
-    "loading": "Loading your account details…",
-    "retry": "Retry",
     "errors": {
       "generic": "We couldn't load your account details."
     },

@@ -1,11 +1,13 @@
 import { render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS_STAFF, SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
 import { useThemeStore } from '@/shared/stores/theme-store'
+import { useBusinessSessionStore } from '@/shared/stores/business-session-store'
+import { createMockJwt } from '@/shared/mocks/mock-jwt'
 import { SettingsPage } from './settings-page'
 
 function renderSettingsPage() {
@@ -17,6 +19,33 @@ function renderSettingsPage() {
   )
 }
 
+/**
+ * `AccountBlock` (issue #1547, PR2) lee identidad de `useIdentityClaims()`,
+ * que decodifica el `accessToken` de la sesión real — ya NO hace
+ * `GET /business-staff/me`. Sin esto, cada test de este archivo vería el
+ * bloque de cuenta en su estado "sin sesión" (claims `null`).
+ */
+function signInAsSeedStaff() {
+  useBusinessSessionStore.setState({
+    isAuthenticated: true,
+    accessToken: createMockJwt({
+      sub: SEED_BUSINESS_STAFF.id,
+      email: SEED_BUSINESS_STAFF.email,
+      username: SEED_BUSINESS_STAFF_USERNAME,
+    }),
+    accessTokenExpiresAtUtc: null,
+    refreshToken: 'a-refresh',
+    refreshTokenExpiresAtUtc: null,
+  })
+}
+
+// Aplica a AMBOS `describe` de este archivo: sin sesión, el bloque de
+// cuenta cae en su estado "sin claims" y varios `findByText(username)` de
+// las secciones de abajo (idioma, legal) nunca resolverían.
+beforeEach(() => {
+  signInAsSeedStaff()
+})
+
 describe('SettingsPage', () => {
   it('muestra el título de la pantalla', () => {
     renderSettingsPage()
@@ -25,24 +54,24 @@ describe('SettingsPage', () => {
   })
 
   /**
-   * `findAllByRole` y no `findByRole`: desde la fusión de `/negocio` la
-   * pantalla tiene DOS bloques que cargan por separado, el del negocio y el de
-   * la cuenta. Que sean dos indicadores y no uno es la conducta buscada — cada
-   * bloque degrada solo, así que una falla en uno no tumba al otro.
+   * El bloque de cuenta ya no hace fetch (claims salen del token, síncrono):
+   * el ÚNICO indicador de carga que puede quedar pendiente es el del
+   * negocio. Antes de #1547 PR2 acá había DOS loaders — cubre el cambio de
+   * conducta, no solo lo que quedó igual.
    */
-  it('muestra el indicador de carga del bloque de cuenta mientras su query está pendiente', async () => {
-    server.use(http.get(`${API_BASE_URL}/business-staff/me`, () => new Promise(() => {})))
+  it('el único indicador de carga pendiente es el del bloque de negocio — el de cuenta ya no hace fetch', async () => {
+    server.use(http.get(`${API_BASE_URL}/business/me`, () => new Promise(() => {})))
 
     renderSettingsPage()
 
     const loaders = await screen.findAllByRole('status')
-    expect(loaders.map((node) => node.textContent)).toContain('Cargando los datos de tu cuenta…')
+    expect(loaders).toHaveLength(1)
   })
 
   /**
    * La contracara: el bloque del negocio falla y el de la cuenta sigue
    * mostrando sus datos. Este caso fija la independencia entre las dos
-   * consultas, que antes de la fusión no podía existir porque vivían en
+   * secciones, que antes de la fusión no podía existir porque vivían en
    * pantallas distintas.
    */
   it('una falla en el bloque de negocio no tumba el bloque de cuenta', async () => {
@@ -54,70 +83,53 @@ describe('SettingsPage', () => {
 
     renderSettingsPage()
 
-    // El bloque de cuenta resuelve igual.
-    expect(await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
+    // El bloque de cuenta resuelve igual — no depende de ninguna query.
+    expect(screen.getByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
     // Y el de negocio muestra su propio error, acotado a su sección.
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 
-  it('muestra el error inline con reintento cuando la query falla, sin renderizar los datos', async () => {
-    server.use(
-      http.get(`${API_BASE_URL}/business-staff/me`, () =>
-        HttpResponse.json(
-          { title: 'InternalError', detail: 'No pudimos consultar tu cuenta' },
-          { status: 500 }
-        )
-      )
-    )
+  /**
+   * `decodeJwtClaims` nunca lanza (jwt-claims.ts): un token corrupto
+   * devuelve `null` y el bloque muestra un mensaje genérico. Ya no hay
+   * botón de reintentar — no hay ninguna query que reintentar, el dato sale
+   * directo del token de la sesión.
+   */
+  it('muestra un mensaje genérico y ningún botón de reintentar si el token no decodifica a claims válidas', () => {
+    useBusinessSessionStore.setState({
+      isAuthenticated: true,
+      accessToken: 'token-sin-forma-de-jwt',
+      accessTokenExpiresAtUtc: null,
+      refreshToken: 'a-refresh',
+      refreshTokenExpiresAtUtc: null,
+    })
 
     renderSettingsPage()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos consultar tu cuenta')
-    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('No pudimos cargar los datos de tu cuenta.')
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
     expect(screen.queryByText(SEED_BUSINESS_STAFF_USERNAME)).not.toBeInTheDocument()
   })
 
-  it('el selector de tema se renderiza igual aunque la lectura de la cuenta falle — son independientes', async () => {
-    server.use(
-      http.get(`${API_BASE_URL}/business-staff/me`, () =>
-        HttpResponse.json({ title: 'InternalError' }, { status: 500 })
-      )
-    )
+  it('el selector de tema se renderiza igual aunque el token no traiga claims válidas — son independientes', () => {
+    useBusinessSessionStore.setState({
+      isAuthenticated: true,
+      accessToken: 'token-sin-forma-de-jwt',
+      accessTokenExpiresAtUtc: null,
+      refreshToken: 'a-refresh',
+      refreshTokenExpiresAtUtc: null,
+    })
 
     renderSettingsPage()
 
-    await screen.findByRole('alert')
+    expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Tema' })).toBeInTheDocument()
   })
 
-  it('reintenta la query al hacer click en el botón de reintentar tras un error', async () => {
-    let callCount = 0
-    server.use(
-      http.get(`${API_BASE_URL}/business-staff/me`, () => {
-        callCount += 1
-        if (callCount === 1) {
-          return HttpResponse.json(
-            { title: 'InternalError', detail: 'No pudimos consultar tu cuenta' },
-            { status: 500 }
-          )
-        }
-        return HttpResponse.json({ ...SEED_BUSINESS_STAFF, username: SEED_BUSINESS_STAFF_USERNAME })
-      })
-    )
-
+  it('muestra el username y el correo de acceso decodificados del token, con el correo etiquetado como credencial', () => {
     renderSettingsPage()
 
-    const retryButton = await screen.findByRole('button', { name: 'Reintentar' })
-    retryButton.click()
-
-    expect(await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
-    expect(callCount).toBe(2)
-  })
-
-  it('muestra el username y el correo de acceso cuando la query resuelve, con el correo etiquetado como credencial', async () => {
-    renderSettingsPage()
-
-    expect(await screen.findByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
+    expect(screen.getByText(SEED_BUSINESS_STAFF_USERNAME)).toBeInTheDocument()
     expect(screen.getByText(SEED_BUSINESS_STAFF.email)).toBeInTheDocument()
     expect(
       screen.getByText(
@@ -125,6 +137,29 @@ describe('SettingsPage', () => {
       )
     ).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  /**
+   * Triangulación: otra identidad (otro token) debe reflejarse tal cual,
+   * no un valor pisado/hardcodeado en el componente.
+   */
+  it('muestra la identidad que traiga el token, no un valor fijo — triangulación contra el Fake It', () => {
+    useBusinessSessionStore.setState({
+      isAuthenticated: true,
+      accessToken: createMockJwt({
+        sub: '11111111-1111-1111-1111-111111111111',
+        email: 'owner@otronegocio.com',
+        username: 'owner_otro',
+      }),
+      accessTokenExpiresAtUtc: null,
+      refreshToken: 'a-refresh',
+      refreshTokenExpiresAtUtc: null,
+    })
+
+    renderSettingsPage()
+
+    expect(screen.getByText('owner_otro')).toBeInTheDocument()
+    expect(screen.getByText('owner@otronegocio.com')).toBeInTheDocument()
   })
 
   it('no ofrece edición de username ni de correo — ambos son de solo lectura', async () => {
