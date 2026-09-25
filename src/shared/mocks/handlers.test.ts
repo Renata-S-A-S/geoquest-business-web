@@ -19,6 +19,13 @@ import { Category, Subcategory } from '@/shared/schemas/taxonomy'
 import type { BusinessRewardSummary } from '@/shared/schemas/business-reward'
 
 /**
+ * Las rutas del portal de recompensas llevan el `businessId` en el path
+ * (`PortalRewardsEndpoints.cs:26` @ `ea471f4`). Las viejas sin scope fueron
+ * eliminadas del backend sin alias, así que el mock tampoco las sirve.
+ */
+const REWARDS_PATH = `/portal/businesses/${SEED_BUSINESS.id}/rewards`
+
+/**
  * Prueba el round-trip completo GET -> POST -> GET a través de `apiClient`
  * real (no `fetch` crudo) contra los handlers compartidos — es la prueba
  * directa de la verificación #2 del plan: "una pantalla de prueba lee y
@@ -343,11 +350,80 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(data).toEqual({ status: 'Active', visibleToExplorers: false })
   })
 
-  it('GET /portal/rewards devuelve las recompensas del negocio', async () => {
-    const { data } = await apiClient.get<BusinessRewardSummary[]>('/portal/rewards')
+  it('GET /portal/businesses/{businessId}/rewards devuelve las recompensas del negocio', async () => {
+    const { data } = await apiClient.get<BusinessRewardSummary[]>(REWARDS_PATH)
 
     expect(data).toHaveLength(SEED_REWARDS.length)
     expect(data.map((r) => r.status)).toEqual(['Published', 'Draft'])
+  })
+
+  /**
+   * La ruta vieja sin scope fue ELIMINADA del backend por los PRs #195–#201
+   * sin alias de compatibilidad (`grep '"/portal/rewards'` da cero
+   * resultados @ `ea471f4`). El mock tampoco la sirve: mantenerla viva
+   * escondería que el portal llamaba a un endpoint inexistente, que es
+   * justamente el bug que esta migración corrige.
+   */
+  it('NO sirve la ruta vieja sin scope /portal/rewards', async () => {
+    // Rechaza a nivel de red, no con un 404: los tests corren con
+    // `onUnhandledRequest: 'error'`, así que una ruta que ningún handler
+    // matchea nunca llega a producir una respuesta. Mismo criterio de
+    // aserción que el test de `/rewards` de más abajo.
+    await expect(apiClient.get('/portal/rewards')).rejects.toBeTruthy()
+  })
+
+  /**
+   * El gate real es por DUEÑO (`PortalAccess.cs:22`), y es
+   * **anti-enumeración**: un `businessId` desconocido y el de otro dueño
+   * devuelven EL MISMO 403, nunca un 404. Por eso la interfaz no puede decir
+   * «negocio no encontrado» — no tiene forma de saberlo.
+   */
+  it('responde 403 NotBusinessOwner para un businessId ajeno, no 404', async () => {
+    await expect(
+      apiClient.get('/portal/businesses/00000000-0000-0000-0000-0000000000aa/rewards')
+    ).rejects.toMatchObject({
+      response: { status: 403, data: { title: 'RewardPortal.NotBusinessOwner' } },
+    })
+  })
+
+  /**
+   * `requireActive: false` en las lecturas: un negocio pausado o suspendido
+   * SÍ puede leer sus recompensas. Replicar esto al revés dejaría al negocio
+   * sin ver su propio catálogo mientras resuelve su estado.
+   */
+  it('deja LEER el listado aunque el negocio no esté Active (Suspended)', async () => {
+    const db = readDb()
+    db.business.status = 'Suspended'
+    writeDb(db)
+
+    const { data } = await apiClient.get<BusinessRewardSummary[]>(REWARDS_PATH)
+
+    expect(data).toHaveLength(SEED_REWARDS.length)
+  })
+
+  /**
+   * `requireActive: true` en las cinco escrituras. El mensaje tiene que
+   * distinguirse del 403 de dueño: la acción no falló por la recompensa sino
+   * por el estado del negocio.
+   */
+  it('responde 403 BusinessNotActive al ESCRIBIR con el negocio Suspended', async () => {
+    const db = readDb()
+    db.business.status = 'Suspended'
+    writeDb(db)
+
+    await expect(
+      apiClient.post(REWARDS_PATH, {
+        title: 'No debería crearse',
+        description: 'El negocio está suspendido.',
+        geoPointsCost: 10,
+        estimatedValueCop: 1000,
+        menuItemId: null,
+        placeId: null,
+        stockTotal: null,
+      })
+    ).rejects.toMatchObject({
+      response: { status: 403, data: { title: 'RewardPortal.BusinessNotActive' } },
+    })
   })
 
   /**
@@ -360,7 +436,7 @@ describe('mock handlers — round-trip de persistencia', () => {
     await expect(apiClient.get('/rewards')).rejects.toBeTruthy()
   })
 
-  it('POST /portal/rewards crea la recompensa en Draft y sin imagen', async () => {
+  it('POST /portal/businesses/{businessId}/rewards crea la recompensa en Draft y sin imagen', async () => {
     const input = {
       title: 'Segundo postre gratis',
       description: 'Prueba de creación.',
@@ -371,11 +447,11 @@ describe('mock handlers — round-trip de persistencia', () => {
       stockTotal: 10,
     }
 
-    const created = await apiClient.post<{ rewardId: string }>('/portal/rewards', input)
+    const created = await apiClient.post<{ rewardId: string }>(REWARDS_PATH, input)
     expect(created.status).toBe(201)
     expect(Object.keys(created.data)).toEqual(['rewardId'])
 
-    const { data: after } = await apiClient.get<BusinessRewardSummary[]>('/portal/rewards')
+    const { data: after } = await apiClient.get<BusinessRewardSummary[]>(REWARDS_PATH)
     const persisted = after.find((r) => r.rewardId === created.data.rewardId)
 
     expect(persisted).toMatchObject({ status: 'Draft', imageUrl: null, stockRemaining: 10 })
@@ -386,31 +462,31 @@ describe('mock handlers — round-trip de persistencia', () => {
    * publica sin al menos una foto, una recompensa no se publica sin imagen.
    * La semilla en `Draft` no la tiene, que es justo el caso a bloquear.
    */
-  it('POST /portal/rewards/{id}/publish responde 409 si la recompensa no tiene imagen', async () => {
+  it('POST .../rewards/{id}/publish responde 409 si la recompensa no tiene imagen', async () => {
     const draft = SEED_REWARDS.find((r) => r.status === 'Draft')
 
     await expect(
-      apiClient.post(`/portal/rewards/${draft!.rewardId}/publish`, {})
+      apiClient.post(`${REWARDS_PATH}/${draft!.rewardId}/publish`, {})
     ).rejects.toMatchObject({
       response: { status: 409, data: { title: 'Reward.PublishRequiresImage' } },
     })
   })
 
-  it('POST /portal/rewards/{id}/publish responde 409 si ya está publicada', async () => {
+  it('POST .../rewards/{id}/publish responde 409 si ya está publicada', async () => {
     const published = SEED_REWARDS.find((r) => r.status === 'Published')
 
     await expect(
-      apiClient.post(`/portal/rewards/${published!.rewardId}/publish`, {})
+      apiClient.post(`${REWARDS_PATH}/${published!.rewardId}/publish`, {})
     ).rejects.toMatchObject({
       response: { status: 409, data: { title: 'Reward.AlreadyPublished' } },
     })
   })
 
-  it('POST /portal/rewards/{id}/publish responde 404 para un id desconocido', async () => {
+  it('POST .../rewards/{id}/publish responde 404 para un id desconocido', async () => {
     await expect(
-      apiClient.post('/portal/rewards/00000000-0000-0000-0000-0000000000ff/publish', {})
+      apiClient.post(`${REWARDS_PATH}/00000000-0000-0000-0000-0000000000ff/publish`, {})
     ).rejects.toMatchObject({
-      response: { status: 404, data: { title: 'PublishRewardCommand.NotFound' } },
+      response: { status: 404, data: { title: 'RewardPortal.RewardNotFound' } },
     })
   })
 

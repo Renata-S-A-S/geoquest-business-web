@@ -5,10 +5,13 @@ import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
-import { SEED_REWARDS } from '@/shared/mocks/seed'
+import { SEED_BUSINESS, SEED_REWARDS } from '@/shared/mocks/seed'
 import { placeKeys } from '@/features/places/queries'
 import { businessKeys } from '@/features/business/queries'
 import { rewardKeys, useRewards } from './queries'
+
+const businessId = SEED_BUSINESS.id
+const REWARDS_URL = `${API_BASE_URL}/portal/businesses/${businessId}/rewards`
 
 function createWrapper() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -19,8 +22,27 @@ function createWrapper() {
 }
 
 describe('rewardKeys', () => {
-  it('expone "list" como una key propia de la slice rewards', () => {
-    expect(rewardKeys.list).toEqual(['rewards', 'list'])
+  it('expone "list" scopeada por negocio', () => {
+    expect(rewardKeys.list(businessId)).toEqual(['rewards', businessId, 'list'])
+  })
+
+  /**
+   * Sin el `businessId` en la key, un dueño con dos negocios vería la cache
+   * del primero al abrir el segundo. `GET /business/mine` del backend
+   * devuelve un array justamente porque ese caso existe.
+   */
+  it('separa la cache de dos negocios distintos', () => {
+    expect(rewardKeys.list('negocio-a')).not.toEqual(rewardKeys.list('negocio-b'))
+  })
+
+  /**
+   * `all` tiene que ser prefijo de `list` para que invalidar el prefijo
+   * después de una escritura alcance al listado y al detalle a la vez.
+   */
+  it('deja "all" como prefijo real de "list"', () => {
+    const list = rewardKeys.list(businessId)
+
+    expect(list.slice(0, rewardKeys.all.length)).toEqual([...rewardKeys.all])
   })
 
   /**
@@ -29,8 +51,8 @@ describe('rewardKeys', () => {
    * haya pedido.
    */
   it('no comparte prefijo con las keys de business ni de places', () => {
-    expect(rewardKeys.list[0]).not.toBe(businessKeys.me[0])
-    expect(rewardKeys.list[0]).not.toBe(placeKeys.list[0])
+    expect(rewardKeys.list(businessId)[0]).not.toBe(businessKeys.me[0])
+    expect(rewardKeys.list(businessId)[0]).not.toBe(placeKeys.list[0])
   })
 })
 
@@ -38,7 +60,7 @@ describe('useRewards', () => {
   it('resuelve las recompensas semilla contra el handler MSW real', async () => {
     const { Wrapper } = createWrapper()
 
-    const { result } = renderHook(() => useRewards(), { wrapper: Wrapper })
+    const { result } = renderHook(() => useRewards(businessId), { wrapper: Wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data?.map((r) => r.title)).toEqual(SEED_REWARDS.map((r) => r.title))
@@ -47,44 +69,66 @@ describe('useRewards', () => {
   it('usa la queryKey de rewardKeys.list', async () => {
     const { Wrapper, queryClient } = createWrapper()
 
-    const { result } = renderHook(() => useRewards(), { wrapper: Wrapper })
+    const { result } = renderHook(() => useRewards(businessId), { wrapper: Wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(queryClient.getQueryData(rewardKeys.list)).toEqual(result.current.data)
+    expect(queryClient.getQueryData(rewardKeys.list(businessId))).toEqual(result.current.data)
   })
 
   it('expone el error cuando el backend falla, sin reintentar hacia un estado vacío', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () =>
-        HttpResponse.json({ title: 'InternalError' }, { status: 500 })
-      )
+      http.get(REWARDS_URL, () => HttpResponse.json({ title: 'InternalError' }, { status: 500 }))
     )
     const { Wrapper } = createWrapper()
 
-    const { result } = renderHook(() => useRewards(), { wrapper: Wrapper })
+    const { result } = renderHook(() => useRewards(businessId), { wrapper: Wrapper })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.data).toBeUndefined()
   })
 
+  /**
+   * El contrato del `enabled`: sin `businessId` no hay path que llamar, así
+   * que la query no debe dispararse. Queda `isPending` con `fetchStatus`
+   * 'idle', y es POR ESO que el contenedor tiene que forkear también sobre la
+   * query del negocio — si no, un `/business/me` caído se vería como un
+   * spinner eterno en vez de un error.
+   */
+  it('no dispara ningún request mientras el businessId no está resuelto', async () => {
+    let requestCount = 0
+    server.use(
+      http.get(REWARDS_URL, () => {
+        requestCount += 1
+        return HttpResponse.json([])
+      })
+    )
+    const { Wrapper } = createWrapper()
+
+    const { result } = renderHook(() => useRewards(undefined), { wrapper: Wrapper })
+
+    await waitFor(() => expect(result.current.fetchStatus).toBe('idle'))
+    expect(result.current.isPending).toBe(true)
+    expect(requestCount).toBe(0)
+  })
+
   it('aplica staleTime: un segundo mount dentro de la ventana no dispara un nuevo request', async () => {
     let requestCount = 0
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () => {
+      http.get(REWARDS_URL, () => {
         requestCount += 1
         return HttpResponse.json([])
       })
     )
     const { Wrapper, queryClient } = createWrapper()
 
-    const first = renderHook(() => useRewards(), { wrapper: Wrapper })
+    const first = renderHook(() => useRewards(businessId), { wrapper: Wrapper })
     await waitFor(() => expect(first.result.current.isSuccess).toBe(true))
     expect(requestCount).toBe(1)
 
     function SecondWrapper({ children }: { children: ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     }
-    const second = renderHook(() => useRewards(), { wrapper: SecondWrapper })
+    const second = renderHook(() => useRewards(businessId), { wrapper: SecondWrapper })
     await waitFor(() => expect(second.result.current.isSuccess).toBe(true))
 
     expect(requestCount).toBe(1)

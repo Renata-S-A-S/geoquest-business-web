@@ -53,6 +53,12 @@ function createRewardFormSchema(t: TFunction<'rewards'>) {
 type RewardFormValues = z.input<ReturnType<typeof createRewardFormSchema>>
 
 export interface RewardFormProps {
+  /**
+   * Negocio dueño de la recompensa, que viaja en el path del `POST`. Lo
+   * resuelve el contenedor (`CreateRewardPage`) y no este formulario, para
+   * que el fork de carga/error del negocio viva en un solo lugar.
+   */
+  businessId: string
   /** Lugar preseleccionado, cuando se entra desde el detalle de un lugar. */
   defaultPlaceId?: string
 }
@@ -75,11 +81,11 @@ export interface RewardFormProps {
  * `PublishRewardRequest` como `Guid?`. Sin ese campo toda recompensa sería
  * válida en todos los locales, y el backend modela lo contrario.
  */
-export function RewardForm({ defaultPlaceId }: RewardFormProps) {
+export function RewardForm({ businessId, defaultPlaceId }: RewardFormProps) {
   const { t } = useTranslation('rewards')
   const navigate = useNavigate()
   const { success } = useToast()
-  const mutation = useCreateReward()
+  const mutation = useCreateReward(businessId)
 
   /**
    * Las opciones de lugar salen del listado que ya existe. Si la consulta

@@ -5,7 +5,8 @@
     "loading": "Loading your rewards…",
     "retry": "Retry",
     "errors": {
-      "generic": "We couldn't load your rewards."
+      "generic": "We couldn't load your rewards.",
+      "business": "We couldn't identify your business, so we couldn't load its rewards either."
     },
     "columns": {
       "title": "Reward",
@@ -23,7 +24,8 @@
       "Draft": "Draft",
       "Published": "Published",
       "Paused": "Paused",
-      "Archived": "Archived"
+      "Archived": "Archived",
+      "Exhausted": "Out of stock"
     },
     "empty": {
       "title": "You don't have any rewards yet",
@@ -78,7 +80,10 @@
       "description": "Reward type, the General/Special classification, validity dates and your own terms can't be configured yet: the backend doesn't have those fields. They're requested and will follow."
     },
     "errors": {
-      "generic": "We couldn't create the reward."
-    }
+      "generic": "We couldn't create the reward.",
+      "business": "We couldn't identify your business, so we can't create the reward."
+    },
+    "loading": "Loading your business details…",
+    "retry": "Retry"
   }
 }

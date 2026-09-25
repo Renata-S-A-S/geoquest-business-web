@@ -7,6 +7,7 @@ import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_PLACES } from '@/shared/mocks/seed'
 import { RewardForm } from './reward-form'
+import { SEED_BUSINESS } from '@/shared/mocks/seed'
 
 const navigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -19,7 +20,7 @@ function renderRewardForm(defaultPlaceId?: string) {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <RewardForm defaultPlaceId={defaultPlaceId} />
+        <RewardForm businessId={SEED_BUSINESS.id} defaultPlaceId={defaultPlaceId} />
       </MemoryRouter>
     </QueryClientProvider>
   )
@@ -44,10 +45,13 @@ function fillRequired() {
 function captureCreate() {
   const captured: { body?: Record<string, unknown> } = {}
   server.use(
-    http.post(`${API_BASE_URL}/portal/rewards`, async ({ request }) => {
-      captured.body = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json({ rewardId: crypto.randomUUID() }, { status: 201 })
-    })
+    http.post(
+      `${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`,
+      async ({ request }) => {
+        captured.body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ rewardId: crypto.randomUUID() }, { status: 201 })
+      }
+    )
   )
   return captured
 }
@@ -213,7 +217,7 @@ describe('RewardForm', () => {
 
   it('muestra el error del backend cuando el alta falla', async () => {
     server.use(
-      http.post(`${API_BASE_URL}/portal/rewards`, () =>
+      http.post(`${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`, () =>
         HttpResponse.json(
           { title: 'Validation.Failed', detail: 'Title must not be empty.' },
           { status: 400 }
@@ -231,7 +235,7 @@ describe('RewardForm', () => {
   it('vuelve al listado al cancelar, sin enviar nada', () => {
     let posted = false
     server.use(
-      http.post(`${API_BASE_URL}/portal/rewards`, () => {
+      http.post(`${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`, () => {
         posted = true
         return HttpResponse.json({ rewardId: crypto.randomUUID() }, { status: 201 })
       })

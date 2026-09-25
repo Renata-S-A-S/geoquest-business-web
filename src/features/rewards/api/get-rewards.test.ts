@@ -3,26 +3,29 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { getRewards } from './get-rewards'
 import { API_BASE_URL } from '@/shared/lib/env'
-import { SEED_REWARDS } from '@/shared/mocks/seed'
+import { SEED_BUSINESS, SEED_REWARDS } from '@/shared/mocks/seed'
+
+const businessId = SEED_BUSINESS.id
+const REWARDS_URL = `${API_BASE_URL}/portal/businesses/${businessId}/rewards`
 
 describe('getRewards', () => {
   it('devuelve las recompensas del negocio parseadas (handler mock real)', async () => {
-    const rewards = await getRewards()
+    const rewards = await getRewards(businessId)
 
     expect(rewards.map((r) => r.title)).toEqual(SEED_REWARDS.map((r) => r.title))
   })
 
   it('trae los borradores además de las publicadas — el borrador es el que tiene trabajo pendiente', async () => {
-    const rewards = await getRewards()
+    const rewards = await getRewards(businessId)
 
     expect(rewards.map((r) => r.status)).toContain('Draft')
     expect(rewards.map((r) => r.status)).toContain('Published')
   })
 
   it('devuelve una lista vacía sin romper cuando el negocio no creó ninguna', async () => {
-    server.use(http.get(`${API_BASE_URL}/portal/rewards`, () => HttpResponse.json([])))
+    server.use(http.get(REWARDS_URL, () => HttpResponse.json([])))
 
-    await expect(getRewards()).resolves.toEqual([])
+    await expect(getRewards(businessId)).resolves.toEqual([])
   })
 
   /**
@@ -34,20 +37,20 @@ describe('getRewards', () => {
   it('NO cae a /rewards cuando el endpoint del portal falla', async () => {
     let globalCalled = false
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () => HttpResponse.json({}, { status: 404 })),
+      http.get(REWARDS_URL, () => HttpResponse.json({}, { status: 404 })),
       http.get(`${API_BASE_URL}/rewards`, () => {
         globalCalled = true
         return HttpResponse.json([])
       })
     )
 
-    await expect(getRewards()).rejects.toBeTruthy()
+    await expect(getRewards(businessId)).rejects.toBeTruthy()
     expect(globalCalled).toBe(false)
   })
 
   it('rechaza con el error de axios cuando el backend responde 500 problem+json', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () =>
+      http.get(REWARDS_URL, () =>
         HttpResponse.json(
           { title: 'InternalError', detail: 'No pudimos consultar las recompensas' },
           { status: 500 }
@@ -55,19 +58,15 @@ describe('getRewards', () => {
       )
     )
 
-    await expect(getRewards()).rejects.toMatchObject({
+    await expect(getRewards(businessId)).rejects.toMatchObject({
       response: { status: 500, data: { detail: 'No pudimos consultar las recompensas' } },
     })
   })
 
   it('rechaza la lista entera si UNA fila viola el contrato', async () => {
-    server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () =>
-        HttpResponse.json([{ rewardId: 'no-es-un-uuid' }])
-      )
-    )
+    server.use(http.get(REWARDS_URL, () => HttpResponse.json([{ rewardId: 'no-es-un-uuid' }])))
 
-    await expect(getRewards()).rejects.toBeTruthy()
+    await expect(getRewards(businessId)).rejects.toBeTruthy()
   })
 
   /**
@@ -77,11 +76,9 @@ describe('getRewards', () => {
    */
   it('rechaza los estados inventados por el schema anterior', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/portal/rewards`, () =>
-        HttpResponse.json([{ ...SEED_REWARDS[0], status: 'Active' }])
-      )
+      http.get(REWARDS_URL, () => HttpResponse.json([{ ...SEED_REWARDS[0], status: 'Active' }]))
     )
 
-    await expect(getRewards()).rejects.toBeTruthy()
+    await expect(getRewards(businessId)).rejects.toBeTruthy()
   })
 })

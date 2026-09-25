@@ -19,6 +19,12 @@ const REWARD_STATUS_VARIANT: Record<BusinessRewardStatus, StatusBadgeVariant> = 
   Published: 'success',
   Paused: 'warning',
   Archived: 'error',
+  // `Exhausted` comparte variante con `Paused` porque la paleta solo tiene
+  // cuatro y ninguna es «agotado»: no es un error (la recompensa está bien
+  // configurada) ni un éxito (nadie más puede canjearla). Lo que las
+  // distingue es la etiqueta, que `StatusBadge` sí muestra — «Agotada» vs
+  // «Pausada». Compartir color es aceptable; compartir texto no lo sería.
+  Exhausted: 'warning',
 }
 
 export interface RewardsViewProps {
@@ -29,15 +35,20 @@ export interface RewardsViewProps {
  * Listado de recompensas del negocio (#36, B-03). Hermano de `PlacesView`
  * (#29) y segundo consumidor de `DataTable` (#17).
  *
- * ⚠️ **«Agotada» NO es un estado**, y por eso no está en el badge. El
- * backend no tiene `RewardStatus.Exhausted`: el agotamiento se lee de
- * `stockRemaining`, así que es un hecho del stock y vive en la columna de
- * stock. El schema anterior del portal lo modelaba como estado, lo que
- * habría hecho fallar el parseo de cualquier respuesta real.
+ * **«Agotada» es HOY un estado del servidor Y un cálculo del cliente**, y la
+ * pantalla necesita las dos lecturas. Corrige lo que este archivo decía
+ * antes: `RewardStatus.Exhausted` SÍ existe en el backend (llegó con los PRs
+ * #195–#201; verificado en `Domain/RewardStatus.cs` @ `ea471f4`).
  *
- * Una recompensa agotada sigue estando `Published` — eso es correcto y es
- * justamente la distinción que el negocio necesita ver: está publicada,
- * pero nadie más la puede canjear.
+ * - En el **badge** aparece cuando el servidor ya sincronizó el estado.
+ * - En la **columna de stock** se sigue calculando con `isRewardOutOfStock`,
+ *   porque una recompensa `Published` puede tener `stockRemaining === 0`
+ *   antes de que `SyncStockStatus()` la mueva.
+ *
+ * Las dos dicen «agotada» por caminos distintos, y borrar cualquiera de las
+ * dos deja un hueco: sin el estado, se pierde lo que el servidor decidió;
+ * sin el cálculo, se pierde la ventana en la que el stock ya está en cero
+ * pero el estado todavía dice `Published`.
  */
 export function RewardsView({ rewards }: RewardsViewProps) {
   const { t } = useTranslation('rewards')
