@@ -27,4 +27,17 @@ describe('Avatar', () => {
     render(<Avatar initial="N" className="custom-class" />)
     expect(screen.getByText('N')).toHaveClass('custom-class')
   })
+
+  it('renders an img with the given src and alt when src is provided', () => {
+    render(<Avatar initial="N" src="https://example.com/logo.png" alt="Negocio Demo" />)
+    const img = screen.getByRole('img', { name: 'Negocio Demo' })
+    expect(img).toHaveAttribute('src', 'https://example.com/logo.png')
+    expect(screen.queryByText('N')).not.toBeInTheDocument()
+  })
+
+  it('falls back to the initial when src is null', () => {
+    render(<Avatar initial="N" src={null} />)
+    expect(screen.getByText('N')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
 })

@@ -60,7 +60,7 @@ describe('SettingsPage', () => {
    * conducta, no solo lo que quedó igual.
    */
   it('el único indicador de carga pendiente es el del bloque de negocio — el de cuenta ya no hace fetch', async () => {
-    server.use(http.get(`${API_BASE_URL}/business/me`, () => new Promise(() => {})))
+    server.use(http.get(`${API_BASE_URL}/business/mine`, () => new Promise(() => {})))
 
     renderSettingsPage()
 
@@ -76,7 +76,7 @@ describe('SettingsPage', () => {
    */
   it('una falla en el bloque de negocio no tumba el bloque de cuenta', async () => {
     server.use(
-      http.get(`${API_BASE_URL}/business/me`, () =>
+      http.get(`${API_BASE_URL}/business/mine`, () =>
         HttpResponse.json({ title: 'InternalError' }, { status: 500 })
       )
     )
