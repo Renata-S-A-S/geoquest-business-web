@@ -182,8 +182,8 @@ describe('mock handlers — round-trip de persistencia', () => {
       latitude: 6.253,
       longitude: -75.588,
       checkInRadiusMeters: 150,
-      xpReward: 60,
-      geoPointsReward: 60,
+      xpReward: 0,
+      geoPointsReward: 12,
     }
 
     const created = await apiClient.post<CreatedBusinessPlace>('/business/places', input)
@@ -210,8 +210,8 @@ describe('mock handlers — round-trip de persistencia', () => {
       latitude: 6.253,
       longitude: -75.588,
       checkInRadiusMeters: 150,
-      xpReward: 50,
-      geoPointsReward: 50,
+      xpReward: 0,
+      geoPointsReward: 12,
     }
 
     const created = await apiClient.post<CreatedBusinessPlace>('/business/places', input)
@@ -231,10 +231,11 @@ describe('mock handlers — round-trip de persistencia', () => {
   })
 
   /**
-   * El backend exige mínimo 50 en ambas recompensas porque crea el lugar
-   * como `TouristSite`. Contradice a ADR-041/043; ver geoquest#191.
+   * Las recompensas de un `BusinessVenue` son literales: 0 XP (RN-GAM-03) y
+   * 12 GeoPoints (RN-GAM-10). El mock rechaza cualquier otro valor, incluido
+   * el 50 que el backend real exige hoy — ese desvío está en geoquest#191.
    */
-  it('POST /business/places rechaza recompensas por debajo de 50', async () => {
+  it('POST /business/places rechaza recompensas que no sean las de la regla', async () => {
     await expect(
       apiClient.post('/business/places', {
         name: 'Recompensa baja',
@@ -244,8 +245,8 @@ describe('mock handlers — round-trip de persistencia', () => {
         latitude: 6.25,
         longitude: -75.58,
         checkInRadiusMeters: 100,
-        xpReward: 10,
-        geoPointsReward: 10,
+        xpReward: 50,
+        geoPointsReward: 50,
       })
     ).rejects.toMatchObject({ response: { status: 400 } })
   })
@@ -260,8 +261,8 @@ describe('mock handlers — round-trip de persistencia', () => {
         latitude: 6.25,
         longitude: -75.58,
         checkInRadiusMeters: 100,
-        xpReward: 60,
-        geoPointsReward: 60,
+        xpReward: 0,
+        geoPointsReward: 12,
       })
     ).rejects.toMatchObject({ response: { status: 400 } })
   })

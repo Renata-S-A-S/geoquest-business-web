@@ -15,8 +15,8 @@ const SUMMARY = {
   category: Category.Gastronomia,
   subcategory: Subcategory.Cafe,
   status: 'Active',
-  xpReward: 60,
-  geoPointsReward: 60,
+  xpReward: 0,
+  geoPointsReward: 12,
 }
 
 const DETAIL = {
@@ -36,8 +36,8 @@ const CREATE_INPUT = {
   latitude: 6.253,
   longitude: -75.588,
   checkInRadiusMeters: 150,
-  xpReward: 60,
-  geoPointsReward: 60,
+  xpReward: 0,
+  geoPointsReward: 12,
 }
 
 describe('businessPlaceStatusSchema', () => {
@@ -137,16 +137,31 @@ describe('createBusinessPlaceInputSchema', () => {
   })
 
   /**
-   * ⚠️ Mínimo 50 en ambas recompensas. Esto CONTRADICE a ADR-041/043 y
-   * RN-GAM-10, que dicen que el negocio no configura los puntos y que un
-   * lugar del portal da 0 XP / 12 GeoPoints. Se replica lo que el servidor
-   * acepta porque es lo único verificable; la decisión está pedida en
-   * `Renata-S-A-S/geoquest#191`.
+   * Las recompensas son LITERALES, no un rango. RN-GAM-03 dice que el XP de
+   * un `BusinessVenue` es *"0 — forzado por el sistema"*, y RN-GAM-10 fija
+   * sus GeoPoints en 12 desde la plataforma. Para ese tipo de lugar no hay
+   * rango que validar: hay un único valor permitido.
+   *
+   * Que 50 —el mínimo que el backend exige hoy— sea RECHAZADO acá no es un
+   * descuido: es el punto. El portal queda alineado con la regla, y el
+   * desvío del backend está pedido en `Renata-S-A-S/geoquest#191`.
    */
-  it('exige el mínimo de 50 en ambas recompensas, como el backend', () => {
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 49 }).success).toBe(false)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, geoPointsReward: 49 }).success).toBe(false)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 50 }).success).toBe(true)
+  it('acepta exactamente 0 XP y 12 GeoPoints, los valores de la regla', () => {
+    expect(createBusinessPlaceInputSchema.safeParse(CREATE_INPUT).success).toBe(true)
+    expect(CREATE_INPUT.xpReward).toBe(0)
+    expect(CREATE_INPUT.geoPointsReward).toBe(12)
+  })
+
+  it('rechaza cualquier otro valor de recompensa, incluido el mínimo que el backend exige hoy', () => {
+    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 50 }).success).toBe(
+      false
+    )
+    expect(
+      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, geoPointsReward: 50 }).success
+    ).toBe(false)
+    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 1 }).success).toBe(
+      false
+    )
   })
 
   it('rechaza una subcategoría fuera del enum', () => {

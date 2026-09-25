@@ -75,26 +75,36 @@ export const MAX_CHECK_IN_RADIUS_METERS = 1000
 export const DEFAULT_CHECK_IN_RADIUS_METERS = 100
 
 /**
- * Mínimos de recompensa que el backend exige.
+ * Recompensas de un `BusinessVenue`, fijadas por la plataforma.
  *
- * ⚠️ **Contradicción sin resolver, y no es del frontend.** ADR-041/043 y
- * RN-GAM-10 dicen que un `Place` creado desde el portal es `BusinessVenue`,
- * otorga 0 XP y 12 GeoPoints fijados por la plataforma, y que el negocio
- * **no los configura** — el racional registrado es evitar que compita
- * subiendo el número.
+ * Verificado literal en Confluence (24 sep 2026):
  *
- * El backend hace lo contrario: `CreateBusinessPlaceCommandHandler` no pasa
- * `placeType`, así que `Place.Create` cae a su default `TouristSite`, y con
- * eso **exige** que el llamador mande ambos valores con mínimo 50. El
- * override `(0, 12)` solo aplica a `BusinessVenue`, que ese endpoint nunca
- * crea.
+ * - **RN-GAM-02**: *"Un check-in en un `BusinessVenue` **nunca otorga XP**,
+ *   ni base ni bonus. **Consumir no es explorar.**"*
+ * - **RN-GAM-03**: `BusinessVenue` → `xpReward` = *"0 — forzado por el
+ *   sistema"*.
+ * - **RN-GAM-10**: *"un monto reducido de GeoPoints: 25% del baseline de
+ *   plataforma (con baseline 50 → 12 GeoPoints). El porcentaje lo fija
+ *   GeoQuest, no el negocio."*
  *
- * Acá se replica lo que el servidor ACEPTA, porque es lo único verificable.
- * La decisión de producto está pedida en `Renata-S-A-S/geoquest#191`: de
- * ella depende si el formulario muestra el campo de puntos o lo elimina.
+ * El backend tiene esas mismas dos constantes (`Place.cs`:
+ * `BusinessVenueGeoPointsReward = 12`, y su docstring dice *"BusinessVenue:
+ * SIEMPRE 0"* para el XP), así que los valores no son una interpretación
+ * nuestra.
+ *
+ * ⚠️ **Pero `POST /business/places` los va a RECHAZAR hoy.** Ese endpoint no
+ * pasa `placeType`, cae al default `TouristSite`, y esa rama exige mínimo 50
+ * en ambos. O sea que el backend rechaza los únicos valores que sus propias
+ * reglas permiten.
+ *
+ * Se mandan igual los correctos, por decisión de Derek: el portal queda
+ * alineado con la regla y el desvío del backend está pedido en
+ * `Renata-S-A-S/geoquest#191`. Antes se mandaba 50/50 solo para pasar esa
+ * validación, lo que hacía que un check-in en un café diera lo mismo que
+ * explorar un sitio turístico — exactamente lo que RN-GAM-02 prohíbe.
  */
-export const MIN_XP_REWARD = 50
-export const MIN_GEO_POINTS_REWARD = 50
+export const BUSINESS_VENUE_XP_REWARD = 0
+export const BUSINESS_VENUE_GEO_POINTS_REWARD = 12
 
 /**
  * `POST /business/places` → body.
@@ -120,8 +130,14 @@ export const createBusinessPlaceInputSchema = z.object({
     .int()
     .min(MIN_CHECK_IN_RADIUS_METERS)
     .max(MAX_CHECK_IN_RADIUS_METERS),
-  xpReward: z.number().int().min(MIN_XP_REWARD),
-  geoPointsReward: z.number().int().min(MIN_GEO_POINTS_REWARD),
+  /*
+   * Literales, no mínimos: un lugar del portal es siempre `BusinessVenue`, y
+   * para ese tipo la regla no da un rango sino un valor único. Tiparlos como
+   * literales hace que cualquier otro valor rompa la compilación en vez de
+   * viajar al servidor.
+   */
+  xpReward: z.literal(BUSINESS_VENUE_XP_REWARD),
+  geoPointsReward: z.literal(BUSINESS_VENUE_GEO_POINTS_REWARD),
 })
 export type CreateBusinessPlaceInput = z.infer<typeof createBusinessPlaceInputSchema>
 
