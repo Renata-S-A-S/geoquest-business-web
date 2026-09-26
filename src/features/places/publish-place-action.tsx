@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import { usePublishPlace } from '@/features/places/queries'
 import { canPublishPlace } from '@/features/places/api/publish-place'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
@@ -64,6 +65,7 @@ export interface PublishPlaceActionProps {
 export function PublishPlaceAction({ place }: PublishPlaceActionProps) {
   const { t } = useTranslation('places')
   const { success, info } = useToast()
+  const writeGuard = useWriteGuard()
   const mutation = usePublishPlace()
 
   const reason = blockedReason(place, t)
@@ -90,7 +92,12 @@ export function PublishPlaceAction({ place }: PublishPlaceActionProps) {
   return (
     <Card className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        <Button variant="primary" onClick={onPublish} disabled={!canPublish || mutation.isPending}>
+        <Button
+          variant="primary"
+          onClick={onPublish}
+          disabled={!canPublish || mutation.isPending || writeGuard.disabled}
+          aria-describedby={writeGuard.describedBy}
+        >
           {mutation.isPending ? t('publish.publishing') : t('publish.action')}
         </Button>
       </div>

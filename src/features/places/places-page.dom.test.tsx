@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_PLACES } from '@/shared/mocks/seed'
+import { setMockBusiness } from '@/test/mock-business'
+import { BUSINESS_WRITE_BLOCK_ID } from '@/features/business/use-business-access'
 import { PlacesPage } from './places-page'
 
 function renderPlacesPage() {
@@ -125,5 +127,26 @@ describe('PlacesPage', () => {
 
     await screen.findAllByText(SEED_PLACES[0].name)
     expect(screen.queryByText('lugares — pendiente')).not.toBeInTheDocument()
+  })
+
+  /**
+   * Integración representativa de PR8b (owner decision #1546 punto 1): con
+   * el negocio Suspended, el CTA de crear deja de ser un `link` navegable y
+   * explica el motivo vía `aria-describedby`.
+   */
+  it('bloquea el CTA de crear cuando el negocio está Suspended', async () => {
+    setMockBusiness('Suspended')
+
+    renderPlacesPage()
+
+    await screen.findAllByText(SEED_PLACES[0].name)
+    await waitFor(() =>
+      expect(screen.getAllByText('Crear lugar')[0]).toHaveAttribute('aria-disabled', 'true')
+    )
+    expect(screen.queryByRole('link', { name: 'Crear lugar' })).not.toBeInTheDocument()
+    expect(screen.getAllByText('Crear lugar')[0]).toHaveAttribute(
+      'aria-describedby',
+      BUSINESS_WRITE_BLOCK_ID
+    )
   })
 })

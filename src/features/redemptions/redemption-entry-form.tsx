@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { FormField } from '@/shared/components/ui/form-field'
 import { Input } from '@/shared/components/ui/input'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import {
   createQrTokenFormSchema,
   type QrTokenFormValues,
@@ -44,6 +45,7 @@ export function RedemptionEntryForm({
   errorMessage,
 }: RedemptionEntryFormProps) {
   const { t } = useTranslation('redemptions')
+  const writeGuard = useWriteGuard()
   const fieldId = useId()
   const errorId = useId()
   const hintId = useId()
@@ -97,7 +99,12 @@ export function RedemptionEntryForm({
         </p>
       )}
 
-      <Button type="submit" variant="primary" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={isSubmitting || writeGuard.disabled}
+        aria-describedby={writeGuard.describedBy}
+      >
         {isSubmitting ? t('entry.submitting') : t('entry.submit')}
       </Button>
     </form>

@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ActionLink } from '@/shared/components/ui/action-link'
 import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import {
   canEditReward,
   isRewardOutOfStock,
@@ -92,6 +94,7 @@ export interface RewardDetailViewProps {
  */
 export function RewardDetailView({ reward, placeName, actions, imageSlot }: RewardDetailViewProps) {
   const { t } = useTranslation('rewards')
+  const writeGuard = useWriteGuard()
 
   /**
    * Los tres casos de stock que pide #109, en el orden en que importan:
@@ -130,12 +133,13 @@ export function RewardDetailView({ reward, placeName, actions, imageSlot }: Rewa
             renderiza nada cuando la acción es imposible por estado.
           */}
           {canEditReward(reward) && (
-            <Link
+            <ActionLink
               to={`/recompensas/${reward.rewardId}/editar`}
-              className="font-sans text-xs font-bold text-teal hover:underline"
+              disabled={writeGuard.disabled}
+              describedById={writeGuard.describedBy}
             >
               {t('detail.editCta')}
-            </Link>
+            </ActionLink>
           )}
           <Link to="/recompensas" className="font-sans text-xs font-bold text-teal hover:underline">
             {t('detail.backToList')}

@@ -10,6 +10,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Select, type SelectOption } from '@/shared/components/ui/select'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import { useUpdateReward } from '@/features/rewards/queries'
 import { usePlaces } from '@/features/places/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
@@ -98,6 +99,7 @@ export function RewardEditForm({ businessId, reward, onReload }: RewardEditFormP
   const { t } = useTranslation('rewards')
   const navigate = useNavigate()
   const { success } = useToast()
+  const writeGuard = useWriteGuard()
   const mutation = useUpdateReward(businessId, reward.rewardId)
 
   const placesQuery = usePlaces()
@@ -297,7 +299,12 @@ export function RewardEditForm({ businessId, reward, onReload }: RewardEditFormP
       )}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" variant="primary" disabled={mutation.isPending}>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={mutation.isPending || writeGuard.disabled}
+          aria-describedby={writeGuard.describedBy}
+        >
           {mutation.isPending ? t('editForm.submitting') : t('editForm.submit')}
         </Button>
       </div>

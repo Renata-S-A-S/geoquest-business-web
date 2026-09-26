@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
 import { Modal } from '@/shared/components/ui/modal'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import { RedemptionOriginCallout } from './redemption-origin-callout'
 import {
   redemptionNotRedeemableReason,
@@ -46,6 +47,7 @@ export function RedemptionPreviewView({
   errorMessage,
 }: RedemptionPreviewViewProps) {
   const { t } = useTranslation('redemptions')
+  const writeGuard = useWriteGuard()
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const notRedeemableReason = redemptionNotRedeemableReason(preview.status)
@@ -122,7 +124,12 @@ export function RedemptionPreviewView({
           staff dispare un escaneo que el servidor va a rechazar seguro.
         */}
         {preview.isRedeemable && (
-          <Button variant="primary" disabled={isConfirming} onClick={() => setIsModalOpen(true)}>
+          <Button
+            variant="primary"
+            disabled={isConfirming || writeGuard.disabled}
+            aria-describedby={writeGuard.describedBy}
+            onClick={() => setIsModalOpen(true)}
+          >
             {t('preview.confirm')}
           </Button>
         )}
@@ -156,7 +163,12 @@ export function RedemptionPreviewView({
               token, y el backend responde 409. Deshabilitar es la prevención;
               el 409 traducido es solo la red de contención.
             */}
-            <Button variant="primary" disabled={isConfirming} onClick={onConfirm}>
+            <Button
+              variant="primary"
+              disabled={isConfirming || writeGuard.disabled}
+              aria-describedby={writeGuard.describedBy}
+              onClick={onConfirm}
+            >
               {isConfirming ? t('confirm.accepting') : t('confirm.accept')}
             </Button>
           </div>

@@ -8,6 +8,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Select, type SelectOption } from '@/shared/components/ui/select'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import { useCreateReward } from '@/features/rewards/queries'
 import { usePlaces } from '@/features/places/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
@@ -51,6 +52,7 @@ export function RewardForm({ businessId, defaultPlaceId }: RewardFormProps) {
   const { t } = useTranslation('rewards')
   const navigate = useNavigate()
   const { success } = useToast()
+  const writeGuard = useWriteGuard()
   const mutation = useCreateReward(businessId)
 
   /**
@@ -246,7 +248,12 @@ export function RewardForm({ businessId, defaultPlaceId }: RewardFormProps) {
         )}
 
         <div className="flex items-center gap-3">
-          <Button type="submit" variant="primary" disabled={mutation.isPending}>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={mutation.isPending || writeGuard.disabled}
+            aria-describedby={writeGuard.describedBy}
+          >
             {mutation.isPending ? t('createForm.submitting') : t('createForm.submit')}
           </Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/recompensas')}>

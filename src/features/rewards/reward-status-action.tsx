@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Button } from '@/shared/components/ui/button'
 import { Card } from '@/shared/components/ui/card'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import { usePauseReward, useRepublishReward } from '@/features/rewards/queries'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
 import { useToast } from '@/shared/hooks/use-toast'
@@ -61,6 +62,7 @@ export interface RewardStatusActionProps {
 export function RewardStatusAction({ businessId, reward }: RewardStatusActionProps) {
   const { t } = useTranslation('rewards')
   const { success, info } = useToast()
+  const writeGuard = useWriteGuard()
   const pause = usePauseReward(businessId, reward.rewardId)
   const republish = useRepublishReward(businessId, reward.rewardId)
 
@@ -114,12 +116,22 @@ export function RewardStatusAction({ businessId, reward }: RewardStatusActionPro
     <Card className="flex flex-col gap-2">
       <div className="flex items-center gap-3">
         {canPause && (
-          <Button variant="secondary" onClick={onPause} disabled={pause.isPending}>
+          <Button
+            variant="secondary"
+            onClick={onPause}
+            disabled={pause.isPending || writeGuard.disabled}
+            aria-describedby={writeGuard.describedBy}
+          >
             {pause.isPending ? t('statusActions.pause.pending') : t('statusActions.pause.action')}
           </Button>
         )}
         {canRepublish && (
-          <Button variant="primary" onClick={onRepublish} disabled={republish.isPending}>
+          <Button
+            variant="primary"
+            onClick={onRepublish}
+            disabled={republish.isPending || writeGuard.disabled}
+            aria-describedby={writeGuard.describedBy}
+          >
             {republish.isPending
               ? t('statusActions.republish.pending')
               : t('statusActions.republish.action')}
