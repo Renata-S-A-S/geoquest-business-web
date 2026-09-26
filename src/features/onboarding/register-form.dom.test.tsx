@@ -13,7 +13,7 @@ import { PendingStatusPage } from './pending-page'
 
 function renderRegisterPage() {
   // `queries: { retry: false }` — issue #27: tras navegar, `PendingStatusPage`
-  // dispara su propio `useQuery` (`GET /business/me`); sin esto, un test que
+  // dispara su propio `useQuery` (`GET /business/mine`); sin esto, un test que
   // fuerce una respuesta de error reintentaría contra el default de v5
   // (retry: 3) y colgaría el `findBy*` correspondiente.
   const queryClient = new QueryClient({

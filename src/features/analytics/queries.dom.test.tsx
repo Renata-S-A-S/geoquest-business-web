@@ -72,7 +72,7 @@ describe('useAnalyticsSummary', () => {
 
   /**
    * El path de los endpoints propuestos exige `{businessId}` y el portal tiene
-   * que resolverlo antes vía `GET /business/me`. Sin este `enabled`, el primer
+   * que resolverlo antes vía `GET /business/mine`. Sin este `enabled`, el primer
    * render dispararía un request contra `/portal/businesses/undefined/...`, un
    * 404 garantizado que además dejaría un error en pantalla.
    */

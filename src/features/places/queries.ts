@@ -32,7 +32,7 @@ export const placeKeys = {
 /**
  * `GET /business/me/places` (#29) — lista de lugares del negocio.
  *
- * `staleTime: 30_000` replicando `useBusinessMe()`: amortigua refetches
+ * `staleTime: 30_000` replicando `useMyBusiness()`: amortigua refetches
  * automáticos por foco de pestaña sin tocar el refresh manual
  * (`refetch()` ignora `staleTime`). Un lugar cambia cuando el negocio lo
  * edita, no solo.

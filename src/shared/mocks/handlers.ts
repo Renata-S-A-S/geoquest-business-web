@@ -7,6 +7,8 @@ import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials
 import { SEED_BUSINESS_STAFF, SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
 import { createMockJwt } from '@/shared/mocks/mock-jwt'
 import {
+  BUSINESS_VENUE_GEO_POINTS_REWARD,
+  BUSINESS_VENUE_XP_REWARD,
   createBusinessPlaceInputSchema,
   type BusinessPlaceDetail,
   type BusinessPlaceSummary,
@@ -429,11 +431,17 @@ export const handlers = [
     }
 
     const db = readDb()
+    // Issue #211: el body ya no trae xpReward/geoPointsReward (el cliente no
+    // los manda), así que el mock los asigna acá — igual que el backend real,
+    // que fuerza estos dos valores fijos para todo BusinessVenue sin importar
+    // lo que reciba.
     const newPlace: BusinessPlaceDetail = {
       ...parsed.data,
       placeId: crypto.randomUUID(),
       status: 'Draft',
       photos: [],
+      xpReward: BUSINESS_VENUE_XP_REWARD,
+      geoPointsReward: BUSINESS_VENUE_GEO_POINTS_REWARD,
     }
     db.places.push(newPlace)
     writeDb(db)

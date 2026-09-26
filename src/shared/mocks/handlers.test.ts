@@ -108,8 +108,6 @@ describe('mock handlers — round-trip de persistencia', () => {
       latitude: 6.253,
       longitude: -75.588,
       checkInRadiusMeters: 150,
-      xpReward: 0,
-      geoPointsReward: 12,
     }
 
     const created = await apiClient.post<CreatedBusinessPlace>('/business/places', input)
@@ -136,8 +134,6 @@ describe('mock handlers — round-trip de persistencia', () => {
       latitude: 6.253,
       longitude: -75.588,
       checkInRadiusMeters: 150,
-      xpReward: 0,
-      geoPointsReward: 12,
     }
 
     const created = await apiClient.post<CreatedBusinessPlace>('/business/places', input)
@@ -157,24 +153,31 @@ describe('mock handlers — round-trip de persistencia', () => {
   })
 
   /**
-   * Las recompensas de un `BusinessVenue` son literales: 0 XP (RN-GAM-03) y
-   * 12 GeoPoints (RN-GAM-10). El mock rechaza cualquier otro valor, incluido
-   * el 50 que el backend real exige hoy — ese desvío está en geoquest#191.
+   * Issue #211: el backend ignora `xpReward`/`geoPointsReward` en vez de
+   * rechazarlos. El mock replica ese comportamiento — un cliente que
+   * todavía los mande (payload legacy) no rompe la creación, y el lugar
+   * queda igual con los valores fijos de plataforma (0 XP, 12 GeoPoints),
+   * sin importar lo que se haya enviado.
    */
-  it('POST /business/places rechaza recompensas que no sean las de la regla', async () => {
-    await expect(
-      apiClient.post('/business/places', {
-        name: 'Recompensa baja',
-        description: 'Prueba.',
-        category: Category.Gastronomia,
-        subcategory: Subcategory.Cafe,
-        latitude: 6.25,
-        longitude: -75.58,
-        checkInRadiusMeters: 100,
-        xpReward: 50,
-        geoPointsReward: 50,
-      })
-    ).rejects.toMatchObject({ response: { status: 400 } })
+  it('POST /business/places ignora xpReward/geoPointsReward que le manden y asigna los de la regla', async () => {
+    const created = await apiClient.post<CreatedBusinessPlace>('/business/places', {
+      name: 'Recompensa baja',
+      description: 'Prueba.',
+      category: Category.Gastronomia,
+      subcategory: Subcategory.Cafe,
+      latitude: 6.25,
+      longitude: -75.58,
+      checkInRadiusMeters: 100,
+      xpReward: 999,
+      geoPointsReward: 999,
+    })
+
+    expect(created.status).toBe(201)
+
+    const { data: detail } = await apiClient.get<BusinessPlaceDetail>(
+      `/business/places/${created.data.placeId}`
+    )
+    expect(detail).toMatchObject({ xpReward: 0, geoPointsReward: 12 })
   })
 
   it('POST /business/places rechaza una subcategoría que no pertenece a su categoría', async () => {
@@ -187,8 +190,6 @@ describe('mock handlers — round-trip de persistencia', () => {
         latitude: 6.25,
         longitude: -75.58,
         checkInRadiusMeters: 100,
-        xpReward: 0,
-        geoPointsReward: 12,
       })
     ).rejects.toMatchObject({ response: { status: 400 } })
   })

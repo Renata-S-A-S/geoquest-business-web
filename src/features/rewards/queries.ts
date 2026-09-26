@@ -43,10 +43,10 @@ export const rewardKeys = {
  * `usePlace(placeId)`: así la dependencia queda visible en el contenedor, que
  * es quien tiene que decidir qué mostrar mientras el negocio carga o si su
  * lectura falla. Un hook que lo resolviera solo dejaría la query en
- * `isPending` para siempre cuando `GET /business/me` falla — un spinner
+ * `isPending` para siempre cuando `GET /business/mine` falla — un spinner
  * eterno sin error a la vista.
  *
- * `staleTime: 30_000`, igual que `usePlaces()` y `useBusinessMe()`:
+ * `staleTime: 30_000`, igual que `usePlaces()` y `useMyBusiness()`:
  * amortigua refetches automáticos por foco de pestaña sin tocar el refresh
  * manual (`refetch()` ignora `staleTime`).
  */

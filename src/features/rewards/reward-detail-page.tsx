@@ -15,7 +15,7 @@ import { RewardImageUpload } from '@/features/rewards/reward-image-upload'
  * `PlaceDetailPage` (#35).
  *
  * Tres queries, cada una con su motivo:
- * - `useBusinessMe()` porque la ruta lleva el `businessId` en el path.
+ * - `useMyBusiness()` porque la ruta lleva el `businessId` en el path.
  * - `useReward()` para el detalle en sí.
  * - `usePlaces()` solo para poner el NOMBRE del lugar en vez de su UUID. No
  *   bloquea: si todavía no resolvió, la vista muestra una etiqueta neutra. Un

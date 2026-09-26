@@ -4,10 +4,6 @@ import { server } from '@/test/msw-server'
 import { createPlace, type CreatePlaceFormInput } from './create-place'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { Category, Subcategory } from '@/shared/schemas/taxonomy'
-import {
-  BUSINESS_VENUE_GEO_POINTS_REWARD,
-  BUSINESS_VENUE_XP_REWARD,
-} from '@/shared/schemas/business-place'
 
 const INPUT: CreatePlaceFormInput = {
   name: 'Café de la 70 — Sede Estadio',
@@ -30,17 +26,14 @@ describe('createPlace', () => {
   /**
    * El caso central de este archivo.
    *
-   * RN-GAM-02/03: un `BusinessVenue` otorga **0 XP siempre** —"consumir no es
-   * explorar"— y RN-GAM-10 fija sus GeoPoints en 12 desde la plataforma. El
-   * negocio no elige ninguno, así que el formulario no los pide y el
-   * transporte los completa con los valores de la regla.
-   *
-   * ⚠️ El backend real rechazará estos valores con 400 hasta que se corrija
-   * (exige mínimo 50 porque crea `TouristSite`). Se mandan igual los
-   * correctos: preferimos un 400 visible y una issue abierta antes que datos
-   * que contradicen la regla en silencio. Ver geoquest#191.
+   * Issue #211: `xpReward`/`geoPointsReward` NO viajan en el body. El DTO
+   * real del backend (`CreateBusinessPlaceRequest`) ni siquiera los declara
+   * — si el cliente los manda, System.Text.Json los descarta por no estar
+   * mapeados, y el dominio fuerza igual los valores fijos de plataforma
+   * (0 XP, 12 GeoPoints) para todo `BusinessVenue`. Mandarlos no cambia
+   * nada, así que el transporte no los agrega.
    */
-  it('completa las recompensas con los valores de la REGLA: 0 XP y 12 GeoPoints', async () => {
+  it('NO manda xpReward ni geoPointsReward: el backend los ignora igual', async () => {
     let received: Record<string, unknown> | undefined
     server.use(
       http.post(`${API_BASE_URL}/business/places`, async ({ request }) => {
@@ -51,17 +44,12 @@ describe('createPlace', () => {
 
     await createPlace(INPUT)
 
-    expect(received).toMatchObject({
-      xpReward: BUSINESS_VENUE_XP_REWARD,
-      geoPointsReward: BUSINESS_VENUE_GEO_POINTS_REWARD,
-    })
-    // Explícito, para que el número quede a la vista de quien lea el test:
-    // cero XP no es "el mínimo", es la regla.
-    expect(received?.xpReward).toBe(0)
-    expect(received?.geoPointsReward).toBe(12)
+    expect(received).not.toHaveProperty('xpReward')
+    expect(received).not.toHaveProperty('geoPointsReward')
+    expect(Object.keys(received ?? {})).toEqual(Object.keys(INPUT))
   })
 
-  it('no permite que el formulario sobrescriba las recompensas', () => {
+  it('no permite que el formulario mande las recompensas', () => {
     // Garantía de tipo: `CreatePlaceFormInput` no tiene esas claves, así que
     // un formulario no puede mandarlas ni por accidente. Si alguien las
     // agregara al tipo, esto deja de compilar.
