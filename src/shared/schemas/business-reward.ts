@@ -30,10 +30,11 @@ import { z } from 'zod'
  * - Las rutas NUEVAS de recompensas lo llevan **en el path**:
  *   `/portal/businesses/{businessId}/rewards…`.
  *
- * Las dos convivirán hasta que el portal migre a `GET /business/mine`, que
- * es lo que el backend realmente expone (un **array** de negocios, porque un
- * dueño puede tener más de uno). Hasta entonces el `businessId` se resuelve
- * del único negocio que el portal conoce, `useBusinessMe().data.id`.
+ * El `businessId` que viaja en el path de las rutas nuevas se resuelve con
+ * `useMyBusiness()` (real-backend-readiness PR6a), que ya lee `GET
+ * /business/mine` — el **array** de negocios que el backend expone, porque un
+ * dueño puede tener más de uno — y usa `useMyBusiness().data?.businessId` del
+ * primer elemento.
  *
  * Seguimiento: `Renata-S-A-S/geoquest#191` (auditoría del contrato) y
  * `Renata-S-A-S/geoquest#203` (bootstrap del `businessId`).

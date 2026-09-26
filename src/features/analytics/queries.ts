@@ -9,7 +9,7 @@ import type { AnalyticsRange } from '@/shared/lib/analytics-range'
  * desincronice de leer.
  *
  * Prefijo `['analytics']` propio, sin compartir raíz con `businessKeys` aunque
- * la pantalla dependa de `useBusinessMe()` para resolver el `businessId`:
+ * la pantalla dependa de `useMyBusiness()` para resolver el `businessId`:
  * refrescar el perfil del negocio no debería tirar a la basura métricas que no
  * cambiaron.
  *

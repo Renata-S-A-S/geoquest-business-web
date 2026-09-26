@@ -68,8 +68,8 @@ function AnalyticsComingSoon() {
  * y el cliente nunca manda un id (`GET /business/places`, `GET /portal/rewards`
  * — ver `get-places.ts` y `api/get-analytics-summary.ts`). Mientras dure esa
  * mezcla, una pantalla de la convención nueva no tiene el id a mano y tiene que
- * ir a buscarlo: `useBusinessMe()` lee `GET /business/me`, que devuelve UN
- * `Business`, y de ahí sale `business.id`.
+ * ir a buscarlo: `useMyBusiness()` lee `GET /business/mine`, que devuelve un
+ * array de negocios, y de ahí sale `business.businessId` (primer elemento).
  *
  * Resultado: negocio → resumen + serie, tres estados de carga en cascada en vez
  * de uno. No se disimula con un spinner único ni se adivina el id; se hace
