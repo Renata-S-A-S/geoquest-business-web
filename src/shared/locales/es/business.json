@@ -14,5 +14,12 @@
       "Rejected": "No aprobado"
     },
     "rejectedAt": "Rechazado el {{date}}"
+  },
+  "gate": {
+    "wakingUp": "El servidor puede estar despertando — la primera carga puede demorar más de lo normal.",
+    "pending": {
+      "title": "Estamos revisando tu negocio"
+    },
+    "sessionEmail": "Iniciaste sesión como {{email}}"
   }
 }
