@@ -1,11 +1,14 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import axios from 'axios'
 import { Card } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { StatusBadge } from '@/shared/components/ui/status-badge'
 import { SignOutSection } from '@/features/settings/sign-out-section'
 import { useIdentityClaims } from '@/shared/hooks/use-identity-claims'
-import { useMyBusiness } from '@/features/business/queries'
+import { useToast } from '@/shared/hooks/use-toast'
+import { useMyBusiness, useSubmitLegalDocument } from '@/features/business/queries'
+import { UPLOAD_LIMITS, validateUploadFile } from '@/shared/lib/upload-limits'
 import type { MyBusiness } from '@/shared/schemas/business'
 
 /**
@@ -87,18 +90,50 @@ export function PendingVerificationGate() {
   )
 }
 
+/** Mensaje del reenvío por `title` del problem+json (spec #1547 "Resend rejected by backend state"). */
+function resendErrorMessage(
+  error: unknown,
+  t: ReturnType<typeof useTranslation<'business'>>['t']
+): string {
+  if (!axios.isAxiosError(error)) return t('gate.resend.errors.generic')
+
+  const title = error.response?.data?.title as string | undefined
+  if (title === 'Business.NotAwaitingVerification') return t('gate.resend.errors.notAwaiting')
+  if (error.response?.status === 400) return t('gate.resend.errors.invalidFile')
+
+  return t('gate.resend.errors.generic')
+}
+
 /**
  * Negocio `Rejected` — no es terminal (`Business.cs:26,:281`): reenviar el
- * documento legal (`POST /business/{id}/legal-document`) devuelve el
- * negocio a `PendingVerification`. Ese reenvío es PR7b; acá el slot queda
- * documentado y sin ocupar, no hay ninguna acción de reenvío todavía.
+ * documento (`POST /business/{id}/legal-document`, PR7b) devuelve el negocio
+ * a `PendingVerification`. El `204` no trae cuerpo: invalidar `mine` alcanza,
+ * `BusinessGateway` cambia de gate solo al releer el estado real.
  */
 export function RejectedGate({
   business,
 }: {
-  business: Pick<MyBusiness, 'rejectionReason' | 'rejectedAtUtc'>
+  business: Pick<MyBusiness, 'businessId' | 'rejectionReason' | 'rejectedAtUtc'>
 }) {
   const { t } = useTranslation('business')
+  const { success } = useToast()
+  const mutation = useSubmitLegalDocument(business.businessId)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [localError, setLocalError] = useState<string | undefined>(undefined)
+  const limit = UPLOAD_LIMITS.legalDocument
+  const errorId = 'rejected-gate-resend-error'
+  const errorMessage =
+    localError ?? (mutation.isError ? resendErrorMessage(mutation.error, t) : undefined)
+
+  function onFileChosen(file: File) {
+    setLocalError(undefined)
+    const invalid = validateUploadFile(file, 'legalDocument')
+    if (invalid) {
+      setLocalError(t('gate.resend.errors.invalidFile'))
+      return
+    }
+    mutation.mutate(file, { onSuccess: () => success(t('gate.resend.success')) })
+  }
 
   return (
     <FullPageGate title={t('onboarding:pending.resolved.Rejected.title')}>
@@ -114,7 +149,34 @@ export function RejectedGate({
           })}
         </p>
       )}
-      {/* PR7b agrega acá "Reenviar documento". */}
+
+      <input
+        ref={inputRef}
+        type="file"
+        className="sr-only"
+        accept={limit.acceptedMimeTypes.join(',')}
+        aria-label={t('gate.resend.fileInputAria')}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) onFileChosen(file)
+          // Permite re-elegir el mismo archivo tras un error.
+          event.target.value = ''
+        }}
+      />
+      <Button
+        type="button"
+        variant="primary"
+        disabled={mutation.isPending}
+        aria-describedby={errorMessage ? errorId : undefined}
+        onClick={() => inputRef.current?.click()}
+      >
+        {mutation.isPending ? t('gate.resend.uploading') : t('gate.resend.cta')}
+      </Button>
+      {errorMessage && (
+        <p id={errorId} role="alert" className="font-sans text-xs text-alert">
+          {errorMessage}
+        </p>
+      )}
     </FullPageGate>
   )
 }

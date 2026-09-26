@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getMyBusinesses } from './api/get-my-businesses'
+import { submitLegalDocument } from './api/submit-legal-document'
 
 /**
  * Registro de query keys de la slice `business` — issue #72. `me` (`GET
@@ -29,5 +30,21 @@ export function useMyBusiness() {
     queryFn: getMyBusinesses,
     select: (businesses) => businesses[0] ?? null,
     staleTime: 30_000,
+  })
+}
+
+/**
+ * Reenvío del documento legal tras un rechazo (`RejectedGate`, PR7b). El
+ * `204` no trae cuerpo: el único efecto es invalidar `mine`, spec #1547
+ * "Successful resend".
+ */
+export function useSubmitLegalDocument(businessId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (file: File) => submitLegalDocument(businessId, file),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: businessKeys.mine })
+    },
   })
 }
