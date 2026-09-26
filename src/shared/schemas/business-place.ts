@@ -89,19 +89,12 @@ export const DEFAULT_CHECK_IN_RADIUS_METERS = 100
  *
  * El backend tiene esas mismas dos constantes (`Place.cs`:
  * `BusinessVenueGeoPointsReward = 12`, y su docstring dice *"BusinessVenue:
- * SIEMPRE 0"* para el XP), así que los valores no son una interpretación
- * nuestra.
- *
- * ⚠️ **Pero `POST /business/places` los va a RECHAZAR hoy.** Ese endpoint no
- * pasa `placeType`, cae al default `TouristSite`, y esa rama exige mínimo 50
- * en ambos. O sea que el backend rechaza los únicos valores que sus propias
- * reglas permiten.
- *
- * Se mandan igual los correctos, por decisión de Derek: el portal queda
- * alineado con la regla y el desvío del backend está pedido en
- * `Renata-S-A-S/geoquest#191`. Antes se mandaba 50/50 solo para pasar esa
- * validación, lo que hacía que un check-in en un café diera lo mismo que
- * explorar un sitio turístico — exactamente lo que RN-GAM-02 prohíbe.
+ * SIEMPRE 0"* para el XP) — confirmado además en
+ * `CreateBusinessPlaceCommandHandler.cs` y `Place.Create`: para un
+ * `BusinessVenue`, el dominio IGNORA cualquier valor recibido y fuerza estos
+ * dos siempre (issue #211). Se mantienen acá porque son los valores que el
+ * backend efectivamente asigna y que las lecturas (`GET /business/places`,
+ * `GET /business/places/{id}`) siguen devolviendo.
  */
 export const BUSINESS_VENUE_XP_REWARD = 0
 export const BUSINESS_VENUE_GEO_POINTS_REWARD = 12
@@ -117,6 +110,14 @@ export const BUSINESS_VENUE_GEO_POINTS_REWARD = 12
  *
  * Tampoco lleva `ownerBusinessId` — el backend lo resuelve desde la sesión
  * vía `BusinessMembershipRef`, el cliente nunca lo manda.
+ *
+ * **Tampoco lleva `xpReward`/`geoPointsReward`** (issue #211): el DTO real
+ * del backend (`CreateBusinessPlaceRequest`) ni siquiera declara esos
+ * campos. Si el cliente los manda igual, se descartan en la deserialización
+ * y el dominio fuerza los valores fijos de plataforma
+ * (`BUSINESS_VENUE_XP_REWARD`/`BUSINESS_VENUE_GEO_POINTS_REWARD`) para todo
+ * `BusinessVenue` — no hay ningún valor que el cliente pueda enviar que
+ * cambie el resultado, así que no tiene sentido pedirlo.
  */
 export const createBusinessPlaceInputSchema = z.object({
   name: z.string().min(1),
@@ -130,14 +131,6 @@ export const createBusinessPlaceInputSchema = z.object({
     .int()
     .min(MIN_CHECK_IN_RADIUS_METERS)
     .max(MAX_CHECK_IN_RADIUS_METERS),
-  /*
-   * Literales, no mínimos: un lugar del portal es siempre `BusinessVenue`, y
-   * para ese tipo la regla no da un rango sino un valor único. Tiparlos como
-   * literales hace que cualquier otro valor rompa la compilación en vez de
-   * viajar al servidor.
-   */
-  xpReward: z.literal(BUSINESS_VENUE_XP_REWARD),
-  geoPointsReward: z.literal(BUSINESS_VENUE_GEO_POINTS_REWARD),
 })
 export type CreateBusinessPlaceInput = z.infer<typeof createBusinessPlaceInputSchema>
 

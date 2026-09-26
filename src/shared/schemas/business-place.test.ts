@@ -36,8 +36,6 @@ const CREATE_INPUT = {
   latitude: 6.253,
   longitude: -75.588,
   checkInRadiusMeters: 150,
-  xpReward: 0,
-  geoPointsReward: 12,
 }
 
 describe('businessPlaceStatusSchema', () => {
@@ -151,31 +149,14 @@ describe('createBusinessPlaceInputSchema', () => {
   })
 
   /**
-   * Las recompensas son LITERALES, no un rango. RN-GAM-03 dice que el XP de
-   * un `BusinessVenue` es *"0 — forzado por el sistema"*, y RN-GAM-10 fija
-   * sus GeoPoints en 12 desde la plataforma. Para ese tipo de lugar no hay
-   * rango que validar: hay un único valor permitido.
-   *
-   * Que 50 —el mínimo que el backend exige hoy— sea RECHAZADO acá no es un
-   * descuido: es el punto. El portal queda alineado con la regla, y el
-   * desvío del backend está pedido en `Renata-S-A-S/geoquest#191`.
+   * `xpReward`/`geoPointsReward` NO viajan en la creación (issue #211): el
+   * backend las ignora si el cliente las manda igual y siempre fuerza los
+   * valores fijos de plataforma (0 XP, 12 GeoPoints) para un
+   * `BusinessVenue`. El portal no los pide ni los envía.
    */
-  it('acepta exactamente 0 XP y 12 GeoPoints, los valores de la regla', () => {
-    expect(createBusinessPlaceInputSchema.safeParse(CREATE_INPUT).success).toBe(true)
-    expect(CREATE_INPUT.xpReward).toBe(0)
-    expect(CREATE_INPUT.geoPointsReward).toBe(12)
-  })
-
-  it('rechaza cualquier otro valor de recompensa, incluido el mínimo que el backend exige hoy', () => {
-    expect(
-      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 50 }).success
-    ).toBe(false)
-    expect(
-      createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, geoPointsReward: 50 }).success
-    ).toBe(false)
-    expect(createBusinessPlaceInputSchema.safeParse({ ...CREATE_INPUT, xpReward: 1 }).success).toBe(
-      false
-    )
+  it('no declara xpReward ni geoPointsReward', () => {
+    expect(Object.keys(createBusinessPlaceInputSchema.shape)).not.toContain('xpReward')
+    expect(Object.keys(createBusinessPlaceInputSchema.shape)).not.toContain('geoPointsReward')
   })
 
   it('rechaza una subcategoría fuera del enum', () => {
