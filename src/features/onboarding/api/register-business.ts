@@ -1,7 +1,7 @@
 import { apiClient } from '@/shared/lib/api-client'
 import {
-  businessSchema,
-  type Business,
+  myBusinessSchema,
+  type MyBusiness,
   type RegisterBusinessInput,
 } from '@/shared/schemas/business'
 
@@ -12,12 +12,14 @@ import {
  * de un solo disparo desde un único lugar (`register-form.tsx`) — mismo
  * criterio que `POST /places`, que tampoco tiene port.
  *
- * `skipSessionAuth: true` porque quien registra un negocio no tiene sesión
- * todavía — sin esto, `session-interceptor.ts` intentaría adjuntar/refrescar
- * un token inexistente (ver JSDoc de `skipSessionAuth` en
- * `session-interceptor.ts`, que ya anticipa este caso de uso).
+ * Autenticado (real-backend-readiness PR10, decisión #1543 D, backend
+ * geoquest#212): el dueño sale del claim `sub` del JWT, así que YA NO se
+ * pasa `skipSessionAuth` — `session-interceptor.ts` adjunta el bearer token
+ * como en cualquier otro request. La respuesta se parsea como `MyBusiness`
+ * (spec #1547 dominio `business-registration`), el mismo contrato real de
+ * `GET /business/mine`: un negocio recién registrado nace `PendingVerification`.
  */
-export async function registerBusiness(input: RegisterBusinessInput): Promise<Business> {
-  const { data } = await apiClient.post('/business/register', input, { skipSessionAuth: true })
-  return businessSchema.parse(data)
+export async function registerBusiness(input: RegisterBusinessInput): Promise<MyBusiness> {
+  const { data } = await apiClient.post('/business/register', input)
+  return myBusinessSchema.parse(data)
 }
