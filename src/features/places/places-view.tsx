@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { ActionLink } from '@/shared/components/ui/action-link'
 import { DataTable, type ColumnDef } from '@/shared/components/ui/data-table'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import type { BusinessPlaceSummary, BusinessPlaceStatus } from '@/shared/schemas/business-place'
 
 /**
@@ -55,6 +57,7 @@ export interface PlacesViewProps {
  */
 export function PlacesView({ places }: PlacesViewProps) {
   const { t } = useTranslation('places')
+  const writeGuard = useWriteGuard()
 
   const columns: ColumnDef<BusinessPlaceSummary>[] = [
     {
@@ -102,9 +105,13 @@ export function PlacesView({ places }: PlacesViewProps) {
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-lg font-bold text-ink">{t('list.title')}</h1>
-        <Link to="/lugares/nuevo" className="font-sans text-xs font-bold text-teal hover:underline">
+        <ActionLink
+          to="/lugares/nuevo"
+          disabled={writeGuard.disabled}
+          describedById={writeGuard.describedBy}
+        >
           {t('list.createCta')}
-        </Link>
+        </ActionLink>
       </div>
 
       <DataTable
@@ -117,12 +124,13 @@ export function PlacesView({ places }: PlacesViewProps) {
           <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-center">
             <span className="font-sans text-sm font-bold text-ink">{t('list.empty.title')}</span>
             <p className="font-sans text-xs text-muted">{t('list.empty.description')}</p>
-            <Link
+            <ActionLink
               to="/lugares/nuevo"
-              className="font-sans text-xs font-bold text-teal hover:underline"
+              disabled={writeGuard.disabled}
+              describedById={writeGuard.describedBy}
             >
               {t('list.createCta')}
-            </Link>
+            </ActionLink>
           </div>
         }
       />

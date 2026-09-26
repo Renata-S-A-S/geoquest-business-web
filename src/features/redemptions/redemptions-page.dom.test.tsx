@@ -13,6 +13,7 @@ import {
   SEED_REDEEMED_QR_TOKEN,
 } from '@/shared/mocks/seed'
 import { setMockBusiness } from '@/test/mock-business'
+import { BUSINESS_WRITE_BLOCK_ID } from '@/features/business/use-business-access'
 import { RedemptionsPage } from './redemptions-page'
 
 /**
@@ -369,12 +370,21 @@ describe('RedemptionsPage', () => {
    * handler hasta la copia que ve el mostrador. `denyUnlessActive` lee ahora
    * `db.myBusiness` (PR6c), así que `Paused` — el estado real, ya no la
    * aproximación con `Suspended` del contrato legado — bloquea igual.
+   *
+   * PR8b agrega un gate del lado del cliente (el submit ya llega
+   * deshabilitado), así que un click normal ya no llega al backend. Este
+   * caso prueba que el 403 sigue siendo la red de contención: se dispara
+   * `submit` directo sobre el `<form>`, no un click en el botón
+   * deshabilitado, para no depender de que el gate cliente nunca falle.
    */
   it('bloquea la búsqueda del canje con el negocio Paused y explica por qué', async () => {
     setMockBusiness('Paused')
 
-    renderPage()
-    await pasteToken(SEED_PURCHASED_QR_TOKEN)
+    const { container } = renderPage()
+    const field = await screen.findByLabelText('Código del QR')
+    fireEvent.change(field, { target: { value: SEED_PURCHASED_QR_TOKEN } })
+    expect(screen.getByRole('button', { name: 'Buscar canje' })).toBeDisabled()
+    fireEvent.submit(container.querySelector('form') as HTMLFormElement)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Tu negocio no está activo, así que no podés validar canjes por ahora.'
@@ -433,5 +443,21 @@ describe('RedemptionsPage', () => {
     expect(requestedUrl).toContain(
       '/portal/businesses/00000000-0000-0000-0000-000000000001/redemptions/lookup'
     )
+  })
+
+  /**
+   * Integración representativa de PR8b (owner decision #1546 punto 1): con
+   * el negocio Paused, la búsqueda de canje queda deshabilitada con el
+   * motivo explicado vía `aria-describedby` — el lookup/scan NO tiene
+   * excepción, a diferencia de otras superficies de solo lectura.
+   */
+  it('bloquea la búsqueda de canje cuando el negocio está Paused', async () => {
+    setMockBusiness('Paused')
+
+    renderPage()
+
+    const submit = await screen.findByRole('button', { name: 'Buscar canje' })
+    expect(submit).toBeDisabled()
+    expect(submit).toHaveAttribute('aria-describedby', BUSINESS_WRITE_BLOCK_ID)
   })
 })

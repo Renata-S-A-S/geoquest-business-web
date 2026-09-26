@@ -3,6 +3,7 @@ import axios from 'axios'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Button } from '@/shared/components/ui/button'
+import { useWriteGuard } from '@/features/business/use-write-guard'
 import { useUploadRewardImage } from '@/features/rewards/queries'
 import { useToast } from '@/shared/hooks/use-toast'
 import { getProblemDetailsMessage } from '@/shared/lib/get-problem-details-message'
@@ -104,6 +105,7 @@ export function RewardImageUpload({
 }: RewardImageUploadProps) {
   const { t } = useTranslation('rewards')
   const { success } = useToast()
+  const writeGuard = useWriteGuard()
   const mutation = useUploadRewardImage(businessId, reward.rewardId)
   const inputRef = useRef<HTMLInputElement>(null)
   const [localError, setLocalError] = useState<string | undefined>(undefined)
@@ -179,7 +181,8 @@ export function RewardImageUpload({
         <Button
           type="button"
           variant={reward.imageUrl === null ? 'primary' : 'secondary'}
-          disabled={busy}
+          disabled={busy || writeGuard.disabled}
+          aria-describedby={writeGuard.describedBy}
           onClick={() => inputRef.current?.click()}
         >
           {busy

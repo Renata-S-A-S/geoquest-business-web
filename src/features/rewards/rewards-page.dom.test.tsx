@@ -7,6 +7,7 @@ import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_BUSINESS, SEED_REWARDS } from '@/shared/mocks/seed'
 import { setMockBusiness } from '@/test/mock-business'
+import { BUSINESS_WRITE_BLOCK_ID } from '@/features/business/use-business-access'
 import { RewardsPage } from './rewards-page'
 
 const REWARDS_URL = `${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`
@@ -179,5 +180,22 @@ describe('RewardsPage', () => {
 
     await screen.findAllByText(SEED_REWARDS[0].title)
     expect(screen.queryByText('recompensas — pendiente')).not.toBeInTheDocument()
+  })
+
+  /**
+   * Integración representativa de PR8b (owner decision #1546 punto 1): con el
+   * negocio Paused, el CTA de crear deja de ser un `link` navegable y explica
+   * el motivo vía `aria-describedby` — no un `disabled` mudo.
+   */
+  it('bloquea el CTA de crear cuando el negocio está Paused', async () => {
+    setMockBusiness('Paused')
+
+    renderRewardsPage()
+
+    await screen.findAllByText(SEED_REWARDS[0].title)
+    expect(screen.queryByRole('link', { name: 'Crear recompensa' })).not.toBeInTheDocument()
+    const cta = screen.getAllByText('Crear recompensa')[0]
+    expect(cta).toHaveAttribute('aria-disabled', 'true')
+    expect(cta).toHaveAttribute('aria-describedby', BUSINESS_WRITE_BLOCK_ID)
   })
 })
