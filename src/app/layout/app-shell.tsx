@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { SidebarNav } from './sidebar-nav'
 import { BottomNav } from './bottom-nav'
 import { MobileTopBar } from './mobile-top-bar'
+import { BusinessStatusBanner } from './business-status-banner'
 import { PwaUpdatePrompt } from '@/app/components/pwa-update-prompt'
 import { BACKEND_MODE } from '@/shared/lib/backend-capabilities'
 
@@ -31,6 +32,11 @@ import { BACKEND_MODE } from '@/shared/lib/backend-capabilities'
  * cachear una app que sirve datos falsos, y cuando el backend real exista
  * los mocks se apagan y la PWA queda operativa. El componente y su banner
  * no cambian — solo CUÁNDO se registra el worker.
+ *
+ * `BusinessStatusBanner` (PR8a) va arriba de `<main>`, en TODA ruta
+ * protegida: Paused/Suspended son los únicos estados que llegan hasta acá
+ * sin AppShell propio (spec #1547 "Paused/Suspended banner disables all
+ * writes") — `Active` no renderiza nada.
  */
 export function AppShell() {
   return (
@@ -38,6 +44,7 @@ export function AppShell() {
       <SidebarNav />
       <div className="flex flex-1 flex-col overflow-hidden">
         <MobileTopBar />
+        <BusinessStatusBanner />
         <main className="flex-1 overflow-y-auto bg-surface-raised p-4 lg:rounded-md lg:p-6">
           <Outlet />
         </main>
