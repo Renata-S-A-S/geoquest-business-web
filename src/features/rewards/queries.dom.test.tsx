@@ -51,7 +51,7 @@ describe('rewardKeys', () => {
    * haya pedido.
    */
   it('no comparte prefijo con las keys de business ni de places', () => {
-    expect(rewardKeys.list(businessId)[0]).not.toBe(businessKeys.me[0])
+    expect(rewardKeys.list(businessId)[0]).not.toBe(businessKeys.mine[0])
     expect(rewardKeys.list(businessId)[0]).not.toBe(placeKeys.list[0])
   })
 })
