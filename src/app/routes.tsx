@@ -2,8 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './protected-route'
 import { BusinessGateway } from './business-gateway'
 import { LoginPage } from '@/features/auth/login-page'
-import { RegisterPage } from '@/features/onboarding/register-page'
-import { PendingStatusPage } from '@/features/onboarding/pending-page'
+import { RegistrationRoute } from '@/features/onboarding/registration-route'
 import { SettingsPage } from '@/features/settings/settings-page'
 import { PlacesPage } from '@/features/places/places-page'
 import { CreatePlacePage } from '@/features/places/create-place-page'
@@ -26,33 +25,30 @@ import { FeatureErrorBoundary } from '@/shared/components/feature-error-boundary
  * Cada página va envuelta en su propio `FeatureErrorBoundary`: un error en
  * Recompensas no debería tumbar el resto del portal.
  *
- * `/registro` y `/registro/pendiente` (B-01, #21) son hermanas de `/login`
- * por el mismo motivo: un negocio registrándose no tiene sesión todavía, así
- * que no pueden vivir dentro de `ProtectedRoute`. No son lo mismo que
- * `/negocio` (`BusinessProfilePage`, más abajo) — esa es la vista
- * autenticada de "mi negocio" post-login (#72), no el alta inicial.
+ * `/registro` (B-01, #21/#212, real-backend-readiness PR10) SÍ vive dentro
+ * de `ProtectedRoute`, pero como hermana de `BusinessGateway`, no como su
+ * hija: un explorador autenticado sin negocio propio necesita llegar acá
+ * aunque `BusinessGateway` lo mande a `NoBusinessGate` en `/`. La propia
+ * `RegistrationRoute` resuelve el resto del cierre (capability apagada o
+ * negocio ya existente → `/`). `/registro/pendiente` se retiró (PR10b): el
+ * negocio recién creado nace `PendingVerification` y ese estado ya lo cubre
+ * el gate de `BusinessGateway`, sin una segunda pantalla redundante. No es
+ * lo mismo que `/negocio` (`BusinessProfilePage`, más abajo) — esa es la
+ * vista autenticada de "mi negocio" post-login (#72), no el alta inicial.
  */
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   {
-    path: '/registro',
-    element: (
-      <FeatureErrorBoundary featureName="Registro">
-        <RegisterPage />
-      </FeatureErrorBoundary>
-    ),
-  },
-  {
-    path: '/registro/pendiente',
-    element: (
-      <FeatureErrorBoundary featureName="Registro">
-        <PendingStatusPage />
-      </FeatureErrorBoundary>
-    ),
-  },
-  {
     element: <ProtectedRoute />,
     children: [
+      {
+        path: '/registro',
+        element: (
+          <FeatureErrorBoundary featureName="Registro">
+            <RegistrationRoute />
+          </FeatureErrorBoundary>
+        ),
+      },
       {
         // `BusinessGateway` (real-backend-readiness 7a/15) ocupa este slot en
         // vez de `AppShell` directo: lee `/business/mine` una vez y decide

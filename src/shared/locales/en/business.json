@@ -21,6 +21,7 @@
       "title": "We're reviewing your business"
     },
     "sessionEmail": "Signed in as {{email}}",
+    "registerCta": "Register my business",
     "resend": {
       "cta": "Resend document",
       "uploading": "Uploading…",

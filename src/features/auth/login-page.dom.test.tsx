@@ -176,12 +176,12 @@ describe('LoginPage', () => {
     expect(screen.queryByLabelText('Correo electrónico')).not.toBeInTheDocument()
   })
 
-  // Sin este enlace `/registro` sería inalcanzable navegando (#74): un
-  // negocio nuevo no tendría forma de darse de alta desde la interfaz.
-  it('links to the registration page', () => {
+  // PR10b (#212): la entrada al alta de negocio se movió al CTA de
+  // `NoBusinessGate` (capability `registration`) — el login ya no ofrece un
+  // camino directo a `/registro`.
+  it('no muestra un link a la página de registro', () => {
     renderLoginPage()
 
-    const link = screen.getByRole('link', { name: 'Registrar mi negocio' })
-    expect(link).toHaveAttribute('href', '/registro')
+    expect(screen.queryByRole('link', { name: 'Registrar mi negocio' })).not.toBeInTheDocument()
   })
 })

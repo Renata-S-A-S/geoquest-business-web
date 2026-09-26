@@ -7,27 +7,30 @@ import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { useToastStore } from '@/shared/stores/toast-store'
 import i18next from '@/test/i18n'
+import { businessKeys } from '@/features/business/queries'
 import { RegisterPage } from './register-page'
-import { PendingStatusPage } from './pending-page'
 
-function renderRegisterPage() {
-  // `queries: { retry: false }` — issue #27: tras navegar, `PendingStatusPage`
-  // dispara su propio `useQuery` (`GET /business/mine`); sin esto, un test que
-  // fuerce una respuesta de error reintentaría contra el default de v5
-  // (retry: 3) y colgaría el `findBy*` correspondiente.
-  const queryClient = new QueryClient({
+/**
+ * PR10b: el éxito ya no navega a `/registro/pendiente` (retirada, spec
+ * #1547) sino a `/` — acá un marcador propio en vez del router real, mismo
+ * criterio que `login-page.dom.test.tsx`.
+ */
+function renderRegisterPage(
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  return render(
+) {
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/registro']}>
         <Routes>
           <Route path="/registro" element={<RegisterPage />} />
-          <Route path="/registro/pendiente" element={<PendingStatusPage />} />
+          <Route path="/" element={<p>Home marker</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
   )
+  return { ...view, queryClient }
 }
 
 /** Llena los 4 campos de texto con datos válidos — deja category/legalDocumentType a elección de cada test. */
@@ -133,8 +136,9 @@ describe('RegisterForm', () => {
     )
   })
 
-  it('con datos válidos, registra el negocio y redirige a /registro/pendiente', async () => {
-    renderRegisterPage()
+  it('con datos válidos, registra el negocio, invalida businessKeys.mine y navega a /', async () => {
+    const { queryClient } = renderRegisterPage()
+    queryClient.setQueryData(businessKeys.mine, [])
     fillTextFields()
     selectCategory('Gastronomía')
     selectLegalDocumentType('NIT')
@@ -143,7 +147,8 @@ describe('RegisterForm', () => {
 
     submit()
 
-    expect(await screen.findByRole('heading', { name: 'Estado de tu negocio' })).toBeInTheDocument()
+    expect(await screen.findByText('Home marker')).toBeInTheDocument()
+    expect(queryClient.getQueryState(businessKeys.mine)?.isInvalidated).toBe(true)
   })
 
   it('si el backend responde 400 problem+json, muestra el detail en un toast y no navega', async () => {
@@ -225,7 +230,7 @@ describe('RegisterForm', () => {
 
       submit()
 
-      await screen.findByRole('heading', { name: 'Estado de tu negocio' })
+      await screen.findByText('Home marker')
       expect(capturedBody).toMatchObject({ commercialAgreementAccepted: true })
     })
 
