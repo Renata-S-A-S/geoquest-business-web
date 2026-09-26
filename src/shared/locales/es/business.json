@@ -20,6 +20,17 @@
     "pending": {
       "title": "Estamos revisando tu negocio"
     },
-    "sessionEmail": "Iniciaste sesión como {{email}}"
+    "sessionEmail": "Iniciaste sesión como {{email}}",
+    "resend": {
+      "cta": "Reenviar documento",
+      "uploading": "Subiendo…",
+      "success": "Documento reenviado. Tu negocio vuelve a estar en revisión.",
+      "fileInputAria": "Elegí el documento legal a reenviar",
+      "errors": {
+        "generic": "No pudimos reenviar el documento. Probá de nuevo.",
+        "invalidFile": "El archivo no es válido — solo se aceptan PDF, JPG o PNG de hasta 5 MB.",
+        "notAwaiting": "Tu negocio ya no puede reenviar el documento en este estado."
+      }
+    }
   }
 }

@@ -268,6 +268,96 @@ export const handlers = [
   }),
 
   /**
+   * `POST /business/{businessId}/legal-document` — PR7b, spec #1547
+   * "Rejected gate con reenvío", contrato REAL contra
+   * `BusinessDocumentEndpoints.cs`/`Business.cs:SubmitLegalDocument`
+   * (origin/main): `204` sin cuerpo en éxito; solo `PendingVerification`,
+   * `Rejected` o `Active`+`legalDocumentWaived` admiten reenvío, cualquier
+   * otro estado es `409 Business.NotAwaitingVerification`. 401 no se modela
+   * (mismo criterio del resto de `handlers.ts`).
+   */
+  http.post(`${API_BASE_URL}/business/:businessId/legal-document`, async ({ params, request }) => {
+    const db = readDb()
+    const denied = denyUnlessOwner(db, params.businessId)
+    if (denied) return denied
+
+    const business = requireMyBusiness(db)
+    const canSubmit =
+      business.status === 'PendingVerification' ||
+      business.status === 'Rejected' ||
+      (business.status === 'Active' && business.legalDocumentWaived)
+    if (!canSubmit) {
+      return HttpResponse.json(
+        {
+          title: 'Business.NotAwaitingVerification',
+          detail: 'El negocio no está en un estado que admita el reenvío del documento legal.',
+          status: 409,
+        },
+        { status: 409 }
+      )
+    }
+
+    const form = await request.formData()
+    const file = form.get('file')
+    // Cross-realm (ver nota en el handler de imagen de recompensa más
+    // abajo): no usar `instanceof File`.
+    if (file === null || typeof file === 'string') {
+      return HttpResponse.json(
+        {
+          title: 'BusinessDocumentEndpoints.NoFile',
+          detail: "No file was received under the 'file' field.",
+          status: 400,
+        },
+        { status: 400 }
+      )
+    }
+
+    if (file.size === 0) {
+      return HttpResponse.json(
+        {
+          title: 'BusinessDocument.Empty',
+          detail: 'No se recibió ningún archivo o está vacío.',
+          status: 400,
+        },
+        { status: 400 }
+      )
+    }
+
+    const limit = UPLOAD_LIMITS.legalDocument
+    if (file.size > limit.maxSizeBytes) {
+      return HttpResponse.json(
+        {
+          title: 'BusinessDocument.TooLarge',
+          detail: `El archivo supera el tamaño máximo permitido (${limit.maxSizeBytes} bytes).`,
+          status: 400,
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!limit.acceptedMimeTypes.includes(file.type)) {
+      return HttpResponse.json(
+        {
+          title: 'BusinessDocument.UnsupportedFormat',
+          detail: 'Solo se aceptan documentos PDF, JPEG o PNG.',
+          status: 400,
+        },
+        { status: 400 }
+      )
+    }
+
+    business.hasLegalDocument = true
+    if (business.status !== 'Active') {
+      business.status = 'PendingVerification'
+      business.rejectionReason = null
+      business.rejectedAtUtc = null
+    }
+    writeDb(db)
+
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  /**
    * `GET /business/places` — devuelve el RESUMEN, no el detalle. El mock
    * proyecta los 7 campos que expone `BusinessPlaceSummaryResult`, igual
    * que el backend: la lista no trae descripción, coordenadas, radio ni

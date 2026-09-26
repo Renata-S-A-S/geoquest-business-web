@@ -112,6 +112,93 @@ describe('BusinessGateway', () => {
     expect(screen.queryByText('contenido protegido')).not.toBeInTheDocument()
   })
 
+  it('el botón "Reenviar documento" abre el selector y el envío devuelve el negocio a PendingVerification', async () => {
+    setMockBusiness('Rejected')
+    renderGateway()
+    await screen.findByRole('heading', { name: 'Tu negocio no fue aprobado' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar documento' }))
+    const file = new File([new Uint8Array(1024)], 'documento.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Elegí el documento legal a reenviar'), {
+      target: { files: [file] },
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Estamos revisando tu negocio' })
+    ).toBeInTheDocument()
+  })
+
+  it('un archivo inválido muestra error inline sin llamar al backend', async () => {
+    setMockBusiness('Rejected')
+    renderGateway()
+    await screen.findByRole('heading', { name: 'Tu negocio no fue aprobado' })
+
+    const invalidFile = new File([new Uint8Array(1024)], 'foto.gif', { type: 'image/gif' })
+    fireEvent.change(screen.getByLabelText('Elegí el documento legal a reenviar'), {
+      target: { files: [invalidFile] },
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El archivo no es válido — solo se aceptan PDF, JPG o PNG de hasta 5 MB.'
+    )
+    expect(screen.getByRole('heading', { name: 'Tu negocio no fue aprobado' })).toBeInTheDocument()
+  })
+
+  it('un 409 al reenviar explica que ya no se puede y mantiene el gate Rejected', async () => {
+    setMockBusiness('Rejected')
+    renderGateway()
+    await screen.findByRole('heading', { name: 'Tu negocio no fue aprobado' })
+
+    server.use(
+      http.post(`${API_BASE_URL}/business/:businessId/legal-document`, () =>
+        HttpResponse.json(
+          {
+            title: 'Business.NotAwaitingVerification',
+            detail: 'El negocio no está en un estado que admita el reenvío.',
+            status: 409,
+          },
+          { status: 409 }
+        )
+      )
+    )
+    const file = new File([new Uint8Array(1024)], 'documento.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Elegí el documento legal a reenviar'), {
+      target: { files: [file] },
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu negocio ya no puede reenviar el documento en este estado.'
+    )
+    expect(screen.getByRole('heading', { name: 'Tu negocio no fue aprobado' })).toBeInTheDocument()
+  })
+
+  it('un 400 del backend (validación de bytes reales) muestra el mismo mensaje de archivo inválido', async () => {
+    setMockBusiness('Rejected')
+    renderGateway()
+    await screen.findByRole('heading', { name: 'Tu negocio no fue aprobado' })
+
+    server.use(
+      http.post(`${API_BASE_URL}/business/:businessId/legal-document`, () =>
+        HttpResponse.json(
+          {
+            title: 'BusinessDocument.UnsupportedFormat',
+            detail: 'Formato no soportado.',
+            status: 400,
+          },
+          { status: 400 }
+        )
+      )
+    )
+    const file = new File([new Uint8Array(1024)], 'documento.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Elegí el documento legal a reenviar'), {
+      target: { files: [file] },
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El archivo no es válido — solo se aceptan PDF, JPG o PNG de hasta 5 MB.'
+    )
+  })
+
   it('tras 5s en estado pendiente agrega el aviso de arranque en frío, sin reemplazar el indicador de carga', async () => {
     server.use(http.get(`${API_BASE_URL}/business/mine`, () => new Promise(() => {})))
     vi.useFakeTimers()

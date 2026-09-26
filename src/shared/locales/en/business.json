@@ -20,6 +20,17 @@
     "pending": {
       "title": "We're reviewing your business"
     },
-    "sessionEmail": "Signed in as {{email}}"
+    "sessionEmail": "Signed in as {{email}}",
+    "resend": {
+      "cta": "Resend document",
+      "uploading": "Uploading…",
+      "success": "Document resent. Your business is under review again.",
+      "fileInputAria": "Choose the legal document to resend",
+      "errors": {
+        "generic": "We couldn't resend the document. Please try again.",
+        "invalidFile": "The file isn't valid — only PDF, JPG or PNG up to 5 MB are accepted.",
+        "notAwaiting": "Your business can no longer resend the document in this state."
+      }
+    }
   }
 }
