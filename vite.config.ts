@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import { VitePWA } from 'vite-plugin-pwa'
 
 /**
@@ -12,11 +13,22 @@ import { VitePWA } from 'vite-plugin-pwa'
  *
  * Config espejo de `geoquest-web`, con `name`/`short_name` propios para que
  * ambas PWAs se instalen como apps separadas en el mismo dispositivo.
+ *
+ * `npm run dev:https` (`vite --mode https`) agrega `@vitejs/plugin-basic-ssl`
+ * — issue #44-#48: la cámara del escaneo de QR exige un "contexto seguro"
+ * (`window.isSecureContext`), y eso significa HTTPS o `localhost`. Probar
+ * desde el teléfono contra la IP del negocio en la red local (no
+ * `localhost`) necesita el certificado autofirmado que agrega este plugin.
+ * Se activa por `mode`, no por una variable de entorno con sintaxis
+ * `VAR=valor comando` — eso rompe en cmd.exe de Windows sin `cross-env`, y
+ * `--mode` es nativo de Vite en cualquier shell. `npm run dev` (sin
+ * `--mode`) sigue exactamente igual: el array de plugins no cambia.
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
+    ...(mode === 'https' ? [basicSsl()] : []),
     VitePWA({
       registerType: 'prompt',
       strategies: 'generateSW',
@@ -93,4 +105,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-})
+}))
