@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { SEED_PURCHASED_QR_TOKEN } from '@/shared/mocks/seed'
+import { setMockBusiness } from '@/test/mock-business'
+import { BUSINESS_WRITE_BLOCK_ID } from '@/features/business/use-business-access'
 import { RedemptionsPage } from './redemptions-page'
 import { startQrCameraScanner } from './qr-camera-scanner'
 
@@ -252,5 +254,23 @@ describe('RedemptionsPage — escaneo con cámara (#44-#48)', () => {
 
     await waitFor(() => expect(stop).toHaveBeenCalledTimes(1))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  /**
+   * real-backend-readiness 8b.3: con el negocio Paused o Suspended no queda
+   * ninguna acción habilitada (decisión #1546), y la cámara es otra vía de
+   * entrada al mismo lookup. Se deshabilita con el mismo motivo que la
+   * búsqueda manual y nunca llega a pedir la cámara.
+   */
+  it('deshabilita el botón de cámara con el negocio Paused y no la enciende', async () => {
+    setMockBusiness('Paused')
+    renderPage()
+
+    const scan = await screen.findByRole('button', { name: 'Escanear con cámara' })
+    await waitFor(() => expect(scan).toBeDisabled())
+    expect(scan).toHaveAttribute('aria-describedby', BUSINESS_WRITE_BLOCK_ID)
+    fireEvent.click(scan)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(startQrCameraScannerMock).not.toHaveBeenCalled()
   })
 })
