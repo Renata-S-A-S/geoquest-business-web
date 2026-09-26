@@ -32,5 +32,15 @@
         "notAwaiting": "Your business can no longer resend the document in this state."
       }
     }
+  },
+  "banner": {
+    "paused": {
+      "title": "Your business is paused",
+      "body": "Explorers can't see new places or redeem rewards while your business is paused. You can keep reviewing your account information."
+    },
+    "suspended": {
+      "title": "Your business is suspended",
+      "body": "You can't create or edit anything while your business is suspended."
+    }
   }
 }

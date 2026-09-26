@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
@@ -52,15 +53,20 @@ vi.mock('virtual:pwa-register/react', () => ({
 
 const { AppShell } = await import('./app-shell')
 
+// `QueryClientProvider` es nuevo acá desde PR8a: `BusinessStatusBanner`
+// (adentro de `AppShell`) lee `useMyBusiness()`.
 function renderShell() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter initialEntries={['/lugares']}>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/lugares" element={<div>contenido</div>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/lugares']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/lugares" element={<div>contenido</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 

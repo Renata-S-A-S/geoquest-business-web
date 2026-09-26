@@ -32,5 +32,15 @@
         "notAwaiting": "Tu negocio ya no puede reenviar el documento en este estado."
       }
     }
+  },
+  "banner": {
+    "paused": {
+      "title": "Tu negocio está en pausa",
+      "body": "Los exploradores no pueden ver lugares nuevos ni canjear recompensas mientras tu negocio esté en pausa. Podés seguir revisando la información de tu cuenta."
+    },
+    "suspended": {
+      "title": "Tu negocio está suspendido",
+      "body": "No podés crear ni editar nada mientras tu negocio esté suspendido."
+    }
   }
 }
