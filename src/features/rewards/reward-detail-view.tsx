@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ActionLink } from '@/shared/components/ui/action-link'
+import { Banner } from '@/shared/components/ui/banner'
 import { Card } from '@/shared/components/ui/card'
 import { StatusBadge, type StatusBadgeVariant } from '@/shared/components/ui/status-badge'
 import { useWriteGuard } from '@/features/business/use-write-guard'
@@ -82,6 +83,11 @@ export interface RewardDetailViewProps {
    * subida es una mutación y la vista no debe conocerla.
    */
   imageSlot?: ReactNode
+  /**
+   * `true` solo justo después de publicarla desde `RewardForm` (#204). Rige
+   * el nudge de imagen: no se repite en visitas posteriores al detalle.
+   */
+  justPublished?: boolean
 }
 
 /**
@@ -92,7 +98,13 @@ export interface RewardDetailViewProps {
  * contra backend `main` @ `ea471f4`, y el propio `Reward.cs:346-348` lo dice.
  * Un "creada el…" acá sería un dato inventado.
  */
-export function RewardDetailView({ reward, placeName, actions, imageSlot }: RewardDetailViewProps) {
+export function RewardDetailView({
+  reward,
+  placeName,
+  actions,
+  imageSlot,
+  justPublished,
+}: RewardDetailViewProps) {
   const { t } = useTranslation('rewards')
   const writeGuard = useWriteGuard()
 
@@ -176,6 +188,10 @@ export function RewardDetailView({ reward, placeName, actions, imageSlot }: Rewa
           }
         />
       </Card>
+
+      {justPublished && reward.imageUrl === null && (
+        <Banner variant="info">{t('detail.image.nudge')}</Banner>
+      )}
 
       <Card className="flex flex-col gap-3">
         <SectionTitle>{t('detail.sections.image.title')}</SectionTitle>

@@ -99,9 +99,12 @@ export function RewardForm({ businessId, defaultPlaceId }: RewardFormProps) {
         stockTotal: values.stockTotal,
       },
       {
-        onSuccess: () => {
+        onSuccess: (created) => {
           success(t('createForm.success'))
-          navigate('/recompensas')
+          // Publish-on-create (#204): el backend crea la recompensa
+          // directamente Published, así que el destino natural es SU
+          // detalle, no la lista genérica — es donde se le sube la imagen.
+          navigate(`/recompensas/${created.rewardId}`, { state: { justPublished: true } })
         },
       }
     )
@@ -238,8 +241,6 @@ export function RewardForm({ businessId, defaultPlaceId }: RewardFormProps) {
           </span>
           <p className="font-sans text-xs text-muted">{t('createForm.unavailable.description')}</p>
         </Card>
-
-        <p className="font-sans text-xs text-muted">{t('createForm.draftNote')}</p>
 
         {mutation.isError && (
           <p role="alert" className="font-sans text-xs text-alert">

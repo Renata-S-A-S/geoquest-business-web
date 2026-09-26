@@ -15,7 +15,6 @@ import { isValidTaxonomy } from '@/shared/schemas/taxonomy'
 import {
   canEditReward,
   canPauseReward,
-  canPublishReward,
   canRepublishReward,
   republishWillExhaust,
   committedUnits,
@@ -549,14 +548,14 @@ export const handlers = [
   }),
 
   /**
-   * `POST /portal/businesses/{businessId}/rewards` — crea la recompensa en
-   * **`Draft`**.
+   * `POST /portal/businesses/{businessId}/rewards` — crea la recompensa
+   * directamente en **`Published`** (publish-on-create, #204).
    *
-   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:26,29`). El ESTADO resultante es
-   * la divergencia deliberada: el backend crea directo en `Published` (su
-   * handler se llama `PublishAsync`), pero la decisión de producto de Derek
-   * (24 sep 2026) mantiene el flujo B-03 con borrador previo. `Draft` ya
-   * existe como estado persistido. Registrada en `geoquest#191`.
+   * ✅ Ruta REAL (`PortalRewardsEndpoints.cs:26,29`), y también el ESTADO
+   * resultante: el backend crea directo en `Published`, su handler se llama
+   * `PublishAsync` y no existe ningún endpoint de publicación aparte. La
+   * decisión previa de mantener un borrador intermedio se revirtió; ningún
+   * flujo del portal deja una recompensa en `Draft`.
    *
    * `requireActive: true` en el backend para toda escritura, de ahí el 403
    * `RewardPortal.BusinessNotActive` cuando el negocio no está `Active`.
@@ -584,7 +583,7 @@ export const handlers = [
         ...parsed.data,
         rewardId: crypto.randomUUID(),
         businessId: requireMyBusiness(db).businessId,
-        status: 'Draft',
+        status: 'Published',
         stockRemaining: parsed.data.stockTotal,
         imageUrl: null,
       }
@@ -864,56 +863,6 @@ export const handlers = [
       writeDb(db)
 
       return new HttpResponse(null, { status: 204 })
-    }
-  ),
-
-  /**
-   * `POST /portal/businesses/{businessId}/rewards/{rewardId}/publish` — la
-   * transición que **sigue faltando** en el backend.
-   *
-   * ⚠️ Es el único endpoint de recompensas que continúa siendo ficción:
-   * verificado @ `ea471f4`, no existe ninguna ruta `/publish`. Espejo de
-   * `POST /business/places/{id}/publish`, incluida la precondición: así como
-   * un lugar no se publica sin al menos una foto, una recompensa no se
-   * publica sin imagen. Ver `canPublishReward`.
-   */
-  http.post(
-    `${API_BASE_URL}/portal/businesses/:businessId/rewards/:rewardId/publish`,
-    ({ params }) => {
-      const db = readDb()
-      const denied = denyUnlessOwner(db, params.businessId) ?? denyUnlessActive(db)
-      if (denied) return denied
-
-      const reward = db.rewards.find((candidate) => candidate.rewardId === params.rewardId)
-
-      if (!reward) return rewardNotFound(params.rewardId)
-
-      if (reward.status === 'Published') {
-        return HttpResponse.json(
-          {
-            title: 'Reward.AlreadyPublished',
-            detail: 'The Reward is already published.',
-            status: 409,
-          },
-          { status: 409 }
-        )
-      }
-
-      if (!canPublishReward(reward)) {
-        return HttpResponse.json(
-          {
-            title: 'Reward.PublishRequiresImage',
-            detail: 'A Reward cannot be published without an image.',
-            status: 409,
-          },
-          { status: 409 }
-        )
-      }
-
-      reward.status = 'Published'
-      writeDb(db)
-
-      return HttpResponse.json({ status: reward.status, visibleToExplorers: true })
     }
   ),
 

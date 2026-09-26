@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/shared/components/ui/button'
 import { useReward } from '@/features/rewards/queries'
@@ -25,6 +25,15 @@ import { RewardImageUpload } from '@/features/rewards/reward-image-upload'
 export function RewardDetailPage() {
   const { t } = useTranslation('rewards')
   const { rewardId } = useParams<{ rewardId: string }>()
+  /**
+   * Marca que se llegó acá desde `RewardForm` justo tras publicar (#204).
+   * Solo entonces tiene sentido el nudge de imagen: en cualquier otra visita
+   * al detalle, una recompensa sin imagen no es una novedad que insistir.
+   */
+  const location = useLocation()
+  const justPublished = Boolean(
+    (location.state as { justPublished?: boolean } | null)?.justPublished
+  )
   const businessQuery = useMyBusiness()
   const rewardQuery = useReward(businessQuery.data?.businessId, rewardId)
   const placesQuery = usePlaces()
@@ -103,6 +112,7 @@ export function RewardDetailPage() {
     <RewardDetailView
       reward={rewardQuery.data}
       placeName={placeName}
+      justPublished={justPublished}
       actions={
         <RewardStatusAction businessId={businessQuery.data.businessId} reward={rewardQuery.data} />
       }

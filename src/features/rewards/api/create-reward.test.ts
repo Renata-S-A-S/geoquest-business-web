@@ -27,15 +27,14 @@ describe('createReward', () => {
   })
 
   /**
-   * Nace `Draft`, no `Published`. Es la decisión de producto de mantener el
-   * flujo B-03 con borrador previo, y el mock la modela para que la pantalla
-   * exista antes de que el backend agregue la transición.
+   * Publish-on-create (#204): el backend crea la recompensa directamente en
+   * `Published`, sin ningún paso de borrador intermedio.
    */
-  it('deja la recompensa en Draft, no publicada', async () => {
+  it('deja la recompensa Published de una', async () => {
     const created = await createReward(businessId, INPUT)
     const rewards = await getRewards(businessId)
 
-    expect(rewards.find((r) => r.rewardId === created.rewardId)?.status).toBe('Draft')
+    expect(rewards.find((r) => r.rewardId === created.rewardId)?.status).toBe('Published')
   })
 
   it('arranca sin imagen: se sube después, igual que las fotos de lugar', async () => {

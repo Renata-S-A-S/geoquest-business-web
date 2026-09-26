@@ -70,11 +70,10 @@
       "valueNotNegative": "The value can't be negative",
       "stockPositive": "Stock must be greater than zero, or empty for unlimited"
     },
-    "submit": "Save draft",
-    "submitting": "Saving…",
+    "submit": "Publish reward",
+    "submitting": "Publishing…",
     "cancel": "Cancel",
-    "success": "Reward created as a draft",
-    "draftNote": "It saves as a draft. You'll be able to publish it once you add an image.",
+    "success": "All set! Your reward is now published.",
     "unavailable": {
       "title": "Fields that aren't available yet",
       "description": "Reward type, the General/Special classification, validity dates and your own terms can't be configured yet: the backend doesn't have those fields. They're requested and will follow."
@@ -136,7 +135,8 @@
     "image": {
       "alt": "Image of {{title}}",
       "empty": "This reward doesn't have an image yet.",
-      "emptyHint": "The image is uploaded after the reward is created, same as place photos."
+      "emptyHint": "The image is uploaded after the reward is created, same as place photos.",
+      "nudge": "Add a photo so it looks better in the explorer app."
     },
     "editCta": "Edit"
   },

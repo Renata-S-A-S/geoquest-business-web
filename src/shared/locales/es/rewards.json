@@ -70,11 +70,10 @@
       "valueNotNegative": "El valor no puede ser negativo",
       "stockPositive": "El stock tiene que ser mayor a cero, o vacío para ilimitado"
     },
-    "submit": "Guardar borrador",
-    "submitting": "Guardando…",
+    "submit": "Publicar recompensa",
+    "submitting": "Publicando…",
     "cancel": "Cancelar",
-    "success": "Recompensa creada como borrador",
-    "draftNote": "Se guarda como borrador. Vas a poder publicarla después de subirle una imagen.",
+    "success": "¡Listo! Tu recompensa ya está publicada.",
     "unavailable": {
       "title": "Campos que todavía no están disponibles",
       "description": "El tipo de recompensa, la clasificación General/Special, la vigencia y los términos propios no se pueden configurar todavía: el backend no tiene esos campos. Están pedidos y llegan después."
@@ -136,7 +135,8 @@
     "image": {
       "alt": "Imagen de {{title}}",
       "empty": "Esta recompensa todavía no tiene imagen.",
-      "emptyHint": "La imagen se sube después de crear la recompensa, igual que las fotos de lugar."
+      "emptyHint": "La imagen se sube después de crear la recompensa, igual que las fotos de lugar.",
+      "nudge": "Agregale una foto para que se vea mejor en la app de exploradores."
     },
     "editCta": "Editar"
   },

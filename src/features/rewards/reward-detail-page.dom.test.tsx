@@ -17,11 +17,11 @@ function detailUrl(rewardId: string) {
   return `${API_BASE_URL}/portal/businesses/${businessId}/rewards/${rewardId}`
 }
 
-function renderDetail(rewardId: string) {
+function renderDetail(rewardId: string, state?: { justPublished?: boolean }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/recompensas/${rewardId}`]}>
+      <MemoryRouter initialEntries={[{ pathname: `/recompensas/${rewardId}`, state }]}>
         <Routes>
           <Route path="/recompensas/:rewardId" element={<RewardDetailPage />} />
         </Routes>
@@ -92,6 +92,35 @@ describe('RewardDetailPage', () => {
 
     expect(await screen.findByText('Esta recompensa todavía no tiene imagen.')).toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  /**
+   * Publish-on-create (#204): tras publicar, el detalle recibe
+   * `{ justPublished: true }` por navegación. Si esa recompensa recién
+   * publicada todavía no tiene imagen, un callout no bloqueante la invita a
+   * subir una — es el único momento en que tiene sentido insistir con esto,
+   * no en cada visita posterior al detalle.
+   */
+  it('sugiere agregar una imagen tras publicar, cuando la recompensa no tiene ninguna', async () => {
+    renderDetail(draft.rewardId, { justPublished: true })
+
+    expect(
+      await screen.findByText('Agregale una foto para que se vea mejor en la app de exploradores.')
+    ).toBeInTheDocument()
+  })
+
+  it('NO sugiere agregar imagen si no se acaba de publicar', async () => {
+    renderDetail(draft.rewardId)
+
+    await screen.findByText('Esta recompensa todavía no tiene imagen.')
+    expect(screen.queryByText(/Agregale una foto/)).not.toBeInTheDocument()
+  })
+
+  it('NO sugiere agregar imagen si la recompensa ya tiene una', async () => {
+    renderDetail(published.rewardId, { justPublished: true })
+
+    await screen.findByRole('img', { name: `Imagen de ${published.title}` })
+    expect(screen.queryByText(/Agregale una foto/)).not.toBeInTheDocument()
   })
 
   it('resuelve el NOMBRE del lugar en vez de mostrar su UUID', async () => {

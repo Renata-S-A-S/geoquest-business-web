@@ -351,7 +351,13 @@ describe('mock handlers — round-trip de persistencia', () => {
     await expect(apiClient.get('/rewards')).rejects.toBeTruthy()
   })
 
-  it('POST /portal/businesses/{businessId}/rewards crea la recompensa en Draft y sin imagen', async () => {
+  /**
+   * Publish-on-create (#204): el backend crea la recompensa directamente
+   * en `Published`, sin ningún paso de borrador intermedio. No existe
+   * ningún endpoint `.../publish` que probar — el único que hubo era
+   * ficción del mock, retirado junto con este cambio.
+   */
+  it('POST /portal/businesses/{businessId}/rewards crea la recompensa Published y sin imagen', async () => {
     const input = {
       title: 'Segundo postre gratis',
       description: 'Prueba de creación.',
@@ -369,40 +375,7 @@ describe('mock handlers — round-trip de persistencia', () => {
     const { data: after } = await apiClient.get<BusinessRewardSummary[]>(REWARDS_PATH)
     const persisted = after.find((r) => r.rewardId === created.data.rewardId)
 
-    expect(persisted).toMatchObject({ status: 'Draft', imageUrl: null, stockRemaining: 10 })
-  })
-
-  /**
-   * Precondición espejo del precedente de `Place`: así como un lugar no se
-   * publica sin al menos una foto, una recompensa no se publica sin imagen.
-   * La semilla en `Draft` no la tiene, que es justo el caso a bloquear.
-   */
-  it('POST .../rewards/{id}/publish responde 409 si la recompensa no tiene imagen', async () => {
-    const draft = SEED_REWARDS.find((r) => r.status === 'Draft')
-
-    await expect(
-      apiClient.post(`${REWARDS_PATH}/${draft!.rewardId}/publish`, {})
-    ).rejects.toMatchObject({
-      response: { status: 409, data: { title: 'Reward.PublishRequiresImage' } },
-    })
-  })
-
-  it('POST .../rewards/{id}/publish responde 409 si ya está publicada', async () => {
-    const published = SEED_REWARDS.find((r) => r.status === 'Published')
-
-    await expect(
-      apiClient.post(`${REWARDS_PATH}/${published!.rewardId}/publish`, {})
-    ).rejects.toMatchObject({
-      response: { status: 409, data: { title: 'Reward.AlreadyPublished' } },
-    })
-  })
-
-  it('POST .../rewards/{id}/publish responde 404 para un id desconocido', async () => {
-    await expect(
-      apiClient.post(`${REWARDS_PATH}/00000000-0000-0000-0000-0000000000ff/publish`, {})
-    ).rejects.toMatchObject({
-      response: { status: 404, data: { title: 'RewardPortal.RewardNotFound' } },
-    })
+    expect(persisted).toMatchObject({ status: 'Published', imageUrl: null, stockRemaining: 10 })
   })
 
   it('POST /business/register crea el negocio y lo refleja en GET /business/mine', async () => {
