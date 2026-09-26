@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { describe, expect, it, beforeEach } from 'vitest'
 import { apiClient } from '@/shared/lib/api-client'
 import { applyMockBusinessScenario, readDb, resetDb, writeDb } from '@/shared/mocks/db'
 import {
@@ -379,12 +379,8 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(persisted).toMatchObject({ status: 'Published', imageUrl: null, stockRemaining: 10 })
   })
 
-  it('POST /business/register crea el negocio y lo refleja en GET /business/mine', async () => {
-    const {
-      commercialAgreementAccepted: _accepted,
-      termsAccepted: _terms,
-      ...expectedPersisted
-    } = {
+  it('POST /business/register crea el negocio (forma MyBusiness) y lo refleja en GET /business/mine', async () => {
+    const input = {
       legalName: 'Panadería El Trigal SAS',
       displayName: 'El Trigal',
       email: 'contacto@eltrigal.co',
@@ -394,18 +390,17 @@ describe('mock handlers — round-trip de persistencia', () => {
       commercialAgreementAccepted: true,
       termsAccepted: true,
     }
-    const input = { ...expectedPersisted, commercialAgreementAccepted: true, termsAccepted: true }
 
     const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
     expect(created.status).toBe(201)
-    expect(created.data).toMatchObject({ ...expectedPersisted, status: 'Pending' })
+    expect(created.data).toMatchObject({ name: 'El Trigal', status: 'PendingVerification' })
     expect(created.data).not.toHaveProperty('commercialAgreementAccepted')
     expect(created.data).not.toHaveProperty('termsAccepted')
 
     const { data: afterMine } = await apiClient.get('/business/mine')
     expect(afterMine).toEqual([
       expect.objectContaining({
-        businessId: created.data.id,
+        businessId: created.data.businessId,
         name: 'El Trigal',
         status: 'PendingVerification',
       }),
@@ -456,31 +451,6 @@ describe('mock handlers — round-trip de persistencia', () => {
     })
   })
 
-  it('POST /business/register sella commercialAgreementSignedAt con la hora del servidor', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date('2026-09-23T10:00:00.000Z'))
-
-    try {
-      const input = {
-        legalName: 'Panadería El Trigal SAS',
-        displayName: 'El Trigal',
-        email: 'contacto@eltrigal.co',
-        category: 'gastronomia',
-        legalDocumentType: 'NIT',
-        legalDocumentNumber: '901234567-8',
-        commercialAgreementAccepted: true,
-        termsAccepted: true,
-      }
-
-      const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
-
-      expect(created.data.commercialAgreementSignedAt).toBe('2026-09-23T10:00:00.000Z')
-      expect(created.data.commercialAgreementSignedAt).toBe(created.data.createdAt)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
   it('POST /business/register con datos inválidos responde 400 en formato problem+json', async () => {
     await expect(
       apiClient.post(
@@ -493,46 +463,6 @@ describe('mock handlers — round-trip de persistencia', () => {
         status: 400,
         data: { title: 'ValidationFailed' },
       },
-    })
-  })
-
-  it('POST /business/register con categoría "gastronomia" persiste isGoogleMapsVerified true y un place id', async () => {
-    const input = {
-      legalName: 'Panadería El Trigal SAS',
-      displayName: 'El Trigal',
-      email: 'contacto@eltrigal.co',
-      category: 'gastronomia',
-      legalDocumentType: 'NIT',
-      legalDocumentNumber: '901234567-8',
-      commercialAgreementAccepted: true,
-      termsAccepted: true,
-    }
-
-    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
-
-    expect(created.data).toMatchObject({
-      isGoogleMapsVerified: true,
-      googleMapsPlaceId: 'ChIJ_mock_gastronomia',
-    })
-  })
-
-  it('POST /business/register con categoría "servicios" persiste isGoogleMapsVerified false y googleMapsPlaceId null', async () => {
-    const input = {
-      legalName: 'Plomería Rápida SAS',
-      displayName: 'Plomería Rápida',
-      email: 'contacto@plomeriarapida.co',
-      category: 'servicios',
-      legalDocumentType: 'NIT',
-      legalDocumentNumber: '901234568-9',
-      commercialAgreementAccepted: true,
-      termsAccepted: true,
-    }
-
-    const created = await apiClient.post('/business/register', input, { skipSessionAuth: true })
-
-    expect(created.data).toMatchObject({
-      isGoogleMapsVerified: false,
-      googleMapsPlaceId: null,
     })
   })
 

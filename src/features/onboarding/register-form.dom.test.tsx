@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/msw-server'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { useToastStore } from '@/shared/stores/toast-store'
-import { SEED_BUSINESS } from '@/shared/mocks/seed'
 import i18next from '@/test/i18n'
 import { RegisterPage } from './register-page'
 import { PendingStatusPage } from './pending-page'
@@ -198,10 +197,23 @@ describe('RegisterForm', () => {
       server.use(
         http.post(`${API_BASE_URL}/business/register`, async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>
-          // Extra unrecognized keys (like the input-only acceptance flag)
-          // are silently stripped by `businessSchema.parse` — spreading
-          // `capturedBody` here keeps this a schema-valid response.
-          return HttpResponse.json({ ...SEED_BUSINESS, ...capturedBody }, { status: 201 })
+          // Real-backend-readiness PR10: la respuesta ahora es `MyBusiness`
+          // (`myBusinessSchema`), no la forma legada — este literal es el
+          // mínimo que la valida.
+          return HttpResponse.json(
+            {
+              businessId: '00000000-0000-0000-0000-000000000099',
+              name: capturedBody.displayName,
+              status: 'PendingVerification',
+              rejectionReason: null,
+              rejectedAtUtc: null,
+              hasLegalDocument: false,
+              legalDocumentWaived: false,
+              logoUrl: null,
+              hasVerificationVideo: false,
+            },
+            { status: 201 }
+          )
         })
       )
       renderRegisterPage()

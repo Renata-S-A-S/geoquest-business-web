@@ -2,7 +2,6 @@ import { http, HttpResponse, type StrictResponse } from 'msw'
 import { API_BASE_URL } from '@/shared/lib/env'
 import { UPLOAD_LIMITS } from '@/shared/lib/upload-limits'
 import { readDb, writeDb } from '@/shared/mocks/db'
-import { resolveGoogleMapsVerification } from '@/shared/mocks/google-maps-verification.mock'
 import { isValidMockCredential } from '@/shared/mocks/business-staff-credentials.mock'
 import { SEED_BUSINESS_STAFF, SEED_BUSINESS_STAFF_USERNAME } from '@/shared/mocks/seed'
 import { createMockJwt } from '@/shared/mocks/mock-jwt'
@@ -24,11 +23,7 @@ import {
   updateBusinessRewardInputSchema,
   type BusinessRewardSummary,
 } from '@/shared/schemas/business-reward'
-import {
-  registerBusinessInputSchema,
-  type Business,
-  type MyBusiness,
-} from '@/shared/schemas/business'
+import { registerBusinessInputSchema, type MyBusiness } from '@/shared/schemas/business'
 import { loginInputSchema, type AuthTokens } from '@/shared/schemas/auth'
 import { analyticsDateSchema, analyticsGranularitySchema } from '@/shared/schemas/analytics'
 import { buildMockAnalyticsSummary, buildMockCheckInSeries } from '@/shared/mocks/analytics.mock'
@@ -204,56 +199,27 @@ export const handlers = [
     }
 
     const db = readDb()
-    // `commercialAgreementAccepted` (RN-BIZ-03) y `termsAccepted` (#24)
-    // son input-only, gates de envío: se destructuran afuera de
-    // `businessInput` antes de spread, porque TypeScript NO hace
-    // excess-property-check sobre un spread — dejarlos en `parsed.data` los
-    // filtraría al `Business` de la respuesta.
-    const {
-      commercialAgreementAccepted: _commercialAgreementAccepted,
-      termsAccepted: _termsAccepted,
-      ...businessInput
-    } = parsed.data
-    // Sin valor confirmado para trustScore/trustStatus/etc. de un negocio
-    // recién registrado (ningún ERD/RN lo define) — defaults mock-only, el
-    // backend real decide esto.
-    // `now` sella `commercialAgreementSignedAt` y `createdAt` con el mismo
-    // instante para que ambos coincidan sin desfase intra-request.
-    const now = new Date().toISOString()
-    // Respuesta del POST — forma `Business` legada (issue #21), la que
-    // `register-business.ts` sigue parseando hasta que PR10 migre el
-    // registro al contrato real (`myBusinessSchema`). Ya NO se persiste en
-    // el mock db (PR6c-part2b retiró `db.business`): solo modela el body.
-    const newBusiness: Business = {
-      ...businessInput,
-      id: crypto.randomUUID(),
-      status: 'Pending',
-      // Heurística mock-only (#25) — ver google-maps-verification.mock.ts
-      // para la regla completa y por qué es desechable.
-      ...resolveGoogleMapsVerification(businessInput.category),
-      isInformalBusiness: false,
-      trustScore: 0,
-      trustStatus: 'UnderReview',
-      totalRedemptions: 0,
-      totalReports: 0,
-      isPlatformOwned: false,
-      // Sellado incondicional: el `.refine()` del schema ya garantiza que
-      // `parsed.success` implica `commercialAgreementAccepted === true`, así
-      // que un `? :` sería una rama muerta e imposible de cubrir contra el
-      // gate de 85% de branches.
-      commercialAgreementSignedAt: now,
-      createdAt: now,
-    }
+    // `commercialAgreementAccepted` (RN-BIZ-03) y `termsAccepted` (#24) son
+    // input-only, gates de envío que el backend/mock nunca persiste tal cual
+    // (RN-BIZ-03) — se destructuran afuera del resto de `parsed.data` para
+    // que quede explícito que no alimentan `newMyBusiness`.
+    const { displayName } = parsed.data
 
     // Fuente de autorización: un negocio recién registrado tiene que existir
     // en `db.myBusiness` — la ÚNICA fuente que leen `denyUnlessOwner`/
     // `denyUnlessActive` y `GET /business/mine` — o quedaría "registrado"
     // sin poder pasar ninguna guarda de escritura. `PendingVerification`
     // porque el registro es mock-only (capability real=false): todavía no
-    // hay documento legal cargado.
+    // hay documento legal cargado. Real-backend-readiness PR10: la respuesta
+    // del POST es directamente esta forma `MyBusiness` (`myBusinessSchema`),
+    // no ya la forma `Business` legada de issue #21 — el negocio recién
+    // registrado no tiene todavía trustScore/verificación de Google Maps
+    // reales, y modelarlos acá era código mock desechable que nadie leía
+    // fuera de esta respuesta (ver historial de `google-maps-verification.mock.ts`,
+    // borrado en esta misma PR).
     const newMyBusiness: MyBusiness = {
-      businessId: newBusiness.id,
-      name: newBusiness.displayName,
+      businessId: crypto.randomUUID(),
+      name: displayName,
       status: 'PendingVerification',
       rejectionReason: null,
       rejectedAtUtc: null,
@@ -265,7 +231,7 @@ export const handlers = [
     db.myBusiness = newMyBusiness
     writeDb(db)
 
-    return HttpResponse.json(newBusiness, { status: 201 })
+    return HttpResponse.json(newMyBusiness, { status: 201 })
   }),
 
   /**
