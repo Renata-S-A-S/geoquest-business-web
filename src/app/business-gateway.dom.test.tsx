@@ -105,8 +105,7 @@ describe('BusinessGateway', () => {
     expect(screen.queryByText('contenido protegido')).not.toBeInTheDocument()
 
     // Clic en refresh: la acción real dispara un refetch que puede resolver
-    // Active — no solo un botón decorativo (mismo criterio que
-    // `pending-page.dom.test.tsx`).
+    // Active — no solo un botón decorativo.
     server.use(
       http.get(`${API_BASE_URL}/business/mine`, () =>
         HttpResponse.json([SEED_BUSINESS_SCENARIOS.Active])
