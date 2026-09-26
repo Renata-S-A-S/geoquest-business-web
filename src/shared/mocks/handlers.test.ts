@@ -38,11 +38,6 @@ const REWARDS_PATH = `/portal/businesses/${SEED_BUSINESS.id}/rewards`
 describe('mock handlers — round-trip de persistencia', () => {
   beforeEach(() => resetDb())
 
-  it('GET /business/me devuelve el negocio semilla', async () => {
-    const { data } = await apiClient.get('/business/me')
-    expect(data).toMatchObject({ displayName: 'Café de la 70' })
-  })
-
   it('GET /business/mine devuelve [myBusiness] con el escenario Active por defecto', async () => {
     const { data } = await apiClient.get('/business/mine')
     expect(data).toEqual([SEED_BUSINESS_SCENARIOS.Active])
@@ -410,7 +405,7 @@ describe('mock handlers — round-trip de persistencia', () => {
     })
   })
 
-  it('POST /business/register crea el negocio y lo refleja en GET /business/me y GET /business/mine', async () => {
+  it('POST /business/register crea el negocio y lo refleja en GET /business/mine', async () => {
     const {
       commercialAgreementAccepted: _accepted,
       termsAccepted: _terms,
@@ -433,13 +428,6 @@ describe('mock handlers — round-trip de persistencia', () => {
     expect(created.data).not.toHaveProperty('commercialAgreementAccepted')
     expect(created.data).not.toHaveProperty('termsAccepted')
 
-    const { data: afterMe } = await apiClient.get('/business/me')
-    expect(afterMe).toMatchObject({ displayName: 'El Trigal', status: 'Pending' })
-
-    // Unificación de fuente de autorización (real-backend-readiness PR6c,
-    // ítem mandatorio de la review de PR6b): el negocio recién registrado
-    // también existe en `db.myBusiness`, que es lo que leen `GET
-    // /business/mine` y las guardas de escritura/canje.
     const { data: afterMine } = await apiClient.get('/business/mine')
     expect(afterMine).toEqual([
       expect.objectContaining({

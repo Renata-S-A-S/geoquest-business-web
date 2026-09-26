@@ -115,9 +115,7 @@ interface PortalProblem {
  * devuelven EL MISMO 403, nunca un 404. Por eso el mock no distingue los dos
  * casos — y por eso la interfaz nunca debe decir «negocio no encontrado».
  *
- * Lee `db.myBusiness` (real-backend-readiness PR6c) — antes leía el
- * `db.business` legado, que quedaba desincronizado del negocio que la UI
- * real ya mostraba vía `GET /business/mine` desde PR6a. Sin negocio propio
+ * Lee `db.myBusiness` — única fuente de autorización. Sin negocio propio
  * (`null`), nadie es dueño: el mismo 403 anti-enumeración aplica.
  */
 function denyUnlessOwner(
@@ -183,19 +181,6 @@ function rewardNotFound(
 
 export const handlers = [
   /**
-   * `GET /business/me` — contrato LEGADO (issue #27), 3 estados. Sigue
-   * activo hasta que `business-settings-section.tsx`/`pending-page.tsx`
-   * migren a `GET /business/mine` (real-backend-readiness PR6c, próximo
-   * lote de esta misma PR — ver apply-progress). Ya NO es la fuente que
-   * leen las guardas de escritura/canje: eso se unificó a `db.myBusiness`
-   * en este lote (ítem mandatorio de la review de PR6b).
-   */
-  http.get(`${API_BASE_URL}/business/me`, () => {
-    const { business } = readDb()
-    return HttpResponse.json(business)
-  }),
-
-  /**
    * `GET /business/mine` — contrato REAL (real-backend-readiness PR6a),
    * confirmado contra `MyBusinessResult.cs` en `origin/main`. SIEMPRE
    * responde un array: `[myBusiness]` cuando el explorador de sesión es
@@ -236,9 +221,8 @@ export const handlers = [
     const now = new Date().toISOString()
     // Respuesta del POST — forma `Business` legada (issue #21), la que
     // `register-business.ts` sigue parseando hasta que PR10 migre el
-    // registro al contrato real (`myBusinessSchema`). Se persiste en
-    // `db.business` (transicional: ver JSDoc de `MockDb.business`) para que
-    // `GET /business/me` siga reflejándolo mientras esa lectura no migre.
+    // registro al contrato real (`myBusinessSchema`). Ya NO se persiste en
+    // el mock db (PR6c-part2b retiró `db.business`): solo modela el body.
     const newBusiness: Business = {
       ...businessInput,
       id: crypto.randomUUID(),
@@ -260,8 +244,7 @@ export const handlers = [
       createdAt: now,
     }
 
-    // Fuente de autorización (real-backend-readiness PR6c, ítem mandatorio
-    // de la review de PR6b): un negocio recién registrado tiene que existir
+    // Fuente de autorización: un negocio recién registrado tiene que existir
     // en `db.myBusiness` — la ÚNICA fuente que leen `denyUnlessOwner`/
     // `denyUnlessActive` y `GET /business/mine` — o quedaría "registrado"
     // sin poder pasar ninguna guarda de escritura. `PendingVerification`
@@ -278,7 +261,6 @@ export const handlers = [
       logoUrl: null,
       hasVerificationVideo: false,
     }
-    db.business = newBusiness
     db.myBusiness = newMyBusiness
     writeDb(db)
 
