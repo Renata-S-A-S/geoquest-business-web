@@ -31,9 +31,7 @@ describe('BusinessStatusBanner', () => {
     expect(banner).toHaveAttribute('id', BUSINESS_WRITE_BLOCK_ID)
     expect(banner).toHaveAttribute('aria-live', 'polite')
     expect(screen.getByText('Tu negocio está en pausa')).toBeInTheDocument()
-    expect(
-      screen.getByText(/Los exploradores no pueden ver lugares nuevos/)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Los exploradores no pueden ver lugares nuevos/)).toBeInTheDocument()
   })
 
   it('muestra el aviso de suspensión cuando el negocio está Suspended', async () => {
