@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Controller, useForm, type FieldError } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { registerBusinessInputSchema, type RegisterBusinessInput } from '@/shared/schemas/business'
 import { registerBusiness } from '@/features/onboarding/api/register-business'
+import { businessKeys } from '@/features/business/queries'
 import { BUSINESS_CATEGORY_OPTIONS } from '@/features/onboarding/business-category-options'
 import { LEGAL_DOCUMENT_TYPE_OPTIONS } from '@/features/onboarding/legal-document-type-options'
 import { LegalDisclosure } from '@/features/onboarding/legal-disclosure'
@@ -65,6 +66,7 @@ function fieldErrorMessage(
 export function RegisterForm() {
   const { t } = useTranslation('onboarding')
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const toast = useToast()
   // Check-time feedback only, never sent to the server — the authoritative
   // value is the server-stamped `commercialAgreementSignedAt` in the
@@ -86,7 +88,14 @@ export function RegisterForm() {
 
   const mutation = useMutation({
     mutationFn: registerBusiness,
-    onSuccess: () => navigate('/registro/pendiente'),
+    // El negocio recién creado nace `PendingVerification` (spec #1547):
+    // navegar a `/` y dejar que `BusinessGateway` relea `mine` es el mismo
+    // gate de "en verificación" que ya usa cualquier negocio existente en
+    // ese estado — sin una pantalla de "pendiente" propia y desactualizada.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: businessKeys.mine })
+      navigate('/')
+    },
     onError: (error) => toast.error(getProblemDetailsMessage(error, t('register.errors.generic'))),
   })
 

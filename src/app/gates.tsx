@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Card } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
@@ -7,6 +8,7 @@ import { StatusBadge } from '@/shared/components/ui/status-badge'
 import { SignOutSection } from '@/features/settings/sign-out-section'
 import { useIdentityClaims } from '@/shared/hooks/use-identity-claims'
 import { useToast } from '@/shared/hooks/use-toast'
+import { useBackendCapabilities } from '@/shared/lib/backend-capabilities'
 import { useMyBusiness, useSubmitLegalDocument } from '@/features/business/queries'
 import { UPLOAD_LIMITS, validateUploadFile } from '@/shared/lib/upload-limits'
 import type { MyBusiness } from '@/shared/schemas/business'
@@ -48,14 +50,18 @@ function FullPageGate({ title, children }: { title: string; children?: ReactNode
 }
 
 /**
- * Explorador autenticado sin negocio propio (`/business/mine` → `[]`). El
- * alta autogestionada ("Registrar mi negocio", capability `registration`)
- * es PR10 — acá solo se informa el estado con el email de sesión
- * (`useIdentityClaims()`, PR2) y se ofrece cerrar sesión.
+ * Explorador autenticado sin negocio propio (`/business/mine` → `[]`). Se
+ * informa el estado con el email de sesión (`useIdentityClaims()`, PR2) y,
+ * solo cuando la capability `registration` está encendida (modo mock, #212:
+ * el backend real todavía no tiene el alta autogestionada), se ofrece el CTA
+ * primario hacia `/registro` (`RegistrationRoute`, PR10b) además de cerrar
+ * sesión.
  */
 export function NoBusinessGate() {
   const { t } = useTranslation('business')
   const claims = useIdentityClaims()
+  const capabilities = useBackendCapabilities()
+  const navigate = useNavigate()
 
   return (
     <FullPageGate title={t('profile.errors.noBusiness')}>
@@ -63,6 +69,11 @@ export function NoBusinessGate() {
         <p className="font-sans text-xs text-muted">
           {t('gate.sessionEmail', { email: claims.email })}
         </p>
+      )}
+      {capabilities.registration && (
+        <Button variant="primary" onClick={() => navigate('/registro')}>
+          {t('gate.registerCta')}
+        </Button>
       )}
     </FullPageGate>
   )

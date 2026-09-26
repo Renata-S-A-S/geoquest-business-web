@@ -21,6 +21,7 @@
       "title": "Estamos revisando tu negocio"
     },
     "sessionEmail": "Iniciaste sesión como {{email}}",
+    "registerCta": "Registrar mi negocio",
     "resend": {
       "cta": "Reenviar documento",
       "uploading": "Subiendo…",

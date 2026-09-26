@@ -14,6 +14,11 @@ import {
   SEED_BUSINESS_STAFF,
   SEED_BUSINESS_STAFF_USERNAME,
 } from '@/shared/mocks/seed'
+import {
+  BackendCapabilitiesProvider,
+  resolveBackendCapabilities,
+  type BackendCapabilities,
+} from '@/shared/lib/backend-capabilities'
 import { BusinessGateway } from './business-gateway'
 
 /** Misma semilla que `settings-page.dom.test.tsx` — `NoBusinessGate` necesita claims reales. */
@@ -32,18 +37,21 @@ function signIn() {
 }
 
 function renderGateway(
-  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  capabilities?: BackendCapabilities
 ) {
   signIn()
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <Routes>
-          <Route element={<BusinessGateway />}>
-            <Route path="/" element={<div>contenido protegido</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
+      <BackendCapabilitiesProvider value={capabilities}>
+        <MemoryRouter>
+          <Routes>
+            <Route element={<BusinessGateway />}>
+              <Route path="/" element={<div>contenido protegido</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </BackendCapabilitiesProvider>
     </QueryClientProvider>
   )
 }
@@ -63,9 +71,9 @@ describe('BusinessGateway', () => {
     }
   )
 
-  it('renderiza NoBusinessGate con el email de sesión cuando /business/mine devuelve [], sin AppShell', async () => {
+  it('renderiza NoBusinessGate con el email de sesión y el CTA de registro (capability on) cuando /business/mine devuelve [], sin AppShell', async () => {
     setMockBusiness('none')
-    renderGateway()
+    renderGateway(undefined, resolveBackendCapabilities('mock'))
 
     const heading = await screen.findByRole('heading', {
       name: 'No encontramos un negocio asociado a tu cuenta.',
@@ -74,7 +82,18 @@ describe('BusinessGateway', () => {
     expect(
       screen.getByText(`Iniciaste sesión como ${SEED_BUSINESS_STAFF.email}`)
     ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar mi negocio' })).toBeInTheDocument()
     expect(screen.queryByText('contenido protegido')).not.toBeInTheDocument()
+  })
+
+  it('oculta el CTA de registro en NoBusinessGate cuando la capability registration está apagada (modo real)', async () => {
+    setMockBusiness('none')
+    renderGateway(undefined, resolveBackendCapabilities('real'))
+
+    await screen.findByRole('heading', {
+      name: 'No encontramos un negocio asociado a tu cuenta.',
+    })
+    expect(screen.queryByRole('button', { name: 'Registrar mi negocio' })).not.toBeInTheDocument()
   })
 
   it('renderiza el gate PendingVerification con acción de refresh, sin AppShell', async () => {

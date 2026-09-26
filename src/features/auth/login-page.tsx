@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useForm, type FieldError } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { loginInputSchema, type LoginInput } from '@/shared/schemas/auth'
@@ -123,15 +123,6 @@ export function LoginPage() {
             {mutation.isPending ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
-
-        {/* Sin esto `/registro` sería inalcanzable navegando: es la única
-            entrada al alta de un negocio nuevo (#74). */}
-        <p className="mt-4 text-center font-sans text-sm text-muted">
-          {t('login.noAccount')}{' '}
-          <Link to="/registro" className="font-bold text-teal hover:underline">
-            {t('login.goToRegister')}
-          </Link>
-        </p>
       </div>
     </div>
   )
