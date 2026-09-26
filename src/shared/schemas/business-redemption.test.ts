@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createQrTokenFormSchema,
+  isQrToken,
   lookupRedemptionInputSchema,
   redemptionErrorKey,
   redemptionNotRedeemableReason,
@@ -103,6 +104,33 @@ describe('createQrTokenFormSchema', () => {
     const result = createQrTokenFormSchema((key) => `es:${key}`).safeParse({ qrToken: 'x' })
 
     expect(result.error?.issues[0]?.message).toBe('es:entry.errors.format')
+  })
+})
+
+/**
+ * `isQrToken` es la MISMA regla que `createQrTokenFormSchema` aplica al
+ * pegado manual (issue #44), reutilizada por el escaneo con cámara
+ * (`qr-camera-scanner.ts`) para no duplicar el regex en dos lugares que se
+ * puedan desincronizar.
+ */
+describe('isQrToken', () => {
+  it('acepta un token con la forma que produce el backend', () => {
+    expect(isQrToken(VALID_TOKEN)).toBe(true)
+  })
+
+  it('recorta los espacios y saltos que arrastra el pegado', () => {
+    expect(isQrToken(`  ${VALID_TOKEN}\n`)).toBe(true)
+  })
+
+  it.each([
+    ['vacío', ''],
+    ['muy corto', 'AAAA='],
+    ['sin el relleno final', 'A'.repeat(44)],
+    ['un caracter de más', `${'A'.repeat(44)}=`],
+    ['con un caracter fuera del alfabeto base64', `${'A'.repeat(42)}$=`],
+    ['en la variante url-safe que el backend no produce', `${'-'.repeat(43)}=`],
+  ])('rechaza un valor %s', (_caso, value) => {
+    expect(isQrToken(value)).toBe(false)
   })
 })
 

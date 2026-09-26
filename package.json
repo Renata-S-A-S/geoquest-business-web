@@ -27,6 +27,7 @@
     "i18next": "^24.2.0",
     "i18next-browser-languagedetector": "^8.0.2",
     "mapbox-gl": "^3.31.0",
+    "qr-scanner": "^1.4.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",

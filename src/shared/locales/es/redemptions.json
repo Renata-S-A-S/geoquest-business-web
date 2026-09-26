@@ -13,6 +13,19 @@
       "required": "Pegá el código del QR para continuar.",
       "format": "Ese código no tiene el formato de un QR de GeoQuest. Son exactamente 44 caracteres y termina en «=».",
       "generic": "No pudimos buscar este código. Probá de nuevo."
+    },
+    "scan": {
+      "button": "Escanear con cámara",
+      "modalTitle": "Escaneá el código del cliente",
+      "instructions": "Apuntá la cámara al código QR que te muestra el cliente en su app.",
+      "cancel": "Cancelar",
+      "invalidQr": "Este QR no es un código de canje de GeoQuest. Probá con otro o pegá el código a mano.",
+      "errors": {
+        "permissionDenied": "No pudimos acceder a la cámara. Revisá los permisos del navegador e intentá de nuevo, o pegá el código a mano.",
+        "noCamera": "No encontramos ninguna cámara en este dispositivo. Pegá el código a mano.",
+        "insecureContext": "El escaneo con cámara solo funciona en una conexión segura (HTTPS) o en localhost. Pegá el código a mano.",
+        "generic": "No pudimos usar la cámara. Pegá el código a mano."
+      }
     }
   },
   "preview": {

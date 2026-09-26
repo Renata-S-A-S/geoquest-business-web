@@ -13,6 +13,19 @@
       "required": "Paste the QR code to continue.",
       "format": "That code is not shaped like a GeoQuest QR. It is exactly 44 characters and ends with \"=\".",
       "generic": "We could not look up this code. Please try again."
+    },
+    "scan": {
+      "button": "Scan with camera",
+      "modalTitle": "Scan the customer's code",
+      "instructions": "Point the camera at the QR code shown in the customer's app.",
+      "cancel": "Cancel",
+      "invalidQr": "This QR is not a GeoQuest redemption code. Try another one or paste the code by hand.",
+      "errors": {
+        "permissionDenied": "We could not access the camera. Check your browser permissions and try again, or paste the code by hand.",
+        "noCamera": "We could not find a camera on this device. Paste the code by hand.",
+        "insecureContext": "Camera scanning only works over a secure connection (HTTPS) or on localhost. Paste the code by hand.",
+        "generic": "We could not use the camera. Paste the code by hand."
+      }
     }
   },
   "preview": {
