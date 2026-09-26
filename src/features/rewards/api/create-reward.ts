@@ -24,12 +24,10 @@ export type CreateRewardFormInput = Omit<CreateBusinessRewardInput, 'menuItemId'
  * **eliminada** por los PRs #195–#201 sin alias: la creación estaba rota
  * contra el backend real.
  *
- * ⚠️ En el backend real este endpoint crea la recompensa directamente en
- * `Published` (su handler se llama `PublishAsync`). El mock la crea en
- * `Draft` a propósito, por la decisión de producto de Derek de mantener el
- * borrador previo del flujo B-03. Esa divergencia es DELIBERADA y anterior a
- * esta migración; acá solo se corrige el transporte, no se revierte el
- * producto. Registrada en `geoquest#191`.
+ * ✅ Publish-on-create (#204): este endpoint crea la recompensa directamente
+ * en `Published` (su handler se llama `PublishAsync`), y el mock hace lo
+ * mismo. La decisión previa de mantener un borrador intermedio se revirtió;
+ * no hay ningún endpoint de publicación aparte.
  *
  * `menuItemId` se envía siempre `null`, que el backend acepta
  * explícitamente ("publish w/o menuItemId succeeds").

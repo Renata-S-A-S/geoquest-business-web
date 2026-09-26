@@ -31,7 +31,7 @@ function typeIn(label: string, value: string) {
 }
 
 function submit() {
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Publicar recompensa' }))
 }
 
 function fillRequired() {
@@ -41,15 +41,16 @@ function fillRequired() {
   typeIn('Valor estimado (COP)', '15000')
 }
 
-/** Captura el body del POST para inspeccionarlo. */
+/** Captura el body del POST y el id que el mock inventa, para inspeccionarlos. */
 function captureCreate() {
-  const captured: { body?: Record<string, unknown> } = {}
+  const captured: { body?: Record<string, unknown>; rewardId?: string } = {}
   server.use(
     http.post(
       `${API_BASE_URL}/portal/businesses/${SEED_BUSINESS.id}/rewards`,
       async ({ request }) => {
         captured.body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ rewardId: crypto.randomUUID() }, { status: 201 })
+        captured.rewardId = crypto.randomUUID()
+        return HttpResponse.json({ rewardId: captured.rewardId }, { status: 201 })
       }
     )
   )
@@ -85,13 +86,17 @@ describe('RewardForm', () => {
     expect(screen.queryByLabelText(/men[úu]/i)).not.toBeInTheDocument()
   })
 
-  it('dice que se guarda como borrador y que hace falta una imagen para publicar', () => {
+  /**
+   * Publish-on-create (real-backend-readiness #204): el backend crea la
+   * recompensa directamente en `Published`, sin un paso de borrador
+   * intermedio. El CTA lo dice y no queda ningún rastro de la copia de
+   * borrador que citaba un flujo que el backend nunca implementó.
+   */
+  it('ofrece publicar directamente, sin ningún rastro de la copia de borrador', () => {
     renderRewardForm()
 
-    expect(screen.getByRole('button', { name: 'Guardar borrador' })).toBeInTheDocument()
-    expect(
-      screen.getByText(/Vas a poder publicarla después de subirle una imagen/)
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publicar recompensa' })).toBeInTheDocument()
+    expect(screen.queryByText(/borrador/i)).not.toBeInTheDocument()
   })
 
   it('exige título, descripción, costo y valor', async () => {
@@ -205,14 +210,22 @@ describe('RewardForm', () => {
     expect(screen.getByRole('option', { name: SEED_PLACES[0].name })).toBeInTheDocument()
   })
 
-  it('navega al listado en éxito', async () => {
-    captureCreate()
+  /**
+   * Publish-on-create (real-backend-readiness #204): tras publicar, el
+   * dueño va directo al detalle de SU recompensa recién creada, no a la
+   * lista genérica — es donde puede subirle una imagen a continuación.
+   */
+  it('navega al detalle de la recompensa recién publicada, marcando que acaba de publicarla', async () => {
+    const captured = captureCreate()
     renderRewardForm()
 
     fillRequired()
     submit()
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/recompensas'))
+    await waitFor(() => expect(captured.rewardId).toBeDefined())
+    expect(navigate).toHaveBeenCalledWith(`/recompensas/${captured.rewardId}`, {
+      state: { justPublished: true },
+    })
   })
 
   it('muestra el error del backend cuando el alta falla', async () => {
