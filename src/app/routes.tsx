@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { AppShell } from './layout/app-shell'
 import { ProtectedRoute } from './protected-route'
+import { BusinessGateway } from './business-gateway'
 import { LoginPage } from '@/features/auth/login-page'
 import { RegisterPage } from '@/features/onboarding/register-page'
 import { PendingStatusPage } from '@/features/onboarding/pending-page'
@@ -54,7 +54,12 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        element: <AppShell />,
+        // `BusinessGateway` (real-backend-readiness 7a/15) ocupa este slot en
+        // vez de `AppShell` directo: lee `/business/mine` una vez y decide
+        // entre un gate de callejón sin salida (sin negocio, en verificación,
+        // no aprobado) o `<AppShell />` (que sigue siendo quien renderiza
+        // `<Outlet />` para las rutas hijas, sin cambios acá abajo).
+        element: <BusinessGateway />,
         children: [
           { path: '/', element: <Navigate to="/analytics" replace /> },
           /*
